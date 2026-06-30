@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: civichero-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: civichero
+      MYSQL_USER: civichero
+      MYSQL_PASSWORD: civichero
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - civichero-network
+
+  redis:
+    image: redis:7
+    container_name: civichero-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - civichero-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: civichero-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - civichero-network
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: civichero-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - civichero-network
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  civichero-network:
+    driver: bridge

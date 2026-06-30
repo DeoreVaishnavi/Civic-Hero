@@ -92,11 +92,6 @@ C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\CivicHer
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\CivicHero.Backend.sourcelink.json
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets.build.json
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets.development.json
-C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets\msbuild.CivicHero.Backend.Microsoft.AspNetCore.StaticWebAssets.props
-C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets\msbuild.build.CivicHero.Backend.props
-C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.CivicHero.Backend.props
-C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.CivicHero.Backend.props
-C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets.pack.json
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\scopedcss\bundle\CivicHero.Backend.styles.css
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\CivicHer.9F6586BA.Up2Date
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\CivicHero.Backend.dll
@@ -104,3 +99,12 @@ C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\refint\C
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\CivicHero.Backend.pdb
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\CivicHero.Backend.genruntimeconfig.cache
 C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\ref\CivicHero.Backend.dll
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\bin\Debug\net8.0\CivicHero.Backend.staticwebassets.endpoints.json
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\rjimswa.dswa.cache.json
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets.build.json.cache
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets.build.endpoints.json
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\swae.build.ex.cache
+C:\Project\CivicHeroSolution\backend\CivicHero.Backend\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

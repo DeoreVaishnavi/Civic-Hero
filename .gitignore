@@ -1,1 +1,7 @@
 /frontend/node_modules
+
+# Visual Studio / build output
+.vs/
+**/bin/
+**/obj/
+*.user

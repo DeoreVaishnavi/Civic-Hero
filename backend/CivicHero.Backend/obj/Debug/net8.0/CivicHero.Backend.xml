@@ -219,6 +219,16 @@
             Initializes a new instance of the <see cref="T:CivicHero.Backend.Core.Exceptions.DomainException"/> class with a message and inner exception.
             </summary>
         </member>
+        <member name="T:CivicHero.Backend.Infrastructure.Extensions.LoggingExtensions">
+            <summary>
+            Provides extension methods for configuring Serilog logging.
+            </summary>
+        </member>
+        <member name="M:CivicHero.Backend.Infrastructure.Extensions.LoggingExtensions.AddApplicationLogging(Microsoft.AspNetCore.Builder.WebApplicationBuilder)">
+            <summary>
+            Configures Serilog for the application host.
+            </summary>
+        </member>
         <member name="T:CivicHero.Backend.Infrastructure.Extensions.SwaggerExtensions">
             <summary>
             Extension methods for configuring Swagger/OpenAPI.

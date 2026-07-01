@@ -2,7 +2,11 @@ namespace CivicHero.Backend.Infrastructure.Configurations;
 
 public sealed class DatabaseOptions
 {
-    public const string SectionName = "ConnectionStrings";
+    public const string SectionName = "Database";
 
-    public string DefaultConnection { get; set; } = string.Empty;
+    public int CommandTimeout { get; set; }
+
+    public bool EnableSensitiveDataLogging { get; set; }
+
+    public bool EnableDetailedErrors { get; set; }
 }

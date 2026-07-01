@@ -1,5 +1,6 @@
 using CivicHero.Backend.Infrastructure.Configurations;
 using CivicHero.Backend.Infrastructure.Data;
+using CivicHero.Backend.Infrastructure.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,20 +8,23 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CivicHero.Backend.Infrastructure.Extensions;
 
 /// <summary>
-/// Registers infrastructure services for the application.
+/// Provides extension methods for registering infrastructure services.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers all infrastructure dependencies.
+    /// Registers all infrastructure services required by the application.
     /// </summary>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // -------------------------
+        // ------------------------------------------------------------
         // Strongly Typed Options
-        // -------------------------
+        // ------------------------------------------------------------
+
+        services.Configure<DatabaseOptions>(
+            configuration.GetSection(DatabaseOptions.SectionName));
 
         services.Configure<JwtOptions>(
             configuration.GetSection(JwtOptions.SectionName));
@@ -31,25 +35,44 @@ public static class ServiceCollectionExtensions
         services.Configure<MapboxOptions>(
             configuration.GetSection(MapboxOptions.SectionName));
 
-        // -------------------------
-        // Database
-        // -------------------------
+       // ------------------------------------------------------------
+// Database
+// ------------------------------------------------------------
 
-        var connectionString =
-            configuration.GetConnectionString("DefaultConnection");
+var databaseOptions = configuration
+    .GetSection(DatabaseOptions.SectionName)
+    .Get<DatabaseOptions>();
 
-        if (string.IsNullOrWhiteSpace(connectionString))
+ArgumentNullException.ThrowIfNull(databaseOptions);
+
+var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+
+services.AddDbContext<CivicDbContext>(options =>
+{
+    options.UseMySql(
+        connectionString,
+        ServerVersion.AutoDetect(connectionString),
+        mySqlOptions =>
         {
-            throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' was not found.");
-        }
-
-        services.AddDbContext<CivicDbContext>(options =>
-        {
-            options.UseMySql(
-                connectionString,
-                ServerVersion.AutoDetect(connectionString));
+            mySqlOptions.CommandTimeout(databaseOptions.CommandTimeout);
         });
+
+    options.EnableSensitiveDataLogging(
+        databaseOptions.EnableSensitiveDataLogging);
+
+    options.EnableDetailedErrors(
+        databaseOptions.EnableDetailedErrors);
+});
+        // ------------------------------------------------------------
+        // Health Checks
+        // ------------------------------------------------------------
+
+        services
+            .AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("database")
+            .AddCheck<AiHealthCheck>("ai");
 
         return services;
     }

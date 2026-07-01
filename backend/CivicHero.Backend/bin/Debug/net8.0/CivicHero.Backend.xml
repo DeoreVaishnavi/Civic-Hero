@@ -243,12 +243,12 @@
         </member>
         <member name="T:CivicHero.Backend.Infrastructure.Extensions.ServiceCollectionExtensions">
             <summary>
-            Registers infrastructure services for the application.
+            Provides extension methods for registering infrastructure services.
             </summary>
         </member>
         <member name="M:CivicHero.Backend.Infrastructure.Extensions.ServiceCollectionExtensions.AddInfrastructure(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
             <summary>
-            Registers all infrastructure dependencies.
+            Registers all infrastructure services required by the application.
             </summary>
         </member>
         <member name="T:CivicHero.Backend.Infrastructure.Data.CivicDbContext">

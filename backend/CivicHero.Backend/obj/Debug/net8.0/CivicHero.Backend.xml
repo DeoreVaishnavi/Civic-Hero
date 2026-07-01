@@ -275,5 +275,10 @@
             Model builder used to configure entity mappings.
             </param>
         </member>
+        <member name="T:CivicHero.Backend.Infrastructure.HealthChecks.DatabaseHealthCheck">
+            <summary>
+            Checks database connectivity.
+            </summary>
+        </member>
     </members>
 </doc>

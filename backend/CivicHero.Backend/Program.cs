@@ -1,20 +1,12 @@
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using CivicHero.Backend.Infrastructure.Extensions;
 using CivicHero.Backend.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
 
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(new ConfigurationBuilder()
-        .AddJsonFile("appsettings.json")
-        .AddJsonFile("appsettings.Development.json", optional: true)
-        .AddEnvironmentVariables()
-        .Build())
-    .CreateLogger();
-
 try
 {
-    Log.Information("Starting CivicHero API...");
-
     var builder = WebApplication.CreateBuilder(args);
 
     // ------------------------------------------------------------
@@ -36,10 +28,29 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
 
     // ------------------------------------------------------------
+    // Rate Limiting
+    // ------------------------------------------------------------
+
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.AddFixedWindowLimiter("Default", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 100;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+    });
+
+    // ------------------------------------------------------------
     // Build
     // ------------------------------------------------------------
 
     var app = builder.Build();
+
+    Log.Information("Starting CivicHero API...");
 
     // ------------------------------------------------------------
     // Swagger
@@ -62,7 +73,7 @@ try
     }
 
     // ------------------------------------------------------------
-    // Custom Middleware Pipeline
+    // Custom Middleware
     // ------------------------------------------------------------
 
     app.UseMiddleware<CorrelationIdMiddleware>();
@@ -70,6 +81,16 @@ try
     app.UseMiddleware<RequestLoggingMiddleware>();
 
     app.UseMiddleware<GlobalExceptionMiddleware>();
+
+    // ------------------------------------------------------------
+    // Built-in Rate Limiter
+    // ------------------------------------------------------------
+
+    app.UseRateLimiter();
+
+    // ------------------------------------------------------------
+    // Optional Project-Specific Rate Limiting Middleware
+    // ------------------------------------------------------------
 
     app.UseMiddleware<RateLimitingMiddleware>();
 

@@ -1,5 +1,5 @@
-namespace CivicHero.Backend.Core.Enums;
-
+using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Enums;
 /// <summary>
 /// Defines all roles available in the CivicHero system.
 /// </summary>

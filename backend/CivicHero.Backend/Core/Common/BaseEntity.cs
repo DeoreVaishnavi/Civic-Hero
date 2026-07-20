@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace CivicHero.Backend.Core.Common;
 
 /// <summary>
@@ -7,13 +9,27 @@ namespace CivicHero.Backend.Core.Common;
 public abstract class BaseEntity
 {
     /// <summary>
-    /// Gets or sets the unique identifier of the entity.
+    /// Stores all domain events raised by the entity.
+    /// This collection is not persisted to the database.
+    /// </summary>
+    private readonly List<DomainEvent> _domainEvents = new();
+
+    /// <summary>
+    /// Gets the unique identifier of the entity.
     /// </summary>
     public Guid Id { get; protected set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BaseEntity"/> class.
-    /// A new Guid is generated automatically.
+    /// Gets all domain events raised by this entity.
+    /// EF Core must ignore this property because
+    /// domain events are part of domain logic, not persistence.
+    /// </summary>
+    [NotMapped]
+    public IReadOnlyCollection<DomainEvent> DomainEvents =>
+        _domainEvents.AsReadOnly();
+
+    /// <summary>
+    /// Initializes a new instance of the entity.
     /// </summary>
     protected BaseEntity()
     {
@@ -21,10 +37,35 @@ public abstract class BaseEntity
     }
 
     /// <summary>
-    /// Determines whether two entities are equal.
-    /// Two entities are equal when they have the same Id
-    /// and belong to the same concrete type.
+    /// Adds a domain event.
     /// </summary>
+    /// <param name="domainEvent">The domain event.</param>
+    protected void AddDomainEvent(DomainEvent domainEvent)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        _domainEvents.Add(domainEvent);
+    }
+
+    /// <summary>
+    /// Removes a domain event.
+    /// </summary>
+    /// <param name="domainEvent">The domain event.</param>
+    protected void RemoveDomainEvent(DomainEvent domainEvent)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+
+        _domainEvents.Remove(domainEvent);
+    }
+
+    /// <summary>
+    /// Clears all domain events.
+    /// </summary>
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
+    }
+
     public override bool Equals(object? obj)
     {
         if (obj is not BaseEntity other)
@@ -37,9 +78,6 @@ public abstract class BaseEntity
                && Id == other.Id;
     }
 
-    /// <summary>
-    /// Returns the hash code for the entity.
-    /// </summary>
     public override int GetHashCode()
     {
         return HashCode.Combine(GetType(), Id);

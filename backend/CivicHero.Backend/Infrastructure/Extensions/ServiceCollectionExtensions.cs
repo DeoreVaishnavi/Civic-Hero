@@ -35,21 +35,22 @@ public static class ServiceCollectionExtensions
         services.Configure<MapboxOptions>(
             configuration.GetSection(MapboxOptions.SectionName));
 
-       // ------------------------------------------------------------
-// Database
-// ------------------------------------------------------------
+        // ------------------------------------------------------------
+        // Database
+        // ------------------------------------------------------------
 
-var databaseOptions = configuration
-    .GetSection(DatabaseOptions.SectionName)
-    .Get<DatabaseOptions>();
+        var databaseOptions = configuration
+            .GetSection(DatabaseOptions.SectionName)
+            .Get<DatabaseOptions>();
 
-ArgumentNullException.ThrowIfNull(databaseOptions);
+        ArgumentNullException.ThrowIfNull(databaseOptions);
 
-var connectionString = configuration.GetConnectionString("DefaultConnection");
+        var connectionString =
+            configuration.GetConnectionString("DefaultConnection");
 
-ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
-services.AddDbContext<CivicDbContext>(options =>
+       services.AddDbContext<CivicDbContext>(options =>
 {
     options.UseMySql(
         connectionString,
@@ -65,6 +66,7 @@ services.AddDbContext<CivicDbContext>(options =>
     options.EnableDetailedErrors(
         databaseOptions.EnableDetailedErrors);
 });
+
         // ------------------------------------------------------------
         // Health Checks
         // ------------------------------------------------------------

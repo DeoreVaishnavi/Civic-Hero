@@ -1,23 +1,23 @@
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using CivicHero.Backend.Infrastructure.Extensions;
 using CivicHero.Backend.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    // ------------------------------------------------------------
+    // ============================================================
     // Logging
-    // ------------------------------------------------------------
+    // ============================================================
 
     builder.AddApplicationLogging();
 
-    // ------------------------------------------------------------
-    // Services
-    // ------------------------------------------------------------
+    // ============================================================
+    // Core Services
+    // ============================================================
 
     builder.Services.AddControllers();
 
@@ -25,11 +25,38 @@ try
 
     builder.Services.AddSwaggerDocumentation();
 
+    builder.Services.AddHttpContextAccessor();
+
+    builder.Services.AddHealthChecks();
+
+    // ============================================================
+    // CORS
+    // ============================================================
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("Default", policy =>
+        {
+            policy
+                .WithOrigins(
+                    builder.Configuration
+                        .GetSection("Cors:AllowedOrigins")
+                        .Get<string[]>() ?? Array.Empty<string>())
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
+    });
+
+    // ============================================================
+    // Infrastructure
+    // ============================================================
+
     builder.Services.AddInfrastructure(builder.Configuration);
 
-    // ------------------------------------------------------------
+    // ============================================================
     // Rate Limiting
-    // ------------------------------------------------------------
+    // ============================================================
 
     builder.Services.AddRateLimiter(options =>
     {
@@ -38,23 +65,30 @@ try
         options.AddFixedWindowLimiter("Default", limiterOptions =>
         {
             limiterOptions.PermitLimit = 100;
+
             limiterOptions.Window = TimeSpan.FromMinutes(1);
-            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+
+            limiterOptions.QueueProcessingOrder =
+                QueueProcessingOrder.OldestFirst;
+
             limiterOptions.QueueLimit = 0;
         });
     });
 
-    // ------------------------------------------------------------
+    // ============================================================
     // Build
-    // ------------------------------------------------------------
+    // ============================================================
 
     var app = builder.Build();
 
+    Log.Information("========================================");
     Log.Information("Starting CivicHero API...");
+    Log.Information("Environment: {Environment}", app.Environment.EnvironmentName);
+    Log.Information("========================================");
 
-    // ------------------------------------------------------------
+    // ============================================================
     // Swagger
-    // ------------------------------------------------------------
+    // ============================================================
 
     if (app.Environment.IsDevelopment())
     {
@@ -71,10 +105,14 @@ try
             options.RoutePrefix = "swagger";
         });
     }
+    else
+    {
+        app.UseHsts();
+    }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // Custom Middleware
-    // ------------------------------------------------------------
+    // ============================================================
 
     app.UseMiddleware<CorrelationIdMiddleware>();
 
@@ -82,29 +120,36 @@ try
 
     app.UseMiddleware<GlobalExceptionMiddleware>();
 
-    // ------------------------------------------------------------
+    // ============================================================
     // Built-in Rate Limiter
-    // ------------------------------------------------------------
+    // ============================================================
 
     app.UseRateLimiter();
 
-    // ------------------------------------------------------------
-    // Optional Project-Specific Rate Limiting Middleware
-    // ------------------------------------------------------------
+    // ============================================================
+    // Custom Rate Limiter
+    // ============================================================
 
     app.UseMiddleware<RateLimitingMiddleware>();
 
-    // ------------------------------------------------------------
+    // ============================================================
     // ASP.NET Core Middleware
-    // ------------------------------------------------------------
+    // ============================================================
 
     app.UseHttpsRedirection();
 
-    app.UseAuthorization();
+    app.UseCors("Default");
 
     // ------------------------------------------------------------
-    // Endpoints
+    // Authentication (Coming in JWT Module)
     // ------------------------------------------------------------
+    // app.UseAuthentication();
+
+    app.UseAuthorization();
+
+    // ============================================================
+    // Endpoints
+    // ============================================================
 
     app.MapControllers();
 
@@ -113,7 +158,15 @@ try
         AllowCachingResponses = false
     });
 
+    // ============================================================
+    // Startup Completed
+    // ============================================================
+
+    Log.Information("========================================");
     Log.Information("CivicHero API started successfully.");
+    Log.Information("Swagger : /swagger");
+    Log.Information("Health  : /health");
+    Log.Information("========================================");
 
     app.Run();
 }

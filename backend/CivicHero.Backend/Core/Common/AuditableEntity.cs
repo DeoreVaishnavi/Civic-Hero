@@ -1,10 +1,15 @@
+using System.Collections.ObjectModel;
+
 namespace CivicHero.Backend.Core.Common;
 
 /// <summary>
-/// Base class for entities that require audit information.
+/// Base class for entities that require audit information
+/// and support domain events.
 /// </summary>
 public abstract class AuditableEntity : BaseEntity
 {
+    
+
     /// <summary>
     /// Gets or sets the UTC date and time when the entity was created.
     /// </summary>
@@ -25,10 +30,10 @@ public abstract class AuditableEntity : BaseEntity
     /// </summary>
     public Guid? LastModifiedBy { get; protected set; }
 
+
     /// <summary>
     /// Marks the entity as created.
     /// </summary>
-    /// <param name="userId">The identifier of the creating user.</param>
     public void MarkAsCreated(Guid? userId)
     {
         CreatedOnUtc = DateTime.UtcNow;
@@ -38,7 +43,6 @@ public abstract class AuditableEntity : BaseEntity
     /// <summary>
     /// Marks the entity as modified.
     /// </summary>
-    /// <param name="userId">The identifier of the modifying user.</param>
     public void MarkAsModified(Guid? userId)
     {
         LastModifiedOnUtc = DateTime.UtcNow;

@@ -1,58 +1,58 @@
+using CivicHero.Backend.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
 namespace CivicHero.Backend.Infrastructure.Data;
 
-public sealed class CivicDbContextFactory : IDesignTimeDbContextFactory<CivicDbContext>
+/// <summary>
+/// Design-time factory used by Entity Framework Core
+/// to create <see cref="CivicDbContext"/> instances for
+/// migrations and database updates.
+/// </summary>
+public sealed class CivicDbContextFactory
+    : IDesignTimeDbContextFactory<CivicDbContext>
 {
+    /// <summary>
+    /// Creates a new <see cref="CivicDbContext"/> instance.
+    /// </summary>
     public CivicDbContext CreateDbContext(string[] args)
     {
-        var projectPath = GetProjectPath();
+        // Resolve the project directory regardless of where the command is run.
+        string basePath = Directory.GetCurrentDirectory();
 
-        var environment =
-            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
-            ?? "Development";
-
-        IConfigurationRoot configuration = new ConfigurationBuilder()
-            .SetBasePath(projectPath)
-            .AddJsonFile("appsettings.json", optional: false)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddEnvironmentVariables()
+        IConfiguration configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile(
+                "appsettings.json",
+                optional: false,
+                reloadOnChange: false)
             .Build();
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
+        string connectionString =
+            configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException(
                 "Connection string 'DefaultConnection' was not found.");
-        }
 
-        var optionsBuilder = new DbContextOptionsBuilder<CivicDbContext>();
-
-        optionsBuilder.UseMySql(
+    DbContextOptions<CivicDbContext> options =
+    new DbContextOptionsBuilder<CivicDbContext>()
+        .UseMySql(
             connectionString,
-            ServerVersion.AutoDetect(connectionString));
+            ServerVersion.AutoDetect(connectionString))
+        .Options;
 
-        return new CivicDbContext(optionsBuilder.Options);
+        return new CivicDbContext(
+            options,
+            new DesignTimeCurrentUserService());
     }
 
-    private static string GetProjectPath()
+    /// <summary>
+    /// Design-time implementation of ICurrentUserService.
+    /// Used only by EF Core migration tools.
+    /// </summary>
+    private sealed class DesignTimeCurrentUserService
+        : ICurrentUserService
     {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-
-        while (directory != null)
-        {
-            if (directory.GetFiles("*.csproj").Any())
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException(
-            "Unable to locate the project directory.");
+        public Guid? UserId => null;
     }
 }

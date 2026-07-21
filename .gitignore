@@ -5,3 +5,6 @@
 **/bin/
 **/obj/
 *.user
+
+# Local development secrets
+backend/appsettings.Development.json

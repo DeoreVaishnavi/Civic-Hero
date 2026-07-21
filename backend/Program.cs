@@ -17,9 +17,9 @@ builder.Services.AddDbContext<CivicHeroDbContext>(options =>
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
     options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    );
+    connectionString,
+    new MySqlServerVersion(new Version(8, 0, 36))
+);
 });
 
 // Repositories
@@ -35,6 +35,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+//test
+Console.WriteLine("ENVIRONMENT:");
+Console.WriteLine(builder.Environment.EnvironmentName);
+
+Console.WriteLine("CONTENT ROOT:");
+Console.WriteLine(builder.Environment.ContentRootPath);
+
+Console.WriteLine("CURRENT DIRECTORY:");
+Console.WriteLine(Directory.GetCurrentDirectory());
 
 app.UseHttpsRedirection();
 

@@ -20,3 +20,4 @@ dist/
 # Environment / secrets
 .env
 .env.*
+appsettings.Development.json

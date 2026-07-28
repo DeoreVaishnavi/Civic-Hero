@@ -1,6 +1,9 @@
-﻿using CivicHero.Backend.Core.DTOs.Users;
-using CivicHero.Backend.Core.Entities;
-using CivicHero.Backend.Infrastructure.Repositories;
+using CitizenHero.Backend.Core.DTOs.Users;
+using CitizenHero.Backend.Core.Entities;
+using CitizenHero.Backend.Core.Enums;
+using CitizenHero.Backend.Core.Interfaces;
+using CitizenHero.Backend.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CivicHero.Backend.Controllers
@@ -9,14 +12,16 @@ namespace CivicHero.Backend.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly UserRepository _userRepository;
+        private readonly IUserRepository _userRepository;
 
-        public UsersController(UserRepository userRepository)
+        public UsersController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
 
+        // GET: api/users
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> getUser()
         {
             var users = await _userRepository.GetAllAsync();
@@ -26,7 +31,7 @@ namespace CivicHero.Backend.Controllers
                 Id = user.Id,
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
-                Role = user.Role.ToString(),
+                Role = user.Role,
                 ReputationPoints = user.ReputationPoints,
                 Email = user.Email,
                 IsActive = user.IsActive,
@@ -34,11 +39,24 @@ namespace CivicHero.Backend.Controllers
             return Ok(userDtos);
         }
 
+        // GET: api/users/5
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> getUserById(int id)
         {
-            var user = await _userRepository.GetByIdAsync(id);
+            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
+            if (userId == 0)
+                return Unauthorized();
 
+            // Users can view their own profile, admins can view any
+            var currentUser = await _userRepository.GetByIdAsync(userId);
+            if (currentUser == null)
+                return Unauthorized();
+
+            if (id != userId && currentUser.Role != Role.Admin)
+                return Forbid(); // Not authorized to view other users
+
+            var user = await _userRepository.GetByIdAsync(id);
             if (user == null)
                 return NotFound();
 
@@ -47,7 +65,7 @@ namespace CivicHero.Backend.Controllers
                 Id = user.Id,
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
-                Role = user.Role.ToString(),
+                Role = user.Role,
                 ReputationPoints = user.ReputationPoints,
                 Email = user.Email,
                 IsActive = user.IsActive,
@@ -55,21 +73,22 @@ namespace CivicHero.Backend.Controllers
             return Ok(userDtos);
         }
 
-        //Post Method
+        // POST: api/users
         [HttpPost]
+        [AllowAnonymous] // Allow registration without authentication; adjust if needed
         public async Task<IActionResult> createUser(CreateUserDto createuserDto)
         {
             var emailExists = await _userRepository.EmailExist(createuserDto.Email);
 
             if (emailExists)
-                return BadRequest("Email Already Exsist");
+                return BadRequest("Email Already Exists");
 
             var user = new User
             {
                 FullName = createuserDto.FullName,
                 Email = createuserDto.Email,
                 PhoneNumber = createuserDto.PhoneNumber,
-                Role = createuserDto.Role.ToString(),
+                Role = createuserDto.Role,
                 // Temporary until Part 2 password hashing is implemented
                 PasswordHash = createuserDto.Password,
                 ReputationPoints = 0,
@@ -84,7 +103,7 @@ namespace CivicHero.Backend.Controllers
                 Id = createdUser.Id,
                 FullName = createdUser.FullName,
                 PhoneNumber = createdUser.PhoneNumber,
-                Role = createdUser.Role.ToString(),
+                Role = createdUser.Role,
                 ReputationPoints = createdUser.ReputationPoints,
                 Email = createdUser.Email,
                 IsActive = createdUser.IsActive,
@@ -93,14 +112,27 @@ namespace CivicHero.Backend.Controllers
             return CreatedAtAction(nameof(getUserById), new { id = userDtos.Id }, userDtos);
         }
 
-        //Put Method 
+        // PUT: api/users/5
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> updateUser(int id, UpdateUserDto updateuserDto)
         {
-            var user = await _userRepository.GetByIdAsync(id);
+            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
+            if (userId == 0)
+                return Unauthorized();
 
+            var currentUser = await _userRepository.GetByIdAsync(userId);
+            if (currentUser == null)
+                return Unauthorized();
+
+            // Users can update their own profile, admins can update any
+            if (id != userId && currentUser.Role != Role.Admin)
+                return Forbid();
+
+            var user = await _userRepository.GetByIdAsync(id);
             if (user == null)
                 return NotFound();
+
             user.FullName = updateuserDto.FullName;
             user.PhoneNumber = updateuserDto.PhoneNumber;
             user.IsActive = updateuserDto.IsActive;
@@ -113,19 +145,22 @@ namespace CivicHero.Backend.Controllers
                 FullName = updatedUser.FullName,
                 Email = updatedUser.Email,
                 PhoneNumber = updatedUser.PhoneNumber,
-                Role = updatedUser.Role.ToString(),
+                Role = updatedUser.Role,
                 ReputationPoints = updatedUser.ReputationPoints,
                 IsActive = updatedUser.IsActive
             };
             return Ok(userDto);
         }
 
+        // DELETE: api/users/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> deleteUser(int id)
         {
             var user = await _userRepository.GetByIdAsync(id);
             if (user == null)
                 return NotFound();
+
             await _userRepository.DeleteAsync(user);
             return NoContent();
         }

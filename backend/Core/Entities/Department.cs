@@ -7,5 +7,6 @@ namespace CivicHero.Backend.Core.Entities
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
     }
 }

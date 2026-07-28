@@ -1,4 +1,6 @@
-﻿namespace CivicHero.Backend.Core.DTOs.Users
+using CivicHero.Backend.Core.Enums;
+
+namespace CivicHero.Backend.Core.DTOs.Users
 {
     public class CreateUserDto
     {
@@ -10,6 +12,6 @@
 
         public string Password { get; set; } = string.Empty;
 
-        public string Role { get; set; } = "Citizen";//temp till enum creation
+        public Role Role { get; set; } = Role.User;
     }
 }

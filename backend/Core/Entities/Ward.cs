@@ -7,5 +7,6 @@
         public string Code { get; set; } = string.Empty;
         public string? BoundaryGeoJson { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+public ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
     }
 }

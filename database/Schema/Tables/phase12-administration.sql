@@ -1,0 +1,3 @@
+-- Informational schema reference. EF Core migration is the source of truth.
+-- New tables: complaint_categories, system_settings, audit_logs.
+-- Apply with: dotnet ef database update --context CivicDbContext

@@ -1,0 +1,30 @@
+name: Integration and Container Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create non-production Compose validation secrets
+        run: |
+          mkdir -p deployment/.secrets
+          printf '%s' 'Server=example;Database=example;Uid=example;Pwd=example;' > deployment/.secrets/rds_connection.txt
+          printf '%s' '12345678901234567890123456789012345678901234567890' > deployment/.secrets/jwt_secret.txt
+          : > deployment/.secrets/aws_access_key.txt
+          : > deployment/.secrets/aws_secret_key.txt
+          : > deployment/.secrets/ai_api_key.txt
+          printf '%s' 'temporary-grafana-password' > deployment/.secrets/grafana_admin_password.txt
+          cp deployment/.env.example deployment/.env.local
+      - name: Validate Compose model
+        run: docker compose --env-file deployment/.env.local -f deployment/docker-compose.yml config --quiet
+      - name: Build backend image
+        run: docker build -f deployment/backend/Dockerfile -t civichero-backend:ci .
+      - name: Build frontend image
+        run: docker build -f deployment/frontend/Dockerfile -t civichero-frontend:ci .

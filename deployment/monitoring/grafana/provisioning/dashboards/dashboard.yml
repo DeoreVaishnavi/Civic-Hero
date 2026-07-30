@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: CivicHero
+    orgId: 1
+    folder: CivicHero
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

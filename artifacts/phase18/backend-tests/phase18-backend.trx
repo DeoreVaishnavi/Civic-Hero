@@ -1,0 +1,229 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="a6198a14-cf4a-4c01-a0b7-1f2886d3ef44" name="vaish@WISH 2026-07-30 07:42:16" runUser="WISH\vaish" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-07-30T07:42:16.9095734+05:30" queuing="2026-07-30T07:42:16.9095740+05:30" start="2026-07-30T07:41:58.7007868+05:30" finish="2026-07-30T07:43:16.9131008+05:30" />
+  <TestSettings name="default" id="263fdf8f-691e-4664-941c-719719351d93">
+    <Deployment runDeploymentRoot="vaish_WISH_2026-07-30_07_42_16" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="62df4fb3-eda9-4035-959d-fff7799e55d1" testId="fbc97145-cde2-17a3-fffb-083738c51f44" testName="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Invalid_email_should_fail_validation(email: &quot;not-an-email&quot;)" computerName="WISH" duration="00:00:00.0010834" startTime="2026-07-30T07:42:16.8308841+05:30" endTime="2026-07-30T07:42:16.8308844+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="62df4fb3-eda9-4035-959d-fff7799e55d1" />
+    <UnitTestResult executionId="26950e34-4050-4d68-bbe4-0bb926f7574b" testId="be9cd125-dcc8-f4e4-2cdb-87636a52abed" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;ALLUPPERCASE123!&quot;)" computerName="WISH" duration="00:00:00.0005930" startTime="2026-07-30T07:42:16.8337658+05:30" endTime="2026-07-30T07:42:16.8337660+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26950e34-4050-4d68-bbe4-0bb926f7574b" />
+    <UnitTestResult executionId="f5e35da7-df5f-4efb-852b-82c5fd407b5c" testId="796a9209-e2c6-91e8-c092-8f86db1a0581" testName="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Invalid_email_should_fail_validation(email: &quot;&quot;)" computerName="WISH" duration="00:00:00.1037156" startTime="2026-07-30T07:42:16.8294885+05:30" endTime="2026-07-30T07:42:16.8294888+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f5e35da7-df5f-4efb-852b-82c5fd407b5c" />
+    <UnitTestResult executionId="58fef2b7-3756-47a8-8c9e-7593e7fed067" testId="9a956c76-42d5-e4c4-dd25-d897c24a94b6" testName="CivicHero.Backend.Tests.Unit.Release.ReleaseEvidenceRulesTests.Release_is_blocked_when_a_required_gate_is_skipped" computerName="WISH" duration="00:00:00.0643936" startTime="2026-07-30T07:42:16.7606560+05:30" endTime="2026-07-30T07:42:16.7606562+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="58fef2b7-3756-47a8-8c9e-7593e7fed067" />
+    <UnitTestResult executionId="9f17b256-6c0a-4aef-bb7f-06355586dec0" testId="3b8726e9-a760-97dd-74d6-032e0546c144" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Password_confirmation_must_match" computerName="WISH" duration="00:00:00.0011356" startTime="2026-07-30T07:42:16.8464787+05:30" endTime="2026-07-30T07:42:16.8464793+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9f17b256-6c0a-4aef-bb7f-06355586dec0" />
+    <UnitTestResult executionId="c6a38555-bb56-4108-b717-6f6d76e6ac27" testId="dc39d9e0-b26b-8860-6503-1b10c8c3c93e" testName="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests.Protected_security_endpoint_should_reject_anonymous_request" computerName="WISH" duration="00:00:00.0283601" startTime="2026-07-30T07:42:18.5405664+05:30" endTime="2026-07-30T07:42:18.5405671+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c6a38555-bb56-4108-b717-6f6d76e6ac27" />
+    <UnitTestResult executionId="9badb3c4-2b2c-47eb-b92e-7fa82726e9f0" testId="7ebe6bb2-4553-e931-ee30-5c5761b2da05" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;weak&quot;)" computerName="WISH" duration="00:00:00.0014337" startTime="2026-07-30T07:42:16.8327310+05:30" endTime="2026-07-30T07:42:16.8327313+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9badb3c4-2b2c-47eb-b92e-7fa82726e9f0" />
+    <UnitTestResult executionId="faa63a92-d3b3-4221-a426-c2f9a55c1ece" testId="0af22fd6-2913-6d3d-2892-4d39d0ba5158" testName="CivicHero.Backend.Tests.Unit.Security.InMemoryRateLimitMonitorTests.Snapshot_should_separate_rejections_by_policy" computerName="WISH" duration="00:00:00.0054932" startTime="2026-07-30T07:42:16.8269713+05:30" endTime="2026-07-30T07:42:16.8269715+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="faa63a92-d3b3-4221-a426-c2f9a55c1ece" />
+    <UnitTestResult executionId="d69ee1cc-6233-446e-a3ab-6f37205b8016" testId="5f9f03d0-7e0b-17ce-40b1-6e2a41f14250" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Strong_registration_request_should_pass" computerName="WISH" duration="00:00:00.0009411" startTime="2026-07-30T07:42:16.8481762+05:30" endTime="2026-07-30T07:42:16.8481764+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d69ee1cc-6233-446e-a3ab-6f37205b8016" />
+    <UnitTestResult executionId="0c9a0ef8-63cb-4d41-a385-284c384ef616" testId="3d5e6cc6-25fd-6d01-dce8-d6c5bc71bbe7" testName="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Empty_password_should_fail_validation" computerName="WISH" duration="00:00:00.0007654" startTime="2026-07-30T07:42:16.8441017+05:30" endTime="2026-07-30T07:42:16.8441019+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0c9a0ef8-63cb-4d41-a385-284c384ef616" />
+    <UnitTestResult executionId="4a575d37-5f0b-4ed5-813c-007841e00875" testId="def8d58a-7a01-6d7a-c625-a875aff8ff77" testName="CivicHero.Backend.Tests.ConfigValidationTests.ValidJwtSecret_IsAccepted" computerName="WISH" duration="00:00:00.0009217" startTime="2026-07-30T07:42:16.7588169+05:30" endTime="2026-07-30T07:42:16.7588172+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4a575d37-5f0b-4ed5-813c-007841e00875" />
+    <UnitTestResult executionId="3ef63f74-31e2-4414-a652-cdf9a30c8c30" testId="e8a0f896-e1a4-3829-ab91-76049c01dfd0" testName="CivicHero.Backend.Tests.Unit.Security.PasswordHasherTests.Malformed_hash_should_be_rejected_without_throwing" computerName="WISH" duration="00:00:00.0060070" startTime="2026-07-30T07:42:20.6964652+05:30" endTime="2026-07-30T07:42:20.6964659+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3ef63f74-31e2-4414-a652-cdf9a30c8c30" />
+    <UnitTestResult executionId="a727a19f-aae1-4530-b9e9-46e8212b09eb" testId="57a430df-7bbc-0a80-02fc-751b1295deb5" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;alllowercase123!&quot;)" computerName="WISH" duration="00:00:00.1034631" startTime="2026-07-30T07:42:16.8279991+05:30" endTime="2026-07-30T07:42:16.8279994+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a727a19f-aae1-4530-b9e9-46e8212b09eb" />
+    <UnitTestResult executionId="da26f8d7-84b0-4fc7-b640-ffdaa755d1a0" testId="03d731f2-93f7-fabb-8543-ce20678588c4" testName="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests.Live_health_endpoint_should_be_healthy_and_include_security_headers" computerName="WISH" duration="00:00:01.8397395" startTime="2026-07-30T07:42:18.5083094+05:30" endTime="2026-07-30T07:42:18.5083100+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="da26f8d7-84b0-4fc7-b640-ffdaa755d1a0" />
+    <UnitTestResult executionId="e1cce72f-98f3-402e-ae0d-43dacedfebcd" testId="7b24eaec-27d7-331d-f0c7-af9fc61d9d07" testName="CivicHero.Backend.Tests.Unit.Security.PasswordHasherTests.Hash_should_not_store_plain_text_and_should_verify" computerName="WISH" duration="00:00:04.0156942" startTime="2026-07-30T07:42:20.6898448+05:30" endTime="2026-07-30T07:42:20.6898455+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e1cce72f-98f3-402e-ae0d-43dacedfebcd" />
+    <UnitTestResult executionId="cf799e1a-6ec2-4165-90fc-b950ee190e8a" testId="8a73b557-0f87-c8a7-4084-b688e4cb78a6" testName="CivicHero.Backend.Tests.Integration.MySqlContainerSmokeTests.MySql_8_container_accepts_a_real_connection" computerName="WISH" duration="00:00:00.5342386" startTime="2026-07-30T07:43:12.9598517+05:30" endTime="2026-07-30T07:43:12.9598522+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cf799e1a-6ec2-4165-90fc-b950ee190e8a" />
+    <UnitTestResult executionId="91afff4b-3a05-4d45-8ef7-804905a384fd" testId="608f81b9-830a-76dc-0f43-564b5cb9cee3" testName="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests.Unknown_endpoint_should_return_not_found" computerName="WISH" duration="00:00:00.0113951" startTime="2026-07-30T07:42:18.5673241+05:30" endTime="2026-07-30T07:42:18.5673247+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91afff4b-3a05-4d45-8ef7-804905a384fd" />
+    <UnitTestResult executionId="196360c4-eb6d-4da0-84fa-9e4e146094b6" testId="a2cad226-cbed-a3f1-8764-45db3086cd08" testName="CivicHero.Backend.Tests.ConfigValidationTests.PlaceholderJwtSecret_IsRejected" computerName="WISH" duration="00:00:00.0530402" startTime="2026-07-30T07:42:16.7356025+05:30" endTime="2026-07-30T07:42:16.7356473+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="196360c4-eb6d-4da0-84fa-9e4e146094b6" />
+    <UnitTestResult executionId="741b363c-9fe2-4615-b5bc-43ea70c9c37e" testId="98b6d70e-315c-2102-93a0-c74ec733a366" testName="CivicHero.Backend.Tests.Unit.Release.ReleaseEvidenceRulesTests.Release_is_approved_only_when_every_required_gate_passes" computerName="WISH" duration="00:00:00.0014539" startTime="2026-07-30T07:42:16.7621758+05:30" endTime="2026-07-30T07:42:16.7621760+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="741b363c-9fe2-4615-b5bc-43ea70c9c37e" />
+    <UnitTestResult executionId="58162684-3d5a-44a5-ac49-42c99b1ccd62" testId="069717c9-4ed2-8995-1c50-2a25db3cb933" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;NoNumber!&quot;)" computerName="WISH" duration="00:00:00.0005748" startTime="2026-07-30T07:42:16.8367445+05:30" endTime="2026-07-30T07:42:16.8367448+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="58162684-3d5a-44a5-ac49-42c99b1ccd62" />
+    <UnitTestResult executionId="23a4f13b-e2d7-4bda-bcc9-34f6efc253e0" testId="33678bb9-d1ac-c0ab-4e28-d9a9c5dd9a8f" testName="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;NoSpecial123&quot;)" computerName="WISH" duration="00:00:00.0007135" startTime="2026-07-30T07:42:16.8448116+05:30" endTime="2026-07-30T07:42:16.8448117+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="23a4f13b-e2d7-4bda-bcc9-34f6efc253e0" />
+    <UnitTestResult executionId="4c2ab2da-e5bb-4834-af62-74648e070e56" testId="c2f81b03-7f33-515e-9e53-375d60268c58" testName="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Valid_credentials_should_pass_validation" computerName="WISH" duration="00:00:00.0014652" startTime="2026-07-30T07:42:16.8350287+05:30" endTime="2026-07-30T07:42:16.8350290+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4c2ab2da-e5bb-4834-af62-74648e070e56" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Invalid_email_should_fail_validation(email: &quot;&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="796a9209-e2c6-91e8-c092-8f86db1a0581">
+      <Execution id="f5e35da7-df5f-4efb-852b-82c5fd407b5c" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests" name="Invalid_email_should_fail_validation" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests.Live_health_endpoint_should_be_healthy_and_include_security_headers" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="03d731f2-93f7-fabb-8543-ce20678588c4">
+      <Execution id="da26f8d7-84b0-4fc7-b640-ffdaa755d1a0" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests" name="Live_health_endpoint_should_be_healthy_and_include_security_headers" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;NoNumber!&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="069717c9-4ed2-8995-1c50-2a25db3cb933">
+      <Execution id="58162684-3d5a-44a5-ac49-42c99b1ccd62" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Weak_password_should_fail" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.ConfigValidationTests.PlaceholderJwtSecret_IsRejected" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="a2cad226-cbed-a3f1-8764-45db3086cd08">
+      <Execution id="196360c4-eb6d-4da0-84fa-9e4e146094b6" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.ConfigValidationTests" name="PlaceholderJwtSecret_IsRejected" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;ALLUPPERCASE123!&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="be9cd125-dcc8-f4e4-2cdb-87636a52abed">
+      <Execution id="26950e34-4050-4d68-bbe4-0bb926f7574b" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Weak_password_should_fail" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Security.PasswordHasherTests.Hash_should_not_store_plain_text_and_should_verify" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="7b24eaec-27d7-331d-f0c7-af9fc61d9d07">
+      <Execution id="e1cce72f-98f3-402e-ae0d-43dacedfebcd" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Security.PasswordHasherTests" name="Hash_should_not_store_plain_text_and_should_verify" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;NoSpecial123&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="33678bb9-d1ac-c0ab-4e28-d9a9c5dd9a8f">
+      <Execution id="23a4f13b-e2d7-4bda-bcc9-34f6efc253e0" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Weak_password_should_fail" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Invalid_email_should_fail_validation(email: &quot;not-an-email&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="fbc97145-cde2-17a3-fffb-083738c51f44">
+      <Execution id="62df4fb3-eda9-4035-959d-fff7799e55d1" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests" name="Invalid_email_should_fail_validation" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;weak&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="7ebe6bb2-4553-e931-ee30-5c5761b2da05">
+      <Execution id="9badb3c4-2b2c-47eb-b92e-7fa82726e9f0" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Weak_password_should_fail" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Release.ReleaseEvidenceRulesTests.Release_is_approved_only_when_every_required_gate_passes" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="98b6d70e-315c-2102-93a0-c74ec733a366">
+      <Execution id="741b363c-9fe2-4615-b5bc-43ea70c9c37e" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Release.ReleaseEvidenceRulesTests" name="Release_is_approved_only_when_every_required_gate_passes" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.ConfigValidationTests.ValidJwtSecret_IsAccepted" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="def8d58a-7a01-6d7a-c625-a875aff8ff77">
+      <Execution id="4a575d37-5f0b-4ed5-813c-007841e00875" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.ConfigValidationTests" name="ValidJwtSecret_IsAccepted" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Release.ReleaseEvidenceRulesTests.Release_is_blocked_when_a_required_gate_is_skipped" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="9a956c76-42d5-e4c4-dd25-d897c24a94b6">
+      <Execution id="58fef2b7-3756-47a8-8c9e-7593e7fed067" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Release.ReleaseEvidenceRulesTests" name="Release_is_blocked_when_a_required_gate_is_skipped" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Empty_password_should_fail_validation" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="3d5e6cc6-25fd-6d01-dce8-d6c5bc71bbe7">
+      <Execution id="0c9a0ef8-63cb-4d41-a385-284c384ef616" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests" name="Empty_password_should_fail_validation" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests.Unknown_endpoint_should_return_not_found" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="608f81b9-830a-76dc-0f43-564b5cb9cee3">
+      <Execution id="91afff4b-3a05-4d45-8ef7-804905a384fd" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests" name="Unknown_endpoint_should_return_not_found" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Integration.MySqlContainerSmokeTests.MySql_8_container_accepts_a_real_connection" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="8a73b557-0f87-c8a7-4084-b688e4cb78a6">
+      <Execution id="cf799e1a-6ec2-4165-90fc-b950ee190e8a" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Integration.MySqlContainerSmokeTests" name="MySql_8_container_accepts_a_real_connection" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests.Valid_credentials_should_pass_validation" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="c2f81b03-7f33-515e-9e53-375d60268c58">
+      <Execution id="4c2ab2da-e5bb-4834-af62-74648e070e56" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.LoginValidatorTests" name="Valid_credentials_should_pass_validation" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Password_confirmation_must_match" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="3b8726e9-a760-97dd-74d6-032e0546c144">
+      <Execution id="9f17b256-6c0a-4aef-bb7f-06355586dec0" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Password_confirmation_must_match" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Weak_password_should_fail(password: &quot;alllowercase123!&quot;)" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="57a430df-7bbc-0a80-02fc-751b1295deb5">
+      <Execution id="a727a19f-aae1-4530-b9e9-46e8212b09eb" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Weak_password_should_fail" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests.Strong_registration_request_should_pass" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="5f9f03d0-7e0b-17ce-40b1-6e2a41f14250">
+      <Execution id="d69ee1cc-6233-446e-a3ab-6f37205b8016" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Validators.RegisterValidatorTests" name="Strong_registration_request_should_pass" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Security.InMemoryRateLimitMonitorTests.Snapshot_should_separate_rejections_by_policy" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="0af22fd6-2913-6d3d-2892-4d39d0ba5158">
+      <Execution id="faa63a92-d3b3-4221-a426-c2f9a55c1ece" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Security.InMemoryRateLimitMonitorTests" name="Snapshot_should_separate_rejections_by_policy" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Unit.Security.PasswordHasherTests.Malformed_hash_should_be_rejected_without_throwing" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="e8a0f896-e1a4-3829-ab91-76049c01dfd0">
+      <Execution id="3ef63f74-31e2-4414-a652-cdf9a30c8c30" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Unit.Security.PasswordHasherTests" name="Malformed_hash_should_be_rejected_without_throwing" />
+    </UnitTest>
+    <UnitTest name="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests.Protected_security_endpoint_should_reject_anonymous_request" storage="c:\civicherodev\civicherosolution\backend\civichero.backend.tests\bin\release\net8.0\civichero.backend.tests.dll" id="dc39d9e0-b26b-8860-6503-1b10c8c3c93e">
+      <Execution id="c6a38555-bb56-4108-b717-6f6d76e6ac27" />
+      <TestMethod codeBase="C:\CivicHeroDev\CivicHeroSolution\backend\CivicHero.Backend.Tests\bin\Release\net8.0\CivicHero.Backend.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="CivicHero.Backend.Tests.Integration.HealthAndSecurityEndpointTests" name="Protected_security_endpoint_should_reject_anonymous_request" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="fbc97145-cde2-17a3-fffb-083738c51f44" executionId="62df4fb3-eda9-4035-959d-fff7799e55d1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="be9cd125-dcc8-f4e4-2cdb-87636a52abed" executionId="26950e34-4050-4d68-bbe4-0bb926f7574b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="796a9209-e2c6-91e8-c092-8f86db1a0581" executionId="f5e35da7-df5f-4efb-852b-82c5fd407b5c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9a956c76-42d5-e4c4-dd25-d897c24a94b6" executionId="58fef2b7-3756-47a8-8c9e-7593e7fed067" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3b8726e9-a760-97dd-74d6-032e0546c144" executionId="9f17b256-6c0a-4aef-bb7f-06355586dec0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dc39d9e0-b26b-8860-6503-1b10c8c3c93e" executionId="c6a38555-bb56-4108-b717-6f6d76e6ac27" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7ebe6bb2-4553-e931-ee30-5c5761b2da05" executionId="9badb3c4-2b2c-47eb-b92e-7fa82726e9f0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0af22fd6-2913-6d3d-2892-4d39d0ba5158" executionId="faa63a92-d3b3-4221-a426-c2f9a55c1ece" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5f9f03d0-7e0b-17ce-40b1-6e2a41f14250" executionId="d69ee1cc-6233-446e-a3ab-6f37205b8016" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3d5e6cc6-25fd-6d01-dce8-d6c5bc71bbe7" executionId="0c9a0ef8-63cb-4d41-a385-284c384ef616" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="def8d58a-7a01-6d7a-c625-a875aff8ff77" executionId="4a575d37-5f0b-4ed5-813c-007841e00875" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e8a0f896-e1a4-3829-ab91-76049c01dfd0" executionId="3ef63f74-31e2-4414-a652-cdf9a30c8c30" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="57a430df-7bbc-0a80-02fc-751b1295deb5" executionId="a727a19f-aae1-4530-b9e9-46e8212b09eb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="03d731f2-93f7-fabb-8543-ce20678588c4" executionId="da26f8d7-84b0-4fc7-b640-ffdaa755d1a0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7b24eaec-27d7-331d-f0c7-af9fc61d9d07" executionId="e1cce72f-98f3-402e-ae0d-43dacedfebcd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8a73b557-0f87-c8a7-4084-b688e4cb78a6" executionId="cf799e1a-6ec2-4165-90fc-b950ee190e8a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="608f81b9-830a-76dc-0f43-564b5cb9cee3" executionId="91afff4b-3a05-4d45-8ef7-804905a384fd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a2cad226-cbed-a3f1-8764-45db3086cd08" executionId="196360c4-eb6d-4da0-84fa-9e4e146094b6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="98b6d70e-315c-2102-93a0-c74ec733a366" executionId="741b363c-9fe2-4615-b5bc-43ea70c9c37e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="069717c9-4ed2-8995-1c50-2a25db3cb933" executionId="58162684-3d5a-44a5-ac49-42c99b1ccd62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="33678bb9-d1ac-c0ab-4e28-d9a9c5dd9a8f" executionId="23a4f13b-e2d7-4bda-bcc9-34f6efc253e0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2f81b03-7f33-515e-9e53-375d60268c58" executionId="4c2ab2da-e5bb-4834-af62-74648e070e56" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="22" executed="22" passed="22" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.29)&#xD;
+[xUnit.net 00:00:00.34]   Discovering: CivicHero.Backend.Tests&#xD;
+[xUnit.net 00:00:00.54]   Discovered:  CivicHero.Backend.Tests&#xD;
+[xUnit.net 00:00:00.55]   Starting:    CivicHero.Backend.Tests&#xD;
+[testcontainers.org 00:00:00.42] Connected to Docker:&#xD;
+  Host: npipe://./pipe/docker_engine&#xD;
+  Server Version: 29.5.3&#xD;
+  Kernel Version: 6.18.33.2-microsoft-standard-WSL2&#xD;
+  API Version: 1.54&#xD;
+  Operating System: Docker Desktop&#xD;
+  Total Memory: 3.76 GB&#xD;
+[testcontainers.org 00:00:00.69] Searching Docker registry credential in CredsStore&#xD;
+[testcontainers.org 00:00:00.69] Searching Docker registry credential in CredHelpers&#xD;
+[testcontainers.org 00:00:00.69] Searching Docker registry credential in Auths&#xD;
+[testcontainers.org 00:00:00.69] Searching Docker registry credential in Auths&#xD;
+[testcontainers.org 00:00:00.92] Docker registry credential https://index.docker.io/v1/ not found&#xD;
+2026-07-30 07:42:18 warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3] =&gt; SpanId:384c8362065d0c55, TraceId:f634933510e3cab07bd68eba5f3ba48f, ParentId:0000000000000000 =&gt; RequestPath:/health/live RequestId:0HNNDRVTKBRVO =&gt; System.Collections.Generic.Dictionary`2[System.String,System.Object] Failed to determine the https port for redirect.&#xD;
+[testcontainers.org 00:00:09.54] Docker image testcontainers/ryuk:0.6.0 created&#xD;
+[testcontainers.org 00:00:10.48] Docker container 088f9c2c2adf created&#xD;
+[testcontainers.org 00:00:10.74] Start Docker container 088f9c2c2adf&#xD;
+[testcontainers.org 00:00:11.57] Wait for Docker container 088f9c2c2adf to complete readiness checks&#xD;
+[testcontainers.org 00:00:11.64] Docker container 088f9c2c2adf ready&#xD;
+[testcontainers.org 00:00:12.13] Docker container de92de02913e created&#xD;
+[testcontainers.org 00:00:12.23] Start Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:12.85] Execute "mkdir /var/lib/mysql-files" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:12.91] Add file to tar archive: Content length: 78 byte(s), Target file: "/etc/mysql/my.cnf"&#xD;
+[testcontainers.org 00:00:12.97] Copy tar archive to container: Content length: 78 byte(s), Docker container: de92de02913e&#xD;
+[testcontainers.org 00:00:13.29] Wait for Docker container de92de02913e to complete readiness checks&#xD;
+[testcontainers.org 00:00:13.33] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:14.67] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:15.89] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:17.14] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:18.36] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:19.63] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:20.86] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:22.09] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:23.35] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:24.70] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:25.91] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:27.14] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:28.36] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:29.60] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:30.88] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:32.13] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:33.31] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:34.51] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:35.81] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:37.06] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:38.30] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:39.59] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:40.81] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:42.05] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:43.28] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:44.50] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:45.73] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:46.99] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:48.27] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:49.57] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:50.79] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:51.99] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:53.25] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:54.43] Execute "mysql civichero_phase18 --wait --silent --execute=SELECT 1;" at Docker container de92de02913e&#xD;
+[testcontainers.org 00:00:54.66] Docker container de92de02913e ready&#xD;
+[testcontainers.org 00:00:55.23] Delete Docker container de92de02913e&#xD;
+[xUnit.net 00:00:57.01]   Finished:    CivicHero.Backend.Tests&#xD;
+</StdOut>
+    </Output>
+    <CollectorDataEntries>
+      <Collector agentName="WISH" uri="datacollector://microsoft/CoverletCodeCoverage/1.0" collectorDisplayName="XPlat code coverage">
+        <UriAttachments>
+          <UriAttachment>
+            <A href="WISH\coverage.cobertura.xml"></A>
+          </UriAttachment>
+        </UriAttachments>
+      </Collector>
+    </CollectorDataEntries>
+  </ResultSummary>
+</TestRun>

@@ -1,0 +1,30 @@
+﻿[
+    {
+        "name":  "Application live",
+        "url":  "http://localhost:8088/health/live",
+        "passed":  false,
+        "statusCode":  0,
+        "error":  "Unable to connect to the remote server"
+    },
+    {
+        "name":  "Application ready",
+        "url":  "http://localhost:8088/health/ready",
+        "passed":  false,
+        "statusCode":  0,
+        "error":  "Unable to connect to the remote server"
+    },
+    {
+        "name":  "Prometheus ready",
+        "url":  "http://localhost:9090/-/ready",
+        "passed":  false,
+        "statusCode":  0,
+        "error":  "Unable to connect to the remote server"
+    },
+    {
+        "name":  "Grafana health",
+        "url":  "http://localhost:3000/api/health",
+        "passed":  false,
+        "statusCode":  0,
+        "error":  "Unable to connect to the remote server"
+    }
+]

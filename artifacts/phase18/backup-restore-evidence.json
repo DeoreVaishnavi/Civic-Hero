@@ -1,0 +1,13 @@
+{
+  "restoreSucceeded": false,
+  "snapshotIdentifier": "REPLACE_WITH_RDS_SNAPSHOT_ID",
+  "restoredDatabase": "REPLACE_WITH_NON_PRODUCTION_DATABASE",
+  "validatedBy": "REPLACE_WITH_REAL_NAME",
+  "validatedAtUtc": "REPLACE",
+  "validationChecks": [
+    "Authentication data readable",
+    "Complaint and timeline counts reconciled",
+    "S3 evidence references sampled"
+  ],
+  "notes": "Copy to backup-restore-evidence.json only after a real restore rehearsal."
+}

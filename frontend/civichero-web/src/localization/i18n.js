@@ -1,0 +1,1 @@
+export const translations={en:{reportIssue:"Report Issue",dashboard:"Dashboard"},hi:{reportIssue:"समस्या दर्ज करें",dashboard:"डैशबोर्ड"},mr:{reportIssue:"समस्या नोंदवा",dashboard:"डॅशबोर्ड"}}; export const t=(key,lang="en")=>translations[lang]?.[key]||translations.en[key]||key;

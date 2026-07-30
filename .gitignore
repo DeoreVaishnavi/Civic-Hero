@@ -1,0 +1,39 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Node / Vite
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Environment and secrets
+.env.local
+.env.*.local
+**/appsettings.Local.json
+**/appsettings.Secrets.json
+deployment/.secrets/
+deployment/nginx/certs/*.pem
+deployment/nginx/certs/*.key
+deployment/nginx/certs/*.crt
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and local runtime data
+*.log
+logs/
+.phase-backups/
+
+# Test output
+TestResults/
+coverage/
+playwright-report/
+
+deployment/docker-compose.runtime.local.yml

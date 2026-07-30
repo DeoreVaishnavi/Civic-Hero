@@ -1,0 +1,29 @@
+param([string]$ProjectRoot = "C:\Users\vaish\Music\CivicHeroSolution")
+$ErrorActionPreference = "Stop"
+$ProjectRoot = [IO.Path]::GetFullPath($ProjectRoot)
+$Output = Join-Path $ProjectRoot "artifacts\phase16\evidence"
+New-Item -ItemType Directory -Path $Output -Force | Out-Null
+
+$evidence = [ordered]@{
+    generatedAt = (Get-Date).ToString('o')
+    computer = $env:COMPUTERNAME
+    user = $env:USERNAME
+    gitCommit = if (Get-Command git -ErrorAction SilentlyContinue) { (git -C $ProjectRoot rev-parse HEAD 2>$null) } else { "git unavailable" }
+    dotnet = if (Get-Command dotnet -ErrorAction SilentlyContinue) { (dotnet --version) } else { "dotnet unavailable" }
+    node = if (Get-Command node -ErrorAction SilentlyContinue) { (node --version) } else { "node unavailable" }
+    docker = if (Get-Command docker -ErrorAction SilentlyContinue) { (docker --version) } else { "docker unavailable" }
+    migrations = @()
+}
+
+$backend = Join-Path $ProjectRoot "backend\CivicHero.Backend"
+if ((Test-Path $backend) -and (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    Push-Location $backend
+    try { $evidence.migrations = @(dotnet ef migrations list --context CivicDbContext 2>&1) }
+    finally { Pop-Location }
+}
+
+$evidence | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $Output "environment-evidence.json") -Encoding UTF8
+Get-ChildItem (Join-Path $ProjectRoot "docs") -Recurse -File | ForEach-Object {
+    [pscustomobject]@{ Path = $_.FullName.Substring($ProjectRoot.Length + 1); Bytes = $_.Length; SHA256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash }
+} | Export-Csv (Join-Path $Output "documentation-inventory.csv") -NoTypeInformation
+Write-Host "Phase 16 evidence created: $Output" -ForegroundColor Green

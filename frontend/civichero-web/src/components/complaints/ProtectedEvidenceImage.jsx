@@ -1,0 +1,3 @@
+import { useEffect, useState } from 'react';
+import axiosInstance from '../../api/axiosInstance.js';
+export default function ProtectedEvidenceImage({ path, alt }) { const [url, setUrl] = useState(''); useEffect(() => { let active = true; let objectUrl = ''; axiosInstance.get(path, { responseType: 'blob', timeout: 30000 }).then((response) => { objectUrl = URL.createObjectURL(response.data); if (active) setUrl(objectUrl); }).catch(() => {}); return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); }; }, [path]); return url ? <img src={url} alt={alt} className="h-44 w-full rounded-xl object-cover" /> : <div className="flex h-44 items-center justify-center rounded-xl bg-slate-900 text-sm text-slate-500">Protected image</div>; }

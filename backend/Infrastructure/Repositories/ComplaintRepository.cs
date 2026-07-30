@@ -89,5 +89,10 @@ namespace CivicHero.Backend.Infrastructure.Repositories
         {
             return await _context.Complaints.CountAsync(c => c.CreatedAt >= startDate);
         }
+
+        public async Task<int> GetCountAsync()
+        {
+            return await _context.Complaints.CountAsync();
+        }
     }
 }

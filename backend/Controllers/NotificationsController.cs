@@ -1,12 +1,8 @@
-using CitizenHero.Backend.Core.DTOs.Notifications;
-using CitizenHero.Backend.Core.Entities;
-using CitizenHero.Backend.Core.Enums;
-using CitizenHero.Backend.Core.Interfaces;
-using CitizenHero.Backend.Infrastructure.Repositories;
+using CivicHero.Backend.Core.DTOs.Notifications;
+using CivicHero.Backend.Core.Enums;
+using CivicHero.Backend.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CivicHero.Backend.Controllers
 {

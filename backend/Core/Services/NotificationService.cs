@@ -2,13 +2,11 @@ using CivicHero.Backend.Core.DTOs.Notifications;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
 using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Infrastructure.AWS;
 using CivicHero.Backend.Infrastructure.Data;
+using CivicHero.Backend.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CivicHero.Backend.Core.Services
 {

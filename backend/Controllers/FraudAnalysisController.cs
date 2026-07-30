@@ -1,5 +1,6 @@
 using CivicHero.Backend.Core.DTOs.FraudDetection;
 using CivicHero.Backend.Core.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CivicHero.Backend.Controllers
@@ -27,18 +28,34 @@ namespace CivicHero.Backend.Controllers
         }
 
         // POST: api/fraudanalysis/analyze
+        // Accepts multipart/form-data with optional image file
         [HttpPost("analyze")]
-        public async Task<ActionResult<AiFraudAnalysisDto>> AnalyzeComplaint([FromBody] FraudAnalysisRequest request)
+        public async Task<ActionResult<AiFraudAnalysisDto>> AnalyzeComplaint(
+            [FromForm] int complaintId,
+            [FromForm] string complaintText,
+            [FromForm] double? latitude,
+            [FromForm] double? longitude,
+            [FromForm] DateTime? incidentTime,
+            [FromForm] IFormFile? imageFile)
         {
-            if (request == null || request.ComplaintId <= 0)
-                return BadRequest("Invalid request data.");
+            if (complaintId <= 0)
+                return BadRequest("Invalid complaint ID.");
+
+            byte[]? imageBytes = null;
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await imageFile.CopyToAsync(ms);
+                imageBytes = ms.ToArray();
+            }
 
             var analysis = await _fraudAnalysisService.AnalyzeComplaintForFraud(
-                request.ComplaintId,
-                request.ComplaintText,
-                request.Latitude,
-                request.Longitude,
-                request.IncidentTime);
+                complaintId,
+                complaintText,
+                imageBytes,
+                latitude,
+                longitude,
+                incidentTime);
 
             return Ok(analysis);
         }
@@ -61,15 +78,5 @@ namespace CivicHero.Backend.Controllers
             var averageScore = await _fraudAnalysisService.CalculateAverageFraudScore();
             return Ok(averageScore);
         }
-    }
-
-    // Request model for fraud analysis
-    public class FraudAnalysisRequest
-    {
-        public int ComplaintId { get; set; }
-        public string ComplaintText { get; set; } = string.Empty;
-        public double? Latitude { get; set; }
-        public double? Longitude { get; set; }
-        public DateTime? IncidentTime { get; set; }
     }
 }

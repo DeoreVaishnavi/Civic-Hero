@@ -1,0 +1,65 @@
+# Common Complaint Categories in CivicHero System
+
+## Service Quality Issues
+- Delayed response times
+- Incomplete or incorrect service delivery
+- Poor quality of work performed
+- Failure to follow up on service requests
+- Inconsistent service levels across different areas
+
+## Staff Conduct and Behavior
+- Rude or unprofessional behavior by staff
+- Lack of courtesy or respect
+- Discrimination or harassment
+- Failure to identify oneself properly
+- Inappropriate use of authority
+
+## Facility and Infrastructure Problems
+- Potholes and road damage
+- Broken street lights or traffic signals
+- Park maintenance issues (broken equipment, unsafe conditions)
+- Water leaks or sewage problems
+- Building maintenance issues (city facilities)
+- Graffiti and vandalism
+
+## Communication Problems
+- Failure to return phone calls or emails
+- Lack of updates on ongoing issues
+- Conflicting information from different staff members
+- Difficulty reaching the right department or person
+- Inadequate public notification about projects or changes
+
+## Policy and Procedure Concerns
+- Unclear or confusing procedures
+- Inconsistent application of rules
+- Excessive bureaucracy or red tape
+- Lack of transparency in decision-making
+- Failure to follow established protocols
+
+## Financial and Billing Issues
+- Incorrect utility billing
+- Unexpected fees or charges
+- Disputes over fines or penalties
+- Refund processing delays
+- Issues with payment processing
+
+## Safety and Security Concerns
+- Hazardous conditions on public property
+- Inadequate lighting in public areas
+- Security concerns in parks or facilities
+- Traffic safety issues
+- Emergency response delays
+
+## Environmental Issues
+- Illegal dumping or littering
+- Pollution concerns (air, water, noise)
+- Improper waste disposal
+- Pest infestations in public areas
+- Tree maintenance or removal concerns
+
+## Accessibility and Accommodation
+- Lack of accessibility for people with disabilities
+- Failure to provide reasonable accommodations
+- Barriers to accessing city services or facilities
+- Inadequate signage or wayfinding
+- Issues with public transportation accessibility

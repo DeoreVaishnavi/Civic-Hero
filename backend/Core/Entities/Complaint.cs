@@ -14,6 +14,7 @@ namespace CivicHero.Backend.Core.Entities
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public string Status { get; set; } = "Submitted"; // e.g., Submitted, InProgress, Resolved, Closed
+        public bool IsActive { get; set; } = true;
         public int Priority { get; set; } = 1; // 1-Low, 2-Medium, 3-High, 4-Critical
         public bool IsAnonymous { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -8,3 +8,6 @@
 
 # Local development secrets
 backend/appsettings.Development.json
+.fake
+
+ai_chatbot/.env

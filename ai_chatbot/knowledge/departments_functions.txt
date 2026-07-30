@@ -1,0 +1,72 @@
+# Departments and their responsibilities in the civic hero system
+
+## Public Works Department
+- Road maintenance and repairs
+- Public utilities (water, sewer, storm drains)
+- Street lighting and traffic signals
+- Parks and recreation facilities maintenance
+- Solid waste management and recycling
+
+## Public Safety Department
+- Police services and law enforcement
+- Fire prevention and emergency response
+- Emergency medical services (EMS)
+- Traffic safety and enforcement
+- Disaster preparedness and response
+
+## Community Services Department
+- Parks and recreation programs
+- Library services
+- Senior services and programs
+- Youth and family services
+- Community events and festivals
+- Volunteer coordination
+
+## Community Development Department
+- Building permits and inspections
+- Planning and zoning
+- Code enforcement
+- Housing assistance programs
+- Economic development initiatives
+- Business licensing and permits
+
+## Finance Department
+- Budget preparation and management
+- Tax collection and processing
+- Payroll and employee benefits
+- Accounts payable and receivable
+- Financial reporting and auditing
+- Treasury and investment management
+
+## Human Resources Department
+- Recruitment and hiring
+- Employee training and development
+- Performance management
+- Employee relations and conflict resolution
+- Benefits administration
+- Payroll processing
+- Labor relations and compliance
+
+## City Manager's Office
+- Overall city administration and management
+- Policy development and implementation
+- Interdepartmental coordination
+- Public information and communications
+- Legislative affairs and council support
+- Special projects and initiatives
+
+## City Attorney's Office
+- Legal counsel and advice
+- Litigation representation
+- Contract review and drafting
+- Ordinance preparation
+- Legal compliance and risk management
+- Public records requests
+
+## City Clerk's Office
+- Official records management
+- Meeting minutes and agendas
+- Election administration
+- Public notices and postings
+- Licenses and permits processing
+- Archives and historical records

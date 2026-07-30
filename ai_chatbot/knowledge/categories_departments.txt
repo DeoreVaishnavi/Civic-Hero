@@ -1,0 +1,25 @@
+# Categories and Departments Knowledge Base
+
+Categories of Complaints:
+1. Service Quality: Issues related to the quality of service provided.
+2. Staff Conduct: Concerns about the behavior or attitude of staff members.
+3. Facilities: Problems related to public facilities, maintenance, or infrastructure.
+4. Policy and Procedure: Concerns about government policies, procedures, or regulations.
+5. Communication: Issues with communication, responsiveness, or information dissemination.
+6. Financial: Matters related to fees, charges, billing, or financial transactions.
+7. Safety and Security: Concerns about safety hazards, security issues, or emergency response.
+8. Environmental: Issues related to pollution, waste management, or environmental impact.
+9. Transportation: Concerns about public transportation, traffic, or infrastructure.
+10. Other: Any other category not listed above.
+
+Departments Handling Complaints:
+1. Customer Service Department: Handles general inquiries and service quality complaints.
+2. Human Resources Department: Addresses staff conduct and internal personnel matters.
+3. Public Works Department: Manages facilities, infrastructure, and maintenance issues.
+4. Legal and Compliance Department: Handles policy, procedure, and regulatory compliance matters.
+5. Communications Department: Manages public communication, information dissemination, and media relations.
+6. Finance Department: Handles financial transactions, billing, and budget-related concerns.
+7. Public Safety Department: Addresses safety hazards, security concerns, and emergency response.
+8. Environmental Department: Manages environmental issues, pollution control, and sustainability initiatives.
+9. Transportation Department: Oversees public transportation, traffic management, and infrastructure projects.
+10. Mayor's Office: Handles escalated complaints and matters requiring executive intervention.

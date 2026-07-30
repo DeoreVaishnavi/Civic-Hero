@@ -2,9 +2,6 @@ using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace CivicHero.Backend.Infrastructure.AWS
 {

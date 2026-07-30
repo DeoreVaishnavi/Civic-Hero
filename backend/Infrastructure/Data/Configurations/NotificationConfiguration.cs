@@ -1,9 +1,8 @@
 using CivicHero.Backend.Core.Entities;
-Let's create file path: Infrastructure/Data/Configurations >We need directory. Let's create if not exists. But assume exists.
-We'll write file<tool_call>
-<function=Write>
-<parameter=content>
-using CivicHero.Backend.Core.Entities;
+//Let's create file path: Infrastructure/Data/Configurations >We need directory. Let's create if not exists. But assume exists.
+//We'll write file<tool_call>
+//<function=Write>
+//<parameter=content>
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

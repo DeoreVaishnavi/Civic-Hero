@@ -1,0 +1,21 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+indent_size = true
+
+[*.cs]
+indent_size = 4
+
+[*.{js,ts,jsx,tsx,vue,html,xml,css,scss,json}]
+indent_size = 2
+
+[*.{md,markdown}]
+trim_trailing_whitespace = false
+
+[*.{json,jsonc}]
+insert_final_newline = true
+trim_trailing_whitespace = true

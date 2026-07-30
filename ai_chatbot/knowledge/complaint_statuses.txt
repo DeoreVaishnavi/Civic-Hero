@@ -1,0 +1,9 @@
+# Common complaint statuses in the civic hero system
+Open
+In Progress
+Under Investigation
+Resolved
+Closed
+Reopened
+Escalated
+ Pending Feedback

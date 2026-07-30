@@ -1,7 +1,4 @@
 using CivicHero.Backend.Core.Entities;
-using CitizenHero.Backend.Core.Interfaces;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CivicHero.Backend.Core.Interfaces
 {

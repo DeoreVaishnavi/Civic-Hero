@@ -1,8 +1,7 @@
-using CitizenHero.Backend.Core.DTOs.Users;
-using CitizenHero.Backend.Core.Entities;
-using CitizenHero.Backend.Core.Enums;
-using CitizenHero.Backend.Core.Interfaces;
-using CitizenHero.Backend.Infrastructure.Repositories;
+using CivicHero.Backend.Core.DTOs.Users;
+using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Enums;
+using CivicHero.Backend.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

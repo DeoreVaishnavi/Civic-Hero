@@ -64,6 +64,194 @@ namespace CivicHero.Backend.Migrations
                     b.ToTable("ai_fraud_analysis", (string)null);
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Sender")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatSessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChatMessages", (string)null);
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ChatSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChatSessions", (string)null);
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Complaint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsAnonymous")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WardId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WardId");
+
+                    b.ToTable("Complaints", (string)null);
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintUpdate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ComplaintId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("UpdateType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
+
+                    b.ToTable("ComplaintUpdates", (string)null);
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.Department", b =>
                 {
                     b.Property<int>("Id")
@@ -121,9 +309,51 @@ namespace CivicHero.Backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ComplaintId");
+
                     b.HasIndex("InitiatedByUserId");
 
                     b.ToTable("DisputeAuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.Redemption", b =>
@@ -191,6 +421,46 @@ namespace CivicHero.Backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ReputationLogs", (string)null);
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ResolutionVerification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnalysisDetails")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ComplaintId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("ConfidenceScore")
+                        .HasColumnType("double");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IssueStillVisible")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Reviewed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<double>("SimilarityScore")
+                        .HasColumnType("double");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.ToTable("resolution_verification", (string)null);
                 });
 
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.RewardCatalog", b =>
@@ -319,12 +589,117 @@ namespace CivicHero.Backend.Migrations
                     b.ToTable("Wards", (string)null);
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.AiFraudAnalysis", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.Complaint", null)
+                        .WithMany("AiFraudAnalyses")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ChatMessage", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.ChatSession", "ChatSession")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatSession");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ChatSession", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Complaint", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.Department", "Department")
+                        .WithMany("Complaints")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
+                        .WithMany("Complaints")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.Ward", "Ward")
+                        .WithMany("Complaints")
+                        .HasForeignKey("WardId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("User");
+
+                    b.Navigation("Ward");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintUpdate", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.Complaint", "Complaint")
+                        .WithMany("Updates")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", null)
+                        .WithMany("ComplaintUpdates")
+                        .HasForeignKey("UserId1");
+
+                    b.Navigation("Complaint");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.DisputeAuditLog", b =>
                 {
+                    b.HasOne("CivicHero.Backend.Core.Entities.Complaint", null)
+                        .WithMany("DisputeAuditLogs")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("InitiatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Notification", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -360,6 +735,36 @@ namespace CivicHero.Backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ResolutionVerification", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.Complaint", "Complaint")
+                        .WithMany()
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Complaint");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ChatSession", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Complaint", b =>
+                {
+                    b.Navigation("AiFraudAnalyses");
+
+                    b.Navigation("DisputeAuditLogs");
+
+                    b.Navigation("Updates");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Department", b =>
+                {
+                    b.Navigation("Complaints");
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.RewardCatalog", b =>
                 {
                     b.Navigation("Redemptions");
@@ -367,9 +772,18 @@ namespace CivicHero.Backend.Migrations
 
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.User", b =>
                 {
+                    b.Navigation("ComplaintUpdates");
+
+                    b.Navigation("Complaints");
+
                     b.Navigation("Redemptions");
 
                     b.Navigation("ReputationLogs");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.Ward", b =>
+                {
+                    b.Navigation("Complaints");
                 });
 #pragma warning restore 612, 618
         }

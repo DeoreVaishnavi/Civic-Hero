@@ -4,6 +4,7 @@ namespace CivicHero.Backend.Core.DTOs.Analytics
     {
         public int WardId { get; set; }
         public string WardName { get; set; } = string.Empty;
+        public string WardCode { get; set; } = string.Empty;
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public int IncidentCount { get; set; }

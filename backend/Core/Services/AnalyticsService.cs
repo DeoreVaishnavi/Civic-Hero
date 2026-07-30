@@ -61,9 +61,10 @@ namespace CivicHero.Backend.Core.Services
             dashboard.TotalRewardsEarned = await _context.Redemptions.CountAsync(); // Each redemption represents a reward earned and redeemed
             dashboard.TotalRewardsRedeemed = await _context.Redemptions.CountAsync(); // Same as earned for simplicity
             // Total reputation points awarded: sum of positive PointsChange in ReputationLog
-            dashboard.TotalReputationPointsAwarded = await _context.ReputationLogs
+            var reputationSum = await _context.ReputationLogs
                 .Where(r => r.PointsChange > 0)
-                .SumAsync(r => (long?)r.PointsChange) ?? 0;
+                .SumAsync(r => (long?)r.PointsChange);
+            dashboard.TotalReputationPointsAwarded = (int)(reputationSum ?? 0);
 
             // Fraud detection metrics
             dashboard.TotalFraudChecks = await _context.AiFraudAnalyses.CountAsync();

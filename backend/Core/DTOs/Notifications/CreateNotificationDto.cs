@@ -1,3 +1,5 @@
+using CivicHero.Backend.Core.Enums;
+
 namespace CivicHero.Backend.Core.DTOs.Notifications
 {
     public class CreateNotificationDto

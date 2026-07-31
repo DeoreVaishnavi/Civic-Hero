@@ -9,7 +9,7 @@ const nav = [
   { label: 'Home', to: ROUTE_PATHS.home },
   { label: 'Report complaint', to: ROUTE_PATHS.anonymousReport },
   { label: 'Track complaint', to: ROUTE_PATHS.anonymousTrack },
-  { label: 'Heatmap', href: '#heatmap' },
+  { label: 'Heatmap', to: { pathname: ROUTE_PATHS.home, hash: '#heatmap' } },
   { label: 'Schemes & projects', to: '/projects' },
 ];
 

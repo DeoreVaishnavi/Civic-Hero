@@ -1,20 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import CivicHeatmapMap from '../maps/CivicHeatmapMap.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { analyticsApi } from '../../services/analyticsApi.js';
 import { ROUTE_PATHS } from '../../routes/routePaths.js';
 import { homeHeatmapPreview } from '../../data/civicInitiatives.js';
 import { dashboardForRole } from '../../utils/roleRouting.js';
 
-const riskClass = {
-  Critical: 'bg-rose-600 shadow-rose-500/40',
-  High: 'bg-orange-500 shadow-orange-400/40',
-  Medium: 'bg-amber-400 shadow-amber-300/40',
-  Low: 'bg-emerald-500 shadow-emerald-400/40',
-};
-
 const normalise = (point, index) => ({
   id: point.id || `${point.latitude}-${point.longitude}-${index}`,
+  wardId: point.wardId,
   wardName: point.wardName || 'City area',
   latitude: Number(point.latitude),
   longitude: Number(point.longitude),
@@ -29,16 +24,24 @@ const normalise = (point, index) => ({
   riskLevel: point.riskLevel || 'Low',
 });
 
+const publicPreviewPoints = homeHeatmapPreview.map(normalise);
+const publicMapConfig = {
+  enabled: false,
+  defaultCenter: { latitude: 19.0760, longitude: 72.8777 },
+  defaultZoom: 10.5,
+};
+
 export default function PublicHeatmapPreview() {
   const { isAuthenticated, user } = useAuth();
-  const [points, setPoints] = useState(homeHeatmapPreview);
-  const [selectedId, setSelectedId] = useState(homeHeatmapPreview[0].id);
+  const [points, setPoints] = useState(publicPreviewPoints);
+  const [selectedId, setSelectedId] = useState(publicPreviewPoints[0]?.id);
   const [mode, setMode] = useState('preview');
 
   useEffect(() => {
     let active = true;
     if (!isAuthenticated) {
-      setPoints(homeHeatmapPreview);
+      setPoints(publicPreviewPoints);
+      setSelectedId(publicPreviewPoints[0]?.id);
       setMode('preview');
       return () => { active = false; };
     }
@@ -46,7 +49,7 @@ export default function PublicHeatmapPreview() {
     analyticsApi.heatmap({})
       .then((response) => {
         if (!active) return;
-        const live = (Array.isArray(response) ? response : []).map(normalise).slice(0, 12);
+        const live = (Array.isArray(response) ? response : []).map(normalise).slice(0, 30);
         if (live.length) {
           setPoints(live);
           setSelectedId(live[0].id);
@@ -60,21 +63,11 @@ export default function PublicHeatmapPreview() {
   }, [isAuthenticated]);
 
   const selected = points.find((item) => item.id === selectedId) || points[0];
-  const heatmapTarget = !isAuthenticated ? ROUTE_PATHS.login : String(user?.role || '').toLowerCase() === 'citizen' ? ROUTE_PATHS.citizenHeatmap : dashboardForRole(user?.role);
-  const plotted = useMemo(() => {
-    const lats = points.map((item) => item.latitude);
-    const lons = points.map((item) => item.longitude);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLon = Math.min(...lons);
-    const maxLon = Math.max(...lons);
-    const position = (value, min, max) => max === min ? 50 : 10 + ((value - min) * 80) / (max - min);
-    return points.map((item) => ({
-      ...item,
-      left: position(item.longitude, minLon, maxLon),
-      bottom: position(item.latitude, minLat, maxLat),
-    }));
-  }, [points]);
+  const heatmapTarget = !isAuthenticated
+    ? ROUTE_PATHS.login
+    : String(user?.role || '').toLowerCase() === 'citizen'
+      ? ROUTE_PATHS.citizenHeatmap
+      : dashboardForRole(user?.role);
 
   return (
     <section id="heatmap" className="relative overflow-hidden bg-slate-950 py-20 text-white sm:py-24">
@@ -86,7 +79,7 @@ export default function PublicHeatmapPreview() {
               <span className="h-2 w-2 animate-pulse rounded-full bg-sky-300" /> City intelligence
             </span>
             <h2 className="mt-5 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">See where complaints are concentrated and how quickly they are solved.</h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">Select a hotspot to compare active, resolved, verification-pending and disputed complaints for that area.</p>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">Explore complaint hotspots on a real street map. Select a marker to compare active, resolved, verification-pending and disputed complaints.</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <span className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-black ${mode === 'live' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-amber-400/15 text-amber-200'}`}>
@@ -99,33 +92,17 @@ export default function PublicHeatmapPreview() {
         </div>
 
         <div className="mt-10 grid overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-black/30 backdrop-blur-xl lg:grid-cols-[1.45fr_.75fr]">
-          <div className="relative min-h-[470px] overflow-hidden border-b border-white/10 lg:border-b-0 lg:border-r">
-            <div className="absolute inset-0 bg-[linear-gradient(29deg,transparent_46%,rgba(255,255,255,.08)_47%,rgba(255,255,255,.08)_50%,transparent_51%),linear-gradient(-35deg,transparent_46%,rgba(255,255,255,.07)_47%,rgba(255,255,255,.07)_50%,transparent_51%),linear-gradient(rgba(148,163,184,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.08)_1px,transparent_1px)] bg-[length:155px_115px,190px_140px,42px_42px,42px_42px] opacity-80" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_45%_48%,rgba(244,63,94,.22),transparent_22%),radial-gradient(circle_at_25%_28%,rgba(245,158,11,.2),transparent_17%),radial-gradient(circle_at_70%_72%,rgba(16,185,129,.16),transparent_18%)]" />
-            <div className="absolute left-5 top-5 z-10 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-slate-950/70 p-3 text-[11px] font-bold backdrop-blur-xl">
-              {['Low', 'Medium', 'High', 'Critical'].map((risk) => <span key={risk} className="inline-flex items-center gap-2"><i className={`h-2.5 w-2.5 rounded-full ${riskClass[risk].split(' ')[0]}`} />{risk}</span>)}
-            </div>
-
-            {plotted.map((point) => {
-              const selectedPoint = selected?.id === point.id;
-              const size = Math.min(68, 34 + point.complaintCount * .55);
-              return (
-                <button
-                  key={point.id}
-                  type="button"
-                  onClick={() => setSelectedId(point.id)}
-                  className={`absolute z-20 grid -translate-x-1/2 translate-y-1/2 place-items-center rounded-full border-4 border-white/90 font-black text-white shadow-2xl transition duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-sky-300/50 ${riskClass[point.riskLevel] || riskClass.Low} ${selectedPoint ? 'scale-110 ring-4 ring-white/30' : ''}`}
-                  style={{ left: `${point.left}%`, bottom: `${point.bottom}%`, width: size, height: size }}
-                  title={`${point.wardName}: ${point.complaintCount} complaints`}
-                >
-                  <span className="text-sm">{point.complaintCount}</span>
-                </button>
-              );
-            })}
-
-            <div className="absolute bottom-5 left-5 z-10 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-xs text-slate-300 backdrop-blur-xl">
-              <strong className="block text-white">Interactive hotspot map</strong>
-              Click any numbered circle to inspect the selected area.
+          <div className="relative min-h-[470px] overflow-hidden border-b border-white/10 bg-slate-200 lg:border-b-0 lg:border-r">
+            <CivicHeatmapMap
+              points={points}
+              config={publicMapConfig}
+              selectedPoint={selected}
+              onSelect={(point) => setSelectedId(point.id)}
+              className="public-heatmap-real-map"
+            />
+            <div className="pointer-events-none absolute left-5 top-5 z-[600] rounded-2xl border border-white/70 bg-white/90 px-4 py-3 text-xs text-slate-700 shadow-xl backdrop-blur-xl">
+              <strong className="block text-slate-950">Interactive complaint map</strong>
+              Pan, zoom or select a numbered hotspot.
             </div>
           </div>
 
@@ -147,7 +124,7 @@ export default function PublicHeatmapPreview() {
               <div className="mt-4 grid grid-cols-2 gap-4 text-xs text-slate-400"><span>Verification pending <strong className="block pt-1 text-base text-white">{selected?.resolutionPendingCount}</strong></span><span>Average resolution <strong className="block pt-1 text-base text-white">{Number(selected?.averageResolutionHours || 0).toFixed(1)} hrs</strong></span></div>
             </div>
 
-            {!isAuthenticated && <p className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">Sign in to view live, filterable heatmap data from the CivicHero complaint system.</p>}
+            {!isAuthenticated && <p className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">The public preview uses sample hotspot counts on a real map. Sign in to view live, filterable complaint data.</p>}
           </aside>
         </div>
       </div>

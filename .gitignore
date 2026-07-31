@@ -37,3 +37,6 @@ coverage/
 playwright-report/
 
 deployment/docker-compose.runtime.local.yml
+deployment/.env.aws-rds
+deployment/.aws-rds-docker.json
+deployment/.aws-rds-tunnel.pid

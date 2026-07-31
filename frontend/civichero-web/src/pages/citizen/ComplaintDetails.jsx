@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
+import EvidenceMedia from '../../components/complaints/EvidenceMedia.jsx';
 import { complaintApi } from '../../services/complaintApi.js';
 
 export default function ComplaintDetails() {
@@ -30,48 +31,65 @@ export default function ComplaintDetails() {
     catch (reason) { setError(reason.errors?.join(' ') || reason.message); }
   };
   const withdraw = async () => {
-    if (!confirm('Withdraw this complaint? This action changes its status to Withdrawn.')) return;
+    if (!confirm('Withdraw this complaint?')) return;
     try { setDetail(await complaintApi.withdraw(id)); setMessage('Complaint withdrawn.'); }
     catch (reason) { setError(reason.message); }
   };
   const toggleUpvote = async () => {
-    try {
-      if (item.hasUpvoted) await complaintApi.removeUpvote(id); else await complaintApi.upvote(id);
-      await load();
-    } catch (reason) { setError(reason.message); }
+    try { if (item.hasUpvoted) await complaintApi.removeUpvote(id); else await complaintApi.upvote(id); await load(); }
+    catch (reason) { setError(reason.message); }
   };
   const download = async (image) => {
-    try {
-      const response = await complaintApi.downloadImage(id, image.id);
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement('a'); link.href = url; link.download = image.fileName; link.click();
-      URL.revokeObjectURL(url);
-    } catch (reason) { setError(reason.message); }
+    try { const response = await complaintApi.downloadImage(id, image.id); const url = URL.createObjectURL(response.data); const link = document.createElement('a'); link.href = url; link.download = image.fileName; link.click(); URL.revokeObjectURL(url); }
+    catch (reason) { setError(reason.message); }
   };
 
-  if (!detail && !error) return <section className="p-10 text-slate-400">Loading complaint…</section>;
-  if (!detail) return <section className="p-10"><div className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-100">{error}</div></section>;
+  if (!detail && !error) return <section className="page-wrap"><div className="surface"><div className="surface-body">Loading complaintâ€¦</div></div></section>;
+  if (!detail) return <section className="page-wrap"><div className="alert error">{error}</div></section>;
 
   return (
-    <section className="p-6 lg:p-10">
-      <button onClick={() => navigate(-1)} className="text-sm font-bold text-sky-300">← Back</button>
-      {message && <div className="mt-5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-emerald-100">{message}</div>}
-      {error && <div className="mt-5 rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-100">{error}</div>}
-      <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-6 lg:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-5"><div><p className="font-mono text-sm text-sky-300">{item.referenceNumber}</p><h2 className="mt-2 text-3xl font-black text-white">{item.title}</h2></div><StatusBadge status={item.status} /></div>
-        <div className="mt-6 grid gap-4 text-sm md:grid-cols-4"><Info label="Category" value={item.category} /><Info label="Priority" value={item.priority} /><Info label="Department" value={item.departmentName} /><Info label="Ward" value={item.wardName} /></div>
-        <p className="mt-6 whitespace-pre-wrap leading-7 text-slate-300">{item.description}</p>
-        <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/50 p-5"><p className="font-bold text-white">Location</p><p className="mt-1 text-slate-400">{item.address}</p><p className="mt-2 font-mono text-xs text-slate-500">{item.latitude}, {item.longitude}</p></div>
-        <div className="mt-6 flex flex-wrap gap-3"><button onClick={toggleUpvote} className={`rounded-xl px-4 py-2 font-bold ${item.hasUpvoted ? 'bg-emerald-500 text-white' : 'border border-white/15 text-slate-200'}`}>▲ {item.upvoteCount} {item.hasUpvoted ? 'Upvoted' : 'Upvote'}</button>{item.canEdit && <button onClick={() => setEditing((value) => !value)} className="rounded-xl border border-sky-400/30 px-4 py-2 font-bold text-sky-200">{editing ? 'Cancel editing' : 'Edit complaint'}</button>}{item.canWithdraw && <button onClick={withdraw} className="rounded-xl border border-rose-400/30 px-4 py-2 font-bold text-rose-200">Withdraw</button>}</div>
+    <section className="page-wrap narrow">
+      <div className="page-title-row"><div><p className="section-kicker">Complaint details</p><h2>{item.title}</h2><p>{item.referenceNumber} Â· {item.category} Â· {item.wardName}</p></div><div className="page-actions"><StatusBadge status={item.status} /><button type="button" onClick={() => navigate(-1)} className="button outline">â† Back</button></div></div>
+      {message && <div className="alert success">{message}</div>}{error && <div className="alert error">{error}</div>}
+
+      <section className="surface">
+        <div className="surface-header"><h3>Before images</h3><span className="muted" style={{ fontSize: 8 }}>Click an evidence file to download</span></div>
+        <div className="surface-body">
+          {detail.images.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{detail.images.slice(0, 9).map((image) => <article key={image.id} className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"><EvidenceMedia image={image} /><div className="flex items-center justify-between gap-2 px-2 py-2 text-xs text-slate-500"><span className="truncate">{image.fileName}</span><button type="button" onClick={() => download(image)} className="font-semibold text-blue-700">Download</button></div></article>)}</div> : <div className="upload-zone"><strong>No evidence media available</strong><p>Images and videos uploaded with the complaint will appear here.</p></div>}
+        </div>
+      </section>
+
+      <section className="surface section-gap">
+        <div className="surface-header"><h3>Complaint information</h3><div className="page-actions">{item.canEdit && <button type="button" onClick={() => setEditing((value) => !value)} className="button outline small">{editing ? 'Cancel editing' : 'Edit complaint'}</button>}{item.canWithdraw && <button type="button" onClick={withdraw} className="button danger small">Withdraw</button>}</div></div>
+        <div className="surface-body">
+          <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}><Info label="Category" value={item.category} /><Info label="Priority" value={item.priority} /><Info label="Department" value={item.departmentName} /><Info label="Ward" value={item.wardName} /></div>
+          <p style={{ margin: '18px 0 0', color: '#3d4c61', fontSize: 11, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{item.description}</p>
+        </div>
+      </section>
+
+      {editing && <form onSubmit={save} className="surface form-section section-gap"><div className="surface-header" style={{ margin: '-19px -19px 19px' }}><h3>Edit complaint</h3></div><label className="form-label">Title<input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label><label className="form-label" style={{ marginTop: 13 }}>Description<textarea className="input" style={{ minHeight: 120 }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></label><div className="form-grid three" style={{ marginTop: 13 }}><label className="form-label">Category<select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{metadata.categories.map((value) => <option key={value}>{value}</option>)}</select></label><label className="form-label">Department<select className="input" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value, wardId: '' })}>{metadata.departments.map((value) => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label><label className="form-label">Ward<select className="input" value={form.wardId} onChange={(e) => setForm({ ...form, wardId: e.target.value })}>{wards.map((value) => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label></div><button className="button primary" style={{ marginTop: 15 }}>Save changes</button></form>}
+
+      <div className="dashboard-grid main-aside section-gap">
+        <section className="surface">
+          <div className="surface-header"><h3>Location / map</h3></div>
+          <div className="surface-body"><div className="map-placeholder"><span className="map-pin-dot p2" /><div className="map-overlay-card"><strong>{item.address}</strong><p>{item.latitude}, {item.longitude}</p></div></div></div>
+        </section>
+        <section className="surface">
+          <div className="surface-header"><h3>Community support</h3></div>
+          <div className="surface-body"><strong style={{ fontSize: 28 }}>{item.upvoteCount || 0}</strong><p className="muted" style={{ marginTop: 4, fontSize: 9 }}>Citizens supporting this complaint</p><button type="button" onClick={toggleUpvote} className={`button ${item.hasUpvoted ? 'success' : 'primary'} full`}>{item.hasUpvoted ? 'âœ“ You supported this issue' : 'ðŸ‘ Support this issue'}</button></div>
+        </section>
       </div>
 
-      {editing && <form onSubmit={save} className="mt-6 space-y-5 rounded-3xl border border-sky-400/20 bg-sky-400/5 p-6"><h3 className="text-xl font-black text-white">Edit complaint</h3><input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /><textarea className="input min-h-32" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /><div className="grid gap-4 md:grid-cols-3"><select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{metadata.categories.map((value) => <option key={value}>{value}</option>)}</select><select className="input" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value, wardId: '' })}>{metadata.departments.map((value) => <option key={value.id} value={value.id}>{value.name}</option>)}</select><select className="input" value={form.wardId} onChange={(e) => setForm({ ...form, wardId: e.target.value })}>{wards.map((value) => <option key={value.id} value={value.id}>{value.name}</option>)}</select></div><input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required /><div className="grid gap-4 md:grid-cols-2"><input className="input" type="number" step="0.0000001" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} required /><input className="input" type="number" step="0.0000001" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} required /></div><button className="rounded-xl bg-sky-500 px-5 py-3 font-black text-white">Save changes</button></form>}
-
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"><h3 className="text-xl font-black text-white">Evidence files</h3><div className="mt-4 space-y-3">{detail.images.length ? detail.images.map((image) => <button key={image.id} onClick={() => download(image)} className="flex w-full items-center justify-between rounded-xl border border-white/10 p-4 text-left hover:bg-white/5"><span><span className="block font-bold text-white">{image.fileName}</span><span className="text-xs text-slate-500">{Math.ceil(image.fileSize / 1024)} KB · {image.mimeType}</span></span><span className="text-sky-300">Download</span></button>) : <p className="text-slate-500">No images were uploaded.</p>}</div></section>
-        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"><h3 className="text-xl font-black text-white">Timeline</h3><ol className="mt-5 space-y-5">{detail.timeline.map((event) => <li key={event.id} className="border-l-2 border-sky-400/30 pl-4"><div className="flex flex-wrap justify-between gap-2"><span className="font-bold text-white">{event.eventType}</span><time className="text-xs text-slate-500">{new Date(event.timestamp).toLocaleString()}</time></div><p className="mt-1 text-sm text-slate-400">{event.description}</p><p className="mt-1 text-xs text-slate-600">By {event.actorName}</p></li>)}</ol></section>
-      </div>
+      <section className="surface section-gap">
+        <div className="surface-header"><h3>Complaint timeline</h3></div>
+        <div className="surface-body timeline-list">{detail.timeline.map((event) => <div key={event.id} className="timeline-item complete"><span className="timeline-dot" /><h4>{readable(event.eventType)} <small style={{ color: 'var(--civic-muted)', fontWeight: 500 }}>Â· {new Date(event.timestamp).toLocaleString()}</small></h4><p>{event.description} Â· By {event.actorName}</p></div>)}</div>
+      </section>
     </section>
   );
 }
-function Info({ label, value }) { return <div><p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p><p className="mt-1 font-semibold text-white">{value}</p></div>; }
+
+function Info({ label, value }) { return <article className="stat-card" style={{ minHeight: 82 }}><small style={{ marginTop: 0 }}>{label}</small><strong style={{ fontSize: 15, marginTop: 8 }}>{value || 'â€”'}</strong></article>; }
+function readable(value='') { return String(value).replace(/([a-z])([A-Z])/g, '$1 $2'); }
+
+
+

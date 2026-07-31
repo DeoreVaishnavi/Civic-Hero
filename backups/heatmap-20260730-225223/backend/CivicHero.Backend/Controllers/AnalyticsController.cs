@@ -1,0 +1,58 @@
+using CivicHero.Backend.Core.DTOs.Analytics;
+using CivicHero.Backend.Core.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CivicHero.Backend.Controllers;
+
+[ApiController]
+[Route("api/v1/analytics")]
+[Authorize(Roles = "Supervisor,Admin,SuperAdmin")]
+public sealed class AnalyticsController : ControllerBase
+{
+    private readonly IAnalyticsService _service;
+
+    public AnalyticsController(IAnalyticsService service) => _service = service;
+
+    [HttpGet("overview")]
+    public async Task<IActionResult> Overview([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Analytics overview loaded.", await _service.GetOverviewAsync(filter, cancellationToken));
+
+    [HttpGet("complaints")]
+    public async Task<IActionResult> Complaints([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Complaint analytics loaded.", await _service.GetComplaintAnalyticsAsync(filter, cancellationToken));
+
+    [HttpGet("departments")]
+    public async Task<IActionResult> Departments([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Department analytics loaded.", await _service.GetDepartmentAnalyticsAsync(filter, cancellationToken));
+
+    [HttpGet("officers")]
+    public async Task<IActionResult> Officers([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Officer analytics loaded.", await _service.GetOfficerAnalyticsAsync(filter, cancellationToken));
+
+    [HttpGet("wards")]
+    public async Task<IActionResult> Wards([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Ward analytics loaded.", await _service.GetWardAnalyticsAsync(filter, cancellationToken));
+
+    [HttpGet("sla")]
+    public async Task<IActionResult> Sla([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("SLA analytics loaded.", await _service.GetSlaAnalyticsAsync(filter, cancellationToken));
+
+    [HttpGet("satisfaction")]
+    public async Task<IActionResult> Satisfaction([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Satisfaction analytics loaded.", await _service.GetSatisfactionAnalyticsAsync(filter, cancellationToken));
+
+    [HttpGet("heatmap")]
+    public async Task<IActionResult> Heatmap([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Geographic heatmap data loaded.", await _service.GetHeatmapAsync(filter, cancellationToken));
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> Export([FromQuery] string report, [FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken)
+    {
+        var file = await _service.ExportAsync(report, filter, cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
+    private IActionResult OkEnvelope<T>(string message, T data) => Ok(new { success = true, message, data });
+}

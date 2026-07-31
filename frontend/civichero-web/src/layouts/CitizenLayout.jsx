@@ -6,6 +6,8 @@ export default function CitizenLayout() {
     { to: '/citizen/report', label: 'Report issue' },
     { to: '/citizen/complaints', label: 'My complaints' },
     { to: '/citizen/nearby', label: 'Nearby issues' },
+    { to: '/citizen/heatmap', label: 'City heatmap' },
+    { to: '/projects', label: 'Schemes & projects' },
     { to: '/citizen/verifications', label: 'Verify resolutions' },
     { to: '/citizen/disputes', label: 'Disputes & appeals' },
     { to: '/citizen/rewards', label: 'Rewards & rank' },

@@ -1,0 +1,7 @@
+import { DoneAll } from "@mui/icons-material";
+import { Button,List,Paper,Typography } from "@mui/material";
+import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";
+import { notificationApi } from "../../api/notificationApi";
+import EmptyState from "../common/EmptyState";
+import NotificationItem from "./NotificationItem";
+export default function NotificationPanel(){const qc=useQueryClient();const{data=[]}=useQuery({queryKey:["notifications"],queryFn:notificationApi.list});const refresh=()=>qc.invalidateQueries({queryKey:["notifications"]});const read=useMutation({mutationFn:notificationApi.markRead,onSuccess:refresh});const all=useMutation({mutationFn:notificationApi.markAllRead,onSuccess:refresh});const items=data.items||data,unread=items.filter(item=>!item.isRead).length;return <Paper className="overflow-hidden"><div className="flex items-center justify-between border-b border-civic-border px-4 py-3"><div><Typography fontWeight={900}>Inbox</Typography><Typography variant="caption" color="text.secondary">{unread} unread notification{unread===1?"":"s"}</Typography></div><Button startIcon={<DoneAll/>} disabled={!unread||all.isPending} onClick={()=>all.mutate()}>Mark all read</Button></div>{items.length?<List sx={{p:1}}>{items.map(item=><NotificationItem key={item.id} notification={item} onClick={()=>!item.isRead&&read.mutate(item.id)}/>)}</List>:<EmptyState title="You’re all caught up" description="New complaint and municipal updates will appear here."/>}</Paper>}

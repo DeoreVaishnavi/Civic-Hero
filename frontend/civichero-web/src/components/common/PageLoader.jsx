@@ -1,0 +1,2 @@
+import { CircularProgress, Typography } from "@mui/material";
+export default function PageLoader(){return <div className="grid min-h-72 place-items-center" role="status" aria-label="Loading"><div className="text-center"><div className="relative mx-auto mb-3 grid h-16 w-16 place-items-center rounded-2xl bg-white shadow-lg"><CircularProgress size={30}/></div><Typography color="text.secondary">Loading CivicHero…</Typography></div></div>}

@@ -1,0 +1,1 @@
+import { describe,expect,it } from "vitest"; import { validateImage } from "./fileValidation"; describe("validateImage",()=>{it("accepts a small JPEG",()=>expect(validateImage(new File(["x"],"issue.jpg",{type:"image/jpeg"}))).toBeNull());it("rejects unsupported files",()=>expect(validateImage(new File(["x"],"issue.gif",{type:"image/gif"}))).toMatch(/JPG/));});

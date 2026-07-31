@@ -1,0 +1,2 @@
+import apiClient, { unwrap } from "./apiClient";
+export const analyticsApi = { overview: async () => unwrap(await apiClient.get("/analytics/overview")), complaints: async (params) => unwrap(await apiClient.get("/analytics/complaints", { params })), heatmap: async (params) => unwrap(await apiClient.get("/analytics/heatmap", { params })), departments: async () => unwrap(await apiClient.get("/analytics/departments")), auditLogs: async (params) => unwrap(await apiClient.get("/admin/audit-logs", { params })) };

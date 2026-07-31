@@ -1,0 +1,2 @@
+export const SIGNALR_EVENTS=["ComplaintStatusUpdated","ComplaintAssigned","ComplaintResolved","NewNotification","DashboardCountsUpdated"];
+export const EVENT_QUERY_KEYS={ComplaintStatusUpdated:[["complaints"]],ComplaintAssigned:[["complaints"],["staff"]],ComplaintResolved:[["complaints"],["analytics"]],NewNotification:[["notifications"]],DashboardCountsUpdated:[["complaints","dashboard"],["staff","dashboard"],["admin","overview"]]};

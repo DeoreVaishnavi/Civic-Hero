@@ -1,0 +1,1 @@
+import { describe,expect,it } from "vitest"; import { normalizeCode,STATUS_COLORS } from "./statusHelpers"; describe("status helpers",()=>{it("normalizes backend status values",()=>expect(normalizeCode("InProgress")).toBe("IN_PROGRESS"));it("defines semantic colors",()=>expect(STATUS_COLORS.RESOLVED.color).toBe("#027A48"));});

@@ -1,0 +1,2 @@
+import apiClient, { unwrap } from "./apiClient";
+export const departmentApi = { list: async () => unwrap(await apiClient.get("/admin/departments")), create: async (value) => unwrap(await apiClient.post("/admin/departments", value)), update: async (id, value) => unwrap(await apiClient.put(`/admin/departments/${id}`, value)), deactivate: async (id) => unwrap(await apiClient.delete(`/admin/departments/${id}`)) };

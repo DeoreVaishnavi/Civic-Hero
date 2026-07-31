@@ -1,0 +1,1 @@
+export const MAX_IMAGE_BYTES=5*1024*1024; export function validateImage(file){if(!file)return "Select an image.";if(!["image/jpeg","image/png"].includes(file.type))return "Only JPG and PNG images are supported.";if(file.size>MAX_IMAGE_BYTES)return "Image must be 5 MB or smaller.";return null}

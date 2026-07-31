@@ -1,0 +1,1 @@
+import PagePlaceholder from "../components/common/PagePlaceholder"; export default function AboutPage(){return <div className="mx-auto max-w-5xl p-6 py-16"><PagePlaceholder title="About CivicHero" description="A transparent municipal complaint-management platform connecting citizens and local teams."/></div>}

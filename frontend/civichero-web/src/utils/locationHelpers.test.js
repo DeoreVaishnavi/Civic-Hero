@@ -1,0 +1,1 @@
+import { describe,expect,it } from "vitest"; import { isValidLocation } from "./locationHelpers"; describe("isValidLocation",()=>{it("accepts Pune coordinates",()=>expect(isValidLocation({latitude:18.52,longitude:73.85})).toBe(true));it("rejects invalid latitude",()=>expect(isValidLocation({latitude:120,longitude:73})).toBe(false));});

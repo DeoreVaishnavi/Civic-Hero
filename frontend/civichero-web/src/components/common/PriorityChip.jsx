@@ -1,0 +1,1 @@
+import PropTypes from "prop-types"; import { Chip } from "@mui/material"; const colors={LOW:"success",MEDIUM:"info",HIGH:"warning",CRITICAL:"error"}; export default function PriorityChip({priority="Medium"}){return <Chip size="small" variant="outlined" color={colors[priority.toUpperCase()]||"default"} label={priority}/>} PriorityChip.propTypes={priority:PropTypes.string};

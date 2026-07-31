@@ -1,0 +1,1 @@
+export const formatDateTime=(value,locale=navigator.language)=>value?new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(value)):"—"; export const formatDate=(value,locale=navigator.language)=>value?new Intl.DateTimeFormat(locale,{dateStyle:"medium"}).format(new Date(value)):"—";

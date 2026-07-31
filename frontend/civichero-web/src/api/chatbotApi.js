@@ -1,0 +1,1 @@
+import apiClient,{unwrap} from "./apiClient"; export const chatbotApi={start:async()=>unwrap(await apiClient.post("/chatbot/session")),session:async(id)=>unwrap(await apiClient.get(`/chatbot/session/${id}`)),send:async(sessionId,message)=>unwrap(await apiClient.post("/chatbot/message",{sessionId,message})),end:async(id)=>unwrap(await apiClient.delete(`/chatbot/session/${id}`))};

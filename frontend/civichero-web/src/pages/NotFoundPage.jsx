@@ -1,0 +1,1 @@
+import { Button,Typography } from "@mui/material"; import { Link } from "react-router"; export default function NotFoundPage(){return <div className="grid min-h-[60vh] place-items-center text-center"><div><Typography variant="h2">404</Typography><Typography variant="h5">Page not found</Typography><Button component={Link} to="/" sx={{mt:2}}>Return home</Button></div></div>}

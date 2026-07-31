@@ -1,0 +1,10 @@
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { initReactI18next } from "react-i18next";
+import enCommon from "./locales/en/common.json"; import enAuth from "./locales/en/auth.json"; import enComplaints from "./locales/en/complaints.json"; import enNotifications from "./locales/en/notifications.json";
+import mrCommon from "./locales/mr/common.json"; import mrAuth from "./locales/mr/auth.json"; import mrComplaints from "./locales/mr/complaints.json"; import mrNotifications from "./locales/mr/notifications.json";
+import hiCommon from "./locales/hi/common.json"; import hiAuth from "./locales/hi/auth.json"; import hiComplaints from "./locales/hi/complaints.json"; import hiNotifications from "./locales/hi/notifications.json";
+const resources = { en: { common: enCommon, auth: enAuth, complaints: enComplaints, notifications: enNotifications }, mr: { common: mrCommon, auth: mrAuth, complaints: mrComplaints, notifications: mrNotifications }, hi: { common: hiCommon, auth: hiAuth, complaints: hiComplaints, notifications: hiNotifications } };
+i18n.use(LanguageDetector).use(initReactI18next).init({ resources, supportedLngs: ["en", "mr", "hi"], fallbackLng: "en", defaultNS: "common", interpolation: { escapeValue: false }, detection: { order: ["localStorage", "navigator"], caches: ["localStorage"], lookupLocalStorage: "civicHeroLanguage" } });
+const syncLanguage = (language) => { const code = language?.split("-")[0] || "en"; document.documentElement.lang = code; localStorage.setItem("civicHeroLanguage", code); };
+syncLanguage(i18n.resolvedLanguage); i18n.on("languageChanged", syncLanguage); export default i18n;

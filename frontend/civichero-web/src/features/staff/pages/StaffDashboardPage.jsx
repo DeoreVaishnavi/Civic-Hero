@@ -1,0 +1,8 @@
+import { Box, Button, Card, CardContent, Typography } from "@mui/material";
+import { Assignment, CheckCircle, Schedule, WarningAmber } from "@mui/icons-material";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router";
+import { staffApi } from "../../../api/staffApi";
+import PageHeader from "../../../components/common/PageHeader";
+const cards=[["assigned","Assigned to me",Assignment,"#3346A8","#EEF0FF"],["dueToday","Due today",Schedule,"#D97706","#FFF1CF"],["overdue","Overdue",WarningAmber,"#D92D20","#FEEDEC"],["completed","Completed",CheckCircle,"#238636","#EAF8EE"]];
+export default function StaffDashboardPage(){const{data={}}=useQuery({queryKey:["staff","dashboard"],queryFn:staffApi.dashboard});return <><PageHeader title="Operations command centre" description="Focus on the work that needs attention and protect every service commitment." action={<Button component={Link} to="/staff/complaints" variant="contained">Open complaint queue</Button>}/><Box className="community-cta mb-6 rounded-[28px] p-7 text-white"><Typography variant="overline" sx={{opacity:.7}}>TODAY’S PRIORITY</Typography><Typography variant="h4">{data.overdue||0} overdue · {data.dueToday||0} due today</Typography><Typography sx={{mt:1,opacity:.75}}>Review SLA risk first, then continue active assignments.</Typography></Box><div className="stagger-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([key,label,Icon,color,bg])=><Card key={key}><CardContent sx={{p:3}}><Box sx={{display:"grid",placeItems:"center",width:48,height:48,borderRadius:3,bgcolor:bg,color,mb:2}}><Icon/></Box><Typography color="text.secondary">{label}</Typography><Typography variant="h3">{data[key]||0}</Typography></CardContent></Card>)}</div></>}

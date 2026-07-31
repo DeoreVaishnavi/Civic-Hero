@@ -1,0 +1,2 @@
+import apiClient, { unwrap } from "./apiClient";
+export const notificationApi = { list: async (params) => unwrap(await apiClient.get("/notifications", { params })), unread: async () => unwrap(await apiClient.get("/notifications/unread")), markRead: async (id) => unwrap(await apiClient.post(`/notifications/${id}/read`)), markAllRead: async () => unwrap(await apiClient.post("/notifications/read-all")), remove: async (id) => unwrap(await apiClient.delete(`/notifications/${id}`)) };

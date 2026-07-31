@@ -1,0 +1,1 @@
+import PropTypes from "prop-types"; import { Navigate,Outlet } from "react-router"; import useAuth from "../hooks/useAuth"; export default function RoleRoute({allowedRoles}){const{user}=useAuth();return allowedRoles.includes(user?.role)?<Outlet/>:<Navigate to="/unauthorized" replace/>} RoleRoute.propTypes={allowedRoles:PropTypes.arrayOf(PropTypes.string).isRequired};

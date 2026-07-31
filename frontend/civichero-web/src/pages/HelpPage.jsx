@@ -1,0 +1,1 @@
+import PagePlaceholder from "../components/common/PagePlaceholder"; export default function HelpPage(){return <div className="mx-auto max-w-5xl p-6 py-16"><PagePlaceholder title="Help" description="Learn how to report, locate, track, and verify a civic complaint."/></div>}

@@ -1,0 +1,1 @@
+import PagePlaceholder from "../components/common/PagePlaceholder"; export default function PrivacyPage(){return <div className="mx-auto max-w-5xl p-6 py-16"><PagePlaceholder title="Privacy" description="CivicHero limits access to personal information and uses location only for complaint processing."/></div>}

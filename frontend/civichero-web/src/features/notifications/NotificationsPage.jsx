@@ -1,0 +1,1 @@
+import PageHeader from "../../components/common/PageHeader"; import NotificationPanel from "../../components/notifications/NotificationPanel"; export default function NotificationsPage(){return <><PageHeader title="Notifications" description="Complaint, assignment, resolution, and municipal alerts."/><NotificationPanel/></>}

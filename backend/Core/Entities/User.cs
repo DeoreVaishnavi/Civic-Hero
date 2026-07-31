@@ -1,24 +1,53 @@
+using CivicHero.Backend.Core.Common;
 using CivicHero.Backend.Core.Enums;
 
-namespace CivicHero.Backend.Core.Entities
-{
-    public class User
-    {
-        public int Id { get; set; }
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
-        public Role Role { get; set; } = Role.User;
-        public int ReputationPoints { get; set; } = 0;
-        public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
+namespace CivicHero.Backend.Core.Entities;
 
-        // Navigation properties
-        public ICollection<ReputationLog> ReputationLogs { get; set; } = new List<ReputationLog>();
-        public ICollection<Redemption> Redemptions { get; set; } = new List<Redemption>();
-        public ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
-        public ICollection<ComplaintUpdate> ComplaintUpdates { get; set; } = new List<ComplaintUpdate>();
-    }
+public sealed class User : SoftDeleteEntity
+{
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? NormalizedPhone { get; set; }
+    public bool IsPhoneVerified { get; set; }
+    public bool IsSystemAccount { get; set; }
+    public UserRole Role { get; set; } = UserRole.Citizen;
+    public long? DepartmentId { get; set; }
+    public long? WardId { get; set; }
+    public bool IsEmailVerified { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int AuthorizationVersion { get; set; } = 1;
+
+    public string? EmailVerificationTokenHash { get; set; }
+    public DateTimeOffset? EmailVerificationTokenExpiresAt { get; set; }
+    public string? RefreshTokenHash { get; set; }
+    public DateTimeOffset? RefreshTokenCreatedAt { get; set; }
+    public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
+    public int FailedLoginAttempts { get; set; }
+    public DateTimeOffset? LockoutEnd { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
+
+    public bool TwoFactorEnabled { get; set; }
+    public string? TwoFactorSecretProtected { get; set; }
+    public string? TwoFactorRecoveryCodesJson { get; set; }
+    public DateTimeOffset? TwoFactorEnabledAt { get; set; }
+
+    public Department? Department { get; set; }
+    public Ward? Ward { get; set; }
+    public ICollection<Complaint> CreatedComplaints { get; set; } = new List<Complaint>();
+    public ICollection<Complaint> AssignedComplaints { get; set; } = new List<Complaint>();
+    public ICollection<ComplaintAssignment> OfficerAssignments { get; set; } = new List<ComplaintAssignment>();
+    public ICollection<ComplaintAssignment> AssignmentsCreated { get; set; } = new List<ComplaintAssignment>();
+    public ICollection<ComplaintProgressUpdate> ProgressUpdates { get; set; } = new List<ComplaintProgressUpdate>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public NotificationPreference? NotificationPreference { get; set; }
+    public ICollection<Redemption> Redemptions { get; set; } = new List<Redemption>();
+    public ICollection<ReputationLog> ReputationLogs { get; set; } = new List<ReputationLog>();
+    public ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
+    public ICollection<ComplaintVote> ComplaintVotes { get; set; } = new List<ComplaintVote>();
+    public ICollection<PhoneOtpChallenge> PhoneOtpChallenges { get; set; } = new List<PhoneOtpChallenge>();
+    public ICollection<ComplaintComment> ComplaintComments { get; set; } = new List<ComplaintComment>();
+    public ICollection<ComplaintVerification> ComplaintVerifications { get; set; } = new List<ComplaintVerification>();
+    public ICollection<ComplaintVerification> VerificationOverrides { get; set; } = new List<ComplaintVerification>();
 }

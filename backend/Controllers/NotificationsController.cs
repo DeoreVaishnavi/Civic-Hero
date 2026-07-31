@@ -1,111 +1,73 @@
+using CivicHero.Backend.Core.Constants;
 using CivicHero.Backend.Core.DTOs.Notifications;
-using CivicHero.Backend.Core.Enums;
-using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Core.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CivicHero.Backend.Controllers
+namespace CivicHero.Backend.Controllers;
+
+[ApiController]
+[Route("api/v1/notifications")]
+[Authorize]
+public sealed class NotificationsController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class NotificationsController : ControllerBase
+    private readonly INotificationService _service;
+    private readonly IServiceProvider _services;
+
+    public NotificationsController(INotificationService service, IServiceProvider services)
     {
-        private readonly INotificationService _notificationService;
-        private readonly IUserRepository _userRepository;
+        _service = service;
+        _services = services;
+    }
 
-        public NotificationsController(INotificationService notificationService, IUserRepository userRepository)
-        {
-            _notificationService = notificationService;
-            _userRepository = userRepository;
-        }
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] NotificationQuery query, CancellationToken cancellationToken) =>
+        OkEnvelope("Notifications loaded.", await _service.GetAsync(query, cancellationToken));
 
-        // GET: api/notifications
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<NotificationDto>>> GetMyNotifications([FromQuery] bool includeRead = false)
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
+    [HttpGet("unread")]
+    public async Task<IActionResult> Unread(CancellationToken cancellationToken) =>
+        OkEnvelope("Unread count loaded.", new { count = await _service.GetUnreadCountAsync(cancellationToken) });
 
-            var notifications = await _notificationService.GetNotificationsForUserAsync(userId, includeRead);
-            return Ok(notifications);
-        }
+    [HttpPost("{id:long}/read")]
+    public async Task<IActionResult> MarkRead(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("Notification marked as read.", await _service.MarkReadAsync(id, cancellationToken));
 
-        // GET: api/notifications/unread-count
-        [HttpGet("unread-count")]
-        public async Task<ActionResult<int>> GetUnreadCount()
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
+    [HttpPost("read-all")]
+    public async Task<IActionResult> MarkAllRead(CancellationToken cancellationToken) =>
+        OkEnvelope("All notifications marked as read.", new { count = await _service.MarkAllReadAsync(cancellationToken) });
 
-            var count = await _notificationService.GetUnreadCountAsync(userId);
-            return Ok(count);
-        }
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        await _service.DeleteAsync(id, cancellationToken);
+        return OkEnvelope("Notification removed.", new { id });
+    }
 
-        // PATCH: api/notifications/read
-        [HttpPatch("read")]
-        public async Task<ActionResult> MarkAsRead([FromBody] MarkReadDto dto)
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
+    [HttpGet("preferences")]
+    public async Task<IActionResult> Preferences(CancellationToken cancellationToken) =>
+        OkEnvelope("Notification preferences loaded.", await _service.GetPreferencesAsync(cancellationToken));
 
-            await _notificationService.MarkAsReadAsync(userId, dto);
-            return NoContent();
-        }
+    [HttpPut("preferences")]
+    public async Task<IActionResult> UpdatePreferences([FromBody] UpdateNotificationPreferencesRequest request, CancellationToken cancellationToken) =>
+        OkEnvelope("Notification preferences updated.", await _service.UpdatePreferencesAsync(request, cancellationToken));
 
-        // POST: api/notifications/send
-        [HttpPost("send")]
-        public async Task<ActionResult> SendNotification([FromBody] SendNotificationDto dto)
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
+    [HttpPost("broadcast")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> Broadcast([FromBody] BroadcastNotificationRequest request, CancellationToken cancellationToken)
+    {
+        await ValidateAsync(request, cancellationToken);
+        return OkEnvelope("Broadcast queued for active users.", new { recipients = await _service.BroadcastAsync(request, cancellationToken) });
+    }
 
-            await _notificationService.SendNotificationAsync(new SendNotificationDto
-            {
-                UserId = userId,
-                Type = dto.Type,
-                Title = dto.Title,
-                Message = dto.Message,
-                Channels = dto.Channels
-            });
+    private IActionResult OkEnvelope<T>(string message, T data) => Ok(new { success = true, message, data });
 
-            return Ok();
-        }
-
-        // POST: api/notifications/broadcast (admin only)
-        [HttpPost("broadcast")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> BroadcastNotification([FromBody] SendNotificationDto dto)
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
-
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null)
-                return Unauthorized();
-
-            if (user.Role != Role.Admin)
-                return Forbid();
-
-            var users = await _userRepository.GetAllAsync();
-            foreach (var recipient in users)
-            {
-                await _notificationService.SendNotificationAsync(new SendNotificationDto
-                {
-                    UserId = recipient.Id,
-                    Type = dto.Type,
-                    Title = dto.Title,
-                    Message = dto.Message,
-                    Channels = dto.Channels
-                });
-            }
-
-            return Ok(new { Message = $"Broadcast sent to {users.Count} users" });
-        }
+    private async Task ValidateAsync<T>(T request, CancellationToken cancellationToken)
+    {
+        var validator = _services.GetService<IValidator<T>>();
+        if (validator is null) return;
+        var result = await validator.ValidateAsync(request, cancellationToken);
+        if (!result.IsValid)
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(result.Errors.Select(error => error.ErrorMessage));
     }
 }

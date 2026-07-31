@@ -1,95 +1,110 @@
-using AutoMapper;
+using CivicHero.Backend.Core.Constants;
 using CivicHero.Backend.Core.DTOs.Complaints;
-using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Core.Exceptions;
+using CivicHero.Backend.Core.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace CivicHero.Backend.Controllers
+namespace CivicHero.Backend.Controllers;
+
+[ApiController]
+[Route("api/v1/complaints")]
+[Authorize]
+public sealed class ComplaintsController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class ComplaintsController : ControllerBase
+    private readonly IComplaintService _complaintService;
+    private readonly IValidator<CreateComplaintRequest> _createValidator;
+    private readonly IValidator<UpdateComplaintRequest> _updateValidator;
+
+    public ComplaintsController(
+        IComplaintService complaintService,
+        IValidator<CreateComplaintRequest> createValidator,
+        IValidator<UpdateComplaintRequest> updateValidator)
     {
-        private readonly IComplaintService _complaintService;
-        private readonly IMapper _mapper;
+        _complaintService = complaintService;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+    }
 
-        public ComplaintsController(IComplaintService complaintService, IMapper mapper)
+    [HttpPost]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> Create([FromForm] CreateComplaintRequest request, CancellationToken cancellationToken)
+    {
+        await ValidateAsync(_createValidator, request, cancellationToken);
+        var complaint = await _complaintService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = complaint.Complaint.Id }, new
         {
-            _complaintService = complaintService;
-            _mapper = mapper;
-        }
+            success = true,
+            message = "Complaint submitted successfully.",
+            data = complaint
+        });
+    }
 
-        // GET: api/complaints
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ComplaintDto>>> GetAllComplaints()
-        {
-            var complaints = await _complaintService.GetAllComplaintsAsync();
-            return Ok(complaints);
-        }
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] ComplaintQuery query, CancellationToken cancellationToken) =>
+        OkEnvelope("Complaints loaded.", await _complaintService.GetAsync(query, cancellationToken));
 
-        // GET: api/complaints/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ComplaintDto>> GetComplaint(int id)
-        {
-            var complaint = await _complaintService.GetComplaintByIdAsync(id);
-            if (complaint == null)
-                return NotFound();
+    [HttpGet("mine")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> Mine([FromQuery] ComplaintQuery query, CancellationToken cancellationToken) =>
+        OkEnvelope("Your complaints loaded.", await _complaintService.GetMineAsync(query, cancellationToken));
 
-            return Ok(complaint);
-        }
+    [HttpGet("metadata")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Metadata(CancellationToken cancellationToken) =>
+        OkEnvelope("Complaint metadata loaded.", await _complaintService.GetMetadataAsync(cancellationToken));
 
-        // GET: api/complaints/user/5
-        [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<ComplaintDto>>> GetComplaintsByUserId(int userId)
-        {
-            var complaints = await _complaintService.GetComplaintsByUserIdAsync(userId);
-            return Ok(complaints);
-        }
+    [HttpGet("nearby")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Nearby([FromQuery] NearbyComplaintQuery query, CancellationToken cancellationToken) =>
+        OkEnvelope("Nearby complaints loaded.", await _complaintService.GetNearbyAsync(query, cancellationToken));
 
-        // POST: api/complaints
-        [HttpPost]
-        public async Task<ActionResult<ComplaintDto>> CreateComplaint([FromBody] CreateComplaintDto dto)
-        {
-            // In a real app, get user ID from claims/token
-            var userId = 1; // Placeholder - should be extracted from auth context
-            var complaint = await _complaintService.CreateComplaintAsync(userId, dto);
-            if (complaint == null)
-                return BadRequest("Failed to create complaint");
+    [HttpGet("stats/dashboard")]
+    public async Task<IActionResult> Dashboard(CancellationToken cancellationToken) =>
+        OkEnvelope("Complaint dashboard loaded.", await _complaintService.GetDashboardAsync(cancellationToken));
 
-            return CreatedAtAction(nameof(GetComplaint), new { id = complaint.Id }, complaint);
-        }
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("Complaint loaded.", await _complaintService.GetByIdAsync(id, cancellationToken));
 
-        // PUT: api/complaints/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateComplaint(int id, [FromBody] UpdateComplaintDto dto)
-        {
-            var complaint = await _complaintService.UpdateComplaintAsync(id, dto);
-            if (complaint == null)
-                return NotFound();
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Update(long id, [FromBody] UpdateComplaintRequest request, CancellationToken cancellationToken)
+    {
+        await ValidateAsync(_updateValidator, request, cancellationToken);
+        return OkEnvelope("Complaint updated.", await _complaintService.UpdateAsync(id, request, cancellationToken));
+    }
 
-            return Ok(complaint);
-        }
+    [HttpDelete("{id:long}")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> Withdraw(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("Complaint withdrawn.", await _complaintService.WithdrawAsync(id, cancellationToken));
 
-        // DELETE: api/complaints/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteComplaint(int id)
-        {
-            var result = await _complaintService.DeleteComplaintAsync(id);
-            if (!result)
-                return NotFound();
+    [HttpPost("{id:long}/upvote")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> Upvote(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("Upvote recorded.", new { upvoteCount = await _complaintService.UpvoteAsync(id, cancellationToken) });
 
-            return NoContent();
-        }
+    [HttpDelete("{id:long}/upvote")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> RemoveUpvote(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("Upvote removed.", new { upvoteCount = await _complaintService.RemoveUpvoteAsync(id, cancellationToken) });
 
-        // GET: api/complaints/count
-        [HttpGet("count")]
-        public async Task<ActionResult<int>> GetComplaintCount()
-        {
-            var count = await _complaintService.GetComplaintCountAsync();
-            return Ok(count);
-        }
+    [HttpGet("{complaintId:long}/images/{imageId:long}")]
+    public async Task<IActionResult> DownloadImage(long complaintId, long imageId, CancellationToken cancellationToken)
+    {
+        var download = await _complaintService.DownloadImageAsync(complaintId, imageId, cancellationToken);
+        return File(download.Content, download.ContentType, download.FileName, enableRangeProcessing: true);
+    }
+
+    private IActionResult OkEnvelope<T>(string message, T data) => Ok(new { success = true, message, data });
+
+    private static async Task ValidateAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
+    {
+        var result = await validator.ValidateAsync(request, cancellationToken);
+        if (!result.IsValid)
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(result.Errors.Select(error => error.ErrorMessage));
     }
 }

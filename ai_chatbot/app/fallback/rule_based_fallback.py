@@ -1,6 +1,7 @@
 import re
 import random
-from ..provides the rule-based fallback LLM provider.
+class RuleBasedFallbackProvider:
+    """Provides the rule-based fallback LLM provider.
     """
 
     def __init__(self):

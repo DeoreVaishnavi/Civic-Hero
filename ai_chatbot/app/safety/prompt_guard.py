@@ -56,13 +56,13 @@ class PromptGuard:
             return ""
 
         # Remove any potential script tags
-        text = re.sub(r"<\s*script\s*>.*?<\s*/\s*script\s*>", "", script, flags=re.IGNORECASE | re.DOTALL)
+        text = re.sub(r"<\s*script\s*>.*?<\s*/\s*script\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
 
         # Remove any potential style tags that could be used for CSS injection
         text = re.sub(r"<\s*style\s*>.*?<\s*/\s*style\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
 
         # Remove any potential object, embed, iframe tags
-        text = re.sub(r"<\s*(?:object|embed|iframe)[^>]*>.*?<\s*/\s*\1\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
+        text = re.sub(r"<\s*(object|embed|iframe)[^>]*>.*?<\s*/\s*\1\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
 
         # Remove any potential form tags
         text = re.sub(r"<\s*form[^>]*>.*?<\s*/\s*form\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
@@ -98,7 +98,7 @@ class PromptGuard:
         text = re.sub(r"<\s*canvas[^>]*>.*?<\s*/\s*canvas\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
 
         # Remove any potential video/audio tags
-        text = re.sub(r"<\s*(?:video|audio)[^>]*>.*?<\s*/\s*\1\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
+        text = re.sub(r"<\s*(video|audio)[^>]*>.*?<\s*/\s*\1\s*>", "", text, flags=re.IGNORECASE | re.DOTALL)
 
         # Remove any potential source tags
         text = re.sub(r"<\s*source[^>]*>", "", text, flags=re.IGNORECASE | re.DOTALL)

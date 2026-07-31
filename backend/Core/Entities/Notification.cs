@@ -1,20 +1,22 @@
+using CivicHero.Backend.Core.Common;
 using CivicHero.Backend.Core.Enums;
-using System;
 
-namespace CivicHero.Backend.Core.Entities
+namespace CivicHero.Backend.Core.Entities;
+
+public sealed class Notification : BaseEntity
 {
-    public class Notification
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public NotificationType Type { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public bool IsRead { get; set; } = false;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? ReadAt { get; set; }
+    public long UserId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public NotificationType Type { get; set; } = NotificationType.General;
+    public string? ReferenceType { get; set; }
+    public long? ReferenceId { get; set; }
+    public string? ActionUrl { get; set; }
+    public bool IsRead { get; set; }
+    public bool IsArchived { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? ReadAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
 
-        // Navigation property
-        public User? User { get; set; }
-    }
+    public User User { get; set; } = null!;
 }

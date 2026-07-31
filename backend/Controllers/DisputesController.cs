@@ -1,78 +1,21 @@
+using CivicHero.Backend.Core.Constants;
 using CivicHero.Backend.Core.DTOs.Disputes;
-using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Core.Services;
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-namespace CivicHero.Backend.Controllers
+namespace CivicHero.Backend.Controllers;
+[ApiController,Route("api/v1/disputes"),Authorize]
+public sealed class DisputesController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class DisputesController : ControllerBase
-    {
-        private readonly IDisputeManagementService _disputeService;
-
-        public DisputesController(IDisputeManagementService disputeService)
-        {
-            _disputeService = disputeService;
-        }
-
-        // GET: api/disputes
-        [HttpGet]
-        public async Task<ActionResult<DisputeRowDto[]>> GetDisputes(int? complaintId = null, int? userId = null, string? status = null)
-        {
-            var disputes = await _disputeService.GetDisputesAsync(complaintId, userId, status);
-            return Ok(disputes);
-        }
-
-        // GET: api/disputes/{complaintId}/audit
-        [HttpGet("{complaintId}/audit")]
-        public async Task<ActionResult<DisputeAuditLogRowDto[]>> GetAuditLog(int complaintId)
-        {
-            var auditLog = await _disputeService.GetAuditLogAsync(complaintId);
-            return Ok(auditLog);
-        }
-
-        // POST: api/disputes/initiate
-        [HttpPost("initiate")]
-        public async Task<ActionResult<DisputeAuditLogRowDto>> InitiateDispute([FromBody] InitiateDisputeDto initiateDisputeDto)
-        {
-            var result = await _disputeService.InitiateDisputeAsync(
-                initiateDisputeDto.ComplaintId,
-                initiateDisputeDto.InitiatedByUserId,
-                initiateDisputeDto.Details ?? "");
-            return Ok(result);
-        }
-
-        // POST: api/disputes/evidence
-        [HttpPost("evidence")]
-        public async Task<ActionResult<DisputeAuditLogRowDto>> AddEvidence([FromBody] AddEvidenceDto addEvidenceDto)
-        {
-            var result = await _disputeService.AddEvidenceAsync(
-                addEvidenceDto.ComplaintId,
-                addEvidenceDto.UserId,
-                addEvidenceDto.EvidenceDescription ?? "");
-            return Ok(result);
-        }
-
-        // POST: api/disputes/{complaintId}/verdict/{userId}
-        [HttpPost("{complaintId}/verdict/{userId}")]
-        public async Task<ActionResult<DisputeAuditLogRowDto>> SubmitVerdict(int complaintId, int userId, [FromBody] VerdictSubmissionDto verdictSubmission)
-        {
-            var result = await _disputeService.SubmitVerdictAsync(
-                complaintId,
-                userId,
-                verdictSubmission);
-            return Ok(result);
-        }
-
-        // POST: api/disputes/{complaintId}/reanalyze/{userId}
-        [HttpPost("{complaintId}/reanalyze/{userId}")]
-        public async Task<ActionResult<DisputeAuditLogRowDto>> RequestReAnalysis(int complaintId, int userId, [FromBody] ReAnalyzeRequest reAnalyzeRequest)
-        {
-            var result = await _disputeService.RequestReAnalysisAsync(
-                complaintId,
-                userId,
-                reAnalyzeRequest);
-            return Ok(result);
-        }
-    }
+ private readonly IDisputeService _service;private readonly IServiceProvider _services;
+ public DisputesController(IDisputeService service,IServiceProvider services){_service=service;_services=services;}
+ [HttpGet("mine"),Authorize(Policy=PermissionConstants.CitizenOnly)]public async Task<IActionResult> Mine(CancellationToken ct)=>Ok(new{success=true,message="Disputes loaded.",data=await _service.MineAsync(ct)});
+ [HttpGet("queue"),Authorize(Policy=PermissionConstants.SupervisorOrAbove)]public async Task<IActionResult> Queue([FromQuery]bool appealsOnly,CancellationToken ct)=>Ok(new{success=true,message="Dispute queue loaded.",data=await _service.QueueAsync(appealsOnly,ct)});
+ [HttpGet("{id:long}")]public async Task<IActionResult> Get(long id,CancellationToken ct)=>Ok(new{success=true,message="Dispute loaded.",data=await _service.GetAsync(id,ct)});
+ [HttpPost("complaints/{complaintId:long}"),Authorize(Policy=PermissionConstants.CitizenOnly)]public async Task<IActionResult> Raise(long complaintId,[FromBody]RaiseDisputeRequest request,CancellationToken ct){await Validate(request,ct);return Ok(new{success=true,message="Dispute raised.",data=await _service.RaiseAsync(complaintId,request,ct)});}
+ [HttpPost("{id:long}/supervisor-decision"),Authorize(Policy=PermissionConstants.SupervisorOrAbove)]public async Task<IActionResult> Supervisor(long id,[FromBody]DisputeDecisionRequest request,CancellationToken ct){await Validate(request,ct);return Ok(new{success=true,message="Supervisor decision saved.",data=await _service.SupervisorDecisionAsync(id,request,ct)});}
+ [HttpPost("{id:long}/appeal"),Authorize(Policy=PermissionConstants.CitizenOnly)]public async Task<IActionResult> Appeal(long id,[FromBody]AppealDisputeRequest request,CancellationToken ct){await Validate(request,ct);return Ok(new{success=true,message="Appeal submitted.",data=await _service.AppealAsync(id,request,ct)});}
+ [HttpPost("{id:long}/admin-decision"),Authorize(Policy=PermissionConstants.AdminOrAbove)]public async Task<IActionResult> Admin(long id,[FromBody]DisputeDecisionRequest request,CancellationToken ct){await Validate(request,ct);return Ok(new{success=true,message="Admin decision saved.",data=await _service.AdminDecisionAsync(id,request,ct)});}
+ private async Task Validate<T>(T request,CancellationToken ct){var v=_services.GetService<IValidator<T>>();if(v is null)return;var r=await v.ValidateAsync(request,ct);if(!r.IsValid)throw new CivicHero.Backend.Core.Exceptions.ValidationException(r.Errors.Select(x=>x.ErrorMessage));}
 }

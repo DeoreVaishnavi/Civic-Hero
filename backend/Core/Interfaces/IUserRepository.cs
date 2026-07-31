@@ -1,16 +1,15 @@
+using CivicHero.Backend.Core.DTOs.Users;
 using CivicHero.Backend.Core.Entities;
 
-namespace CivicHero.Backend.Core.Interfaces
+namespace CivicHero.Backend.Core.Interfaces;
+
+public interface IUserRepository : IRepository<User>
 {
-    public interface IUserRepository
-    {
-        Task<User?> GetByIdAsync(int userId);
-        Task<bool> EmailExist(string email);
-        Task<User?> GetByEmail(string email);
-        Task<List<User>> GetAllAsync();
-        Task<User> AddAsync(User user);
-        Task<User> UpdateAsync(User user);
-        Task<bool> DeleteAsync(User user);
-        Task<int> GetCountAsync();
-    }
+    Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<User?> GetByPhoneAsync(string normalizedPhone, CancellationToken cancellationToken = default);
+    Task<User?> GetByRefreshTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
+    Task<User?> GetProfileByIdAsync(long id, bool asTracking = false, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<User> Items, int TotalCount)> GetPagedAsync(
+        UserQuery query,
+        CancellationToken cancellationToken = default);
 }

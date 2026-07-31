@@ -1,18 +1,23 @@
-using System;
-
-namespace CivicHero.Backend.Core.Entities
+using CivicHero.Backend.Core.Common;
+using CivicHero.Backend.Core.Enums;
+namespace CivicHero.Backend.Core.Entities;
+public sealed class DisputeAuditLog : BaseEntity
 {
-    public class DisputeAuditLog
-    {
-        public int Id { get; set; }
-        public int ComplaintId { get; set; }
-        public int InitiatedByUserId { get; set; }
-        public string Action { get; set; } = string.Empty; // e.g., "Dispute initiated", "Evidence submitted", "Verdict submitted"
-        public string Details { get; set; } = string.Empty; // JSON or text details
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-        
-        // Navigation properties
-        public User? User { get; set; }
-        // public Complaint? Complaint { get; set; } // Assuming Complaint entity exists
-    }
+    public long ComplaintId { get; set; }
+    public long RaisedByUserId { get; set; }
+    public long? ReviewedByUserId { get; set; }
+    public DisputeStatus Status { get; set; } = DisputeStatus.Raised;
+    public int CycleNumber { get; set; } = 1;
+    public string CitizenRemarks { get; set; } = string.Empty;
+    public string? SupervisorDecision { get; set; }
+    public string? SupervisorRemarks { get; set; }
+    public string? AdminDecision { get; set; }
+    public string? AdminRemarks { get; set; }
+    public DateTimeOffset RaisedAt { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public DateTimeOffset? ResolvedAt { get; set; }
+    public DateTimeOffset? AppealDeadline { get; set; }
+    public Complaint Complaint { get; set; } = null!;
+    public User RaisedByUser { get; set; } = null!;
+    public User? ReviewedByUser { get; set; }
 }

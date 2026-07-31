@@ -1,107 +1,99 @@
-using CivicHero.Backend.Core.Interfaces;
-using CivicHero.Backend.Core.Services;
-using CivicHero.Backend.Infrastructure.AI;
-using CivicHero.Backend.Infrastructure.BackgroundServices;
-using CivicHero.Backend.Infrastructure.Data;
-using CivicHero.Backend.Infrastructure.Repositories;
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using CivicHero.Backend.Infrastructure;
+using CivicHero.Backend.Infrastructure.Extensions;
+using CivicHero.Backend.Infrastructure.Hubs;
+using CivicHero.Backend.Middleware;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-// Add database context
-builder.Services.AddDbContext<CivicHeroDbContext>(options =>
-    {
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new InvalidOperationException("Database connection string 'DefaultConnection' not found.");
-        }
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-    }
-);
-
-// Add controllers and Swagger
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Register repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<WardRepository>();
-builder.Services.AddScoped<DepartmentRepository>();
-builder.Services.AddScoped<IRewardRepository, RewardRepository>();
-builder.Services.AddScoped<IReputationService, ReputationService>();
-builder.Services.AddScoped<IFraudAnalysisService, FraudAnalysisService>();
-builder.Services.AddScoped<IDisputeManagementService, DisputeManagementService>();
-builder.Services.AddScoped<IComplaintRepository, ComplaintRepository>();
-builder.Services.AddScoped<IComplaintService, ComplaintService>();
-builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
-
-// Register chat repositories
-builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
-builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
-builder.Services.AddScoped<IChatbotService, ChatbotService>();
-builder.Services.AddScoped<IChatMessageService, ChatMessageService>();
-
-// Register AI services
-builder.Services.AddHttpClient<IAiVisionClient, AiVisionClient>((serviceProvider, client) =>
+builder.WebHost.ConfigureKestrel(options =>
 {
-    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var visionServiceUrl = configuration["VisionService:Url"] ?? "http://localhost:8001";
-    client.BaseAddress = new Uri(visionServiceUrl);
-    client.Timeout = TimeSpan.FromSeconds(30); // 30 second timeout
+    options.AddServerHeader = false;
+    options.Limits.MaxRequestBodySize = 32L * 1024L * 1024L;
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(20);
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
 });
 
-// Register other AI services as singletons or scoped as appropriate
-builder.Services.AddSingleton<IMetadataForensics, MetadataForensics>();
-builder.Services.AddSingleton<IImageHashService, ImageHashService>();
-builder.Services.AddSingleton<FraudScoreCalculator>();
-builder.Services.AddSingleton<ResolutionDecisionPolicy>();
-builder.Services.AddScoped<IResolutionVerificationService, ResolutionVerificationService>();
-
-// Register Python chatbot client
-builder.Services.AddHttpClient<IPythonChatbotClient, PythonChatbotClient>((serviceProvider, client) =>
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var pythonServiceUrl = configuration["PythonChatbot:BaseUrl"] ?? "http://localhost:8001";
-    client.BaseAddress = new Uri(pythonServiceUrl);
-    client.Timeout = TimeSpan.FromSeconds(configuration.GetValue("PythonChatbot:TimeoutSeconds", 30));
-    // Add the default request header for the internal service key
-    var apiKey = configuration["PythonChatbot:InternalServiceKey"];
-    if (!string.IsNullOrEmpty(apiKey))
-    {
-        client.DefaultRequestHeaders.Add("X-Internal-Service-Key", apiKey);
-    }
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+
+    // The API is exposed only through the internal Docker network in Phase 15.
+    // Nginx therefore becomes the trusted edge proxy for forwarded scheme/IP values.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
-// Register background services
-builder.Services.AddHostedService<FraudAnalysisWorker>();
+builder.Logging.AddCivicHeroLogging();
+builder.Services.AddCivicHeroServices(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseForwardedHeaders();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<RequestSizeGuardMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseCivicHeroSwagger();
+}
+else
+{
+    app.UseHsts();
+    if (!app.Configuration.GetValue<bool>("Deployment:AllowHttp"))
+    {
+        app.UseHttpsRedirection();
+    }
 }
 
-//test
-Console.WriteLine("ENVIRONMENT:");
-Console.WriteLine(app.Environment.EnvironmentName);
-
-Console.WriteLine("CONTENT ROOT:");
-Console.WriteLine(app.Environment.ContentRootPath);
-
-Console.WriteLine("CURRENT DIRECTORY:");
-Console.WriteLine(Directory.GetCurrentDirectory());
-
-app.UseHttpsRedirection();
-
+app.UseCors(CivicHero.Backend.Infrastructure.Extensions.ServiceCollectionExtensions.FrontendCorsPolicy);
+app.UseAuthentication();
+app.UseMiddleware<RateLimitingMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = WriteHealthResponseAsync
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready"),
+    ResponseWriter = WriteHealthResponseAsync
+});
 
-app.Run();
+if (!app.Configuration.GetValue<bool>("Testing:SkipDatabaseInitialization"))
+{
+    await app.Services.InitializeDatabaseAsync(app.Configuration);
+}
+
+await app.RunAsync();
+
+static Task WriteHealthResponseAsync(HttpContext context, Microsoft.Extensions.Diagnostics.HealthChecks.HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+    var payload = new
+    {
+        status = report.Status.ToString(),
+        totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 2),
+        checks = report.Entries.Select(entry => new
+        {
+            name = entry.Key,
+            status = entry.Value.Status.ToString(),
+            description = entry.Value.Description,
+            durationMs = Math.Round(entry.Value.Duration.TotalMilliseconds, 2)
+        })
+    };
+
+    return context.Response.WriteAsync(JsonSerializer.Serialize(payload));
+}
+
+public partial class Program;

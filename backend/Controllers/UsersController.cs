@@ -1,167 +1,111 @@
+using CivicHero.Backend.Core.Constants;
 using CivicHero.Backend.Core.DTOs.Users;
-using CivicHero.Backend.Core.Entities;
-using CivicHero.Backend.Core.Enums;
 using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Core.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CivicHero.Backend.Controllers
+namespace CivicHero.Backend.Controllers;
+
+[ApiController]
+[Route("api/v1/users")]
+[Authorize]
+public sealed class UsersController : ControllerBase
 {
-    [Route("api/[Controller]")]
-    [ApiController]
-    public class UsersController : ControllerBase
+    private readonly IUserService _userService;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IValidator<UpdateProfileRequest> _profileValidator;
+    private readonly IValidator<ChangeRoleRequest> _roleValidator;
+
+    public UsersController(
+        IUserService userService,
+        ICurrentUserService currentUser,
+        IValidator<UpdateProfileRequest> profileValidator,
+        IValidator<ChangeRoleRequest> roleValidator)
     {
-        private readonly IUserRepository _userRepository;
+        _userService = userService;
+        _currentUser = currentUser;
+        _profileValidator = profileValidator;
+        _roleValidator = roleValidator;
+    }
 
-        public UsersController(IUserRepository userRepository)
-        {
-            _userRepository = userRepository;
-        }
+    [HttpGet("profile")]
+    public async Task<IActionResult> Profile(CancellationToken cancellationToken) =>
+        OkEnvelope("Profile loaded.", await _userService.GetProfileAsync(CurrentUserId(), cancellationToken));
 
-        // GET: api/users
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> getUser()
-        {
-            var users = await _userRepository.GetAllAsync();
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        await ValidateAsync(_profileValidator, request, cancellationToken);
+        return OkEnvelope("Profile updated.", await _userService.UpdateProfileAsync(CurrentUserId(), request, cancellationToken));
+    }
 
-            var userDtos = users.Select(user => new UserDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                PhoneNumber = user.PhoneNumber,
-                Role = user.Role,
-                ReputationPoints = user.ReputationPoints,
-                Email = user.Email,
-                IsActive = user.IsActive,
-            }).ToList();
-            return Ok(userDtos);
-        }
+    [HttpGet]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> GetUsers([FromQuery] UserQuery query, CancellationToken cancellationToken) =>
+        OkEnvelope("Users loaded.", await _userService.GetUsersAsync(query, cancellationToken));
 
-        // GET: api/users/5
-        [HttpGet("{id}")]
-        [Authorize]
-        public async Task<IActionResult> getUserById(int id)
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
+    [HttpGet("metadata")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> Metadata(CancellationToken cancellationToken) =>
+        OkEnvelope("User-management metadata loaded.", await _userService.GetManagementMetadataAsync(cancellationToken));
 
-            // Users can view their own profile, admins can view any
-            var currentUser = await _userRepository.GetByIdAsync(userId);
-            if (currentUser == null)
-                return Unauthorized();
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetUser(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("User loaded.", await _userService.GetUserAsync(CurrentUserId(), CurrentRole(), id, cancellationToken));
 
-            if (id != userId && currentUser.Role != Role.Admin)
-                return Forbid(); // Not authorized to view other users
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> UpdateUser(long id, [FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        await ValidateAsync(_profileValidator, request, cancellationToken);
+        return OkEnvelope("User updated.", await _userService.UpdateUserAsync(CurrentUserId(), CurrentRole(), id, request, cancellationToken));
+    }
 
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user == null)
-                return NotFound();
+    [HttpPost("{id:long}/role")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> ChangeRole(long id, [FromBody] ChangeRoleRequest request, CancellationToken cancellationToken)
+    {
+        await ValidateAsync(_roleValidator, request, cancellationToken);
+        return OkEnvelope("Role and scope updated. Existing sessions were revoked.", await _userService.ChangeRoleAsync(CurrentUserId(), CurrentRole(), id, request, cancellationToken));
+    }
 
-            var userDtos = new UserDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                PhoneNumber = user.PhoneNumber,
-                Role = user.Role,
-                ReputationPoints = user.ReputationPoints,
-                Email = user.Email,
-                IsActive = user.IsActive,
-            };
-            return Ok(userDtos);
-        }
+    [HttpPost("{id:long}/department")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> AssignDepartment(long id, [FromBody] AssignDepartmentRequest request, CancellationToken cancellationToken) =>
+        OkEnvelope("Department updated. Existing sessions were revoked.", await _userService.AssignDepartmentAsync(CurrentUserId(), CurrentRole(), id, request, cancellationToken));
 
-        // POST: api/users
-        [HttpPost]
-        [AllowAnonymous] // Allow registration without authentication; adjust if needed
-        public async Task<IActionResult> createUser(CreateUserDto createuserDto)
-        {
-            var emailExists = await _userRepository.EmailExist(createuserDto.Email);
+    [HttpPost("{id:long}/ward")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> AssignWard(long id, [FromBody] AssignWardRequest request, CancellationToken cancellationToken) =>
+        OkEnvelope("Ward updated. Existing sessions were revoked.", await _userService.AssignWardAsync(CurrentUserId(), CurrentRole(), id, request, cancellationToken));
 
-            if (emailExists)
-                return BadRequest("Email Already Exists");
+    [HttpDelete("{id:long}")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> Deactivate(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("User deactivated and sessions revoked.", await _userService.SetActiveAsync(CurrentUserId(), CurrentRole(), id, false, cancellationToken));
 
-            var user = new User
-            {
-                FullName = createuserDto.FullName,
-                Email = createuserDto.Email,
-                PhoneNumber = createuserDto.PhoneNumber,
-                Role = createuserDto.Role,
-                // Temporary until Part 2 password hashing is implemented
-                PasswordHash = createuserDto.Password,
-                ReputationPoints = 0,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            };
+    [HttpPost("{id:long}/activate")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> Activate(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("User activated.", await _userService.SetActiveAsync(CurrentUserId(), CurrentRole(), id, true, cancellationToken));
 
-            var createdUser = await _userRepository.AddAsync(user);
+    [HttpPost("{id:long}/force-logout")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> ForceLogout(long id, CancellationToken cancellationToken)
+    {
+        await _userService.ForceLogoutAsync(CurrentUserId(), CurrentRole(), id, cancellationToken);
+        return Ok(new { success = true, message = "All sessions for this user were revoked." });
+    }
 
-            var userDtos = new UserDto
-            {
-                Id = createdUser.Id,
-                FullName = createdUser.FullName,
-                PhoneNumber = createdUser.PhoneNumber,
-                Role = createdUser.Role,
-                ReputationPoints = createdUser.ReputationPoints,
-                Email = createdUser.Email,
-                IsActive = createdUser.IsActive,
-            };
+    private long CurrentUserId() => _currentUser.UserId ?? throw new UnauthorizedAccessException("Authenticated user identifier is missing.");
+    private string CurrentRole() => _currentUser.Role ?? throw new UnauthorizedAccessException("Authenticated role is missing.");
+    private IActionResult OkEnvelope<T>(string message, T data) => Ok(new { success = true, message, data });
 
-            return CreatedAtAction(nameof(getUserById), new { id = userDtos.Id }, userDtos);
-        }
-
-        // PUT: api/users/5
-        [HttpPut("{id}")]
-        [Authorize]
-        public async Task<IActionResult> updateUser(int id, UpdateUserDto updateuserDto)
-        {
-            var userId = int.Parse(User.FindFirst("sub")?.Value ?? "0");
-            if (userId == 0)
-                return Unauthorized();
-
-            var currentUser = await _userRepository.GetByIdAsync(userId);
-            if (currentUser == null)
-                return Unauthorized();
-
-            // Users can update their own profile, admins can update any
-            if (id != userId && currentUser.Role != Role.Admin)
-                return Forbid();
-
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user == null)
-                return NotFound();
-
-            user.FullName = updateuserDto.FullName;
-            user.PhoneNumber = updateuserDto.PhoneNumber;
-            user.IsActive = updateuserDto.IsActive;
-            user.UpdatedAt = DateTime.UtcNow;
-            var updatedUser = await _userRepository.UpdateAsync(user);
-
-            var userDto = new UserDto
-            {
-                Id = updatedUser.Id,
-                FullName = updatedUser.FullName,
-                Email = updatedUser.Email,
-                PhoneNumber = updatedUser.PhoneNumber,
-                Role = updatedUser.Role,
-                ReputationPoints = updatedUser.ReputationPoints,
-                IsActive = updatedUser.IsActive
-            };
-            return Ok(userDto);
-        }
-
-        // DELETE: api/users/5
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> deleteUser(int id)
-        {
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user == null)
-                return NotFound();
-
-            await _userRepository.DeleteAsync(user);
-            return NoContent();
-        }
+    private static async Task ValidateAsync<T>(IValidator<T> validator, T request, CancellationToken cancellationToken)
+    {
+        var result = await validator.ValidateAsync(request, cancellationToken);
+        if (!result.IsValid)
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(result.Errors.Select(error => error.ErrorMessage));
     }
 }

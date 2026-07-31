@@ -1,19 +1,18 @@
-using System;
+using CivicHero.Backend.Core.Common;
+using CivicHero.Backend.Core.Enums;
 
-namespace CivicHero.Backend.Core.Entities
+namespace CivicHero.Backend.Core.Entities;
+
+public sealed class Redemption : BaseEntity
 {
-    public class Redemption
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public int RewardId { get; set; }
-        public int PointsSpent { get; set; }
-        public DateTime RedeemedAt { get; set; } = DateTime.UtcNow;
-        public string Status { get; set; } = "Completed"; // e.g., Pending, Completed, Cancelled
-        public string? Notes { get; set; }
+    public long UserId { get; set; }
+    public long RewardCatalogId { get; set; }
+    public int PointsSpent { get; set; }
+    public RedemptionStatus Status { get; set; } = RedemptionStatus.Pending;
+    public string RedemptionCode { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? FulfilledAt { get; set; }
 
-        // Navigation properties
-        public User? User { get; set; }
-        public RewardCatalog? Reward { get; set; }
-    }
+    public User User { get; set; } = null!;
+    public RewardCatalog RewardCatalog { get; set; } = null!;
 }

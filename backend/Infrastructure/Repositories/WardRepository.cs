@@ -1,18 +1,14 @@
-﻿using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Interfaces;
 using CivicHero.Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicHero.Backend.Infrastructure.Repositories;
 
-public class WardRepository : GenericRepository<Ward>
+public sealed class WardRepository : Repository<Ward>, IWardRepository
 {
-    public WardRepository(CivicHeroDbContext context) : base(context)
-    {
-    }
+    public WardRepository(CivicDbContext dbContext) : base(dbContext) { }
 
-    public async Task<Ward?> GetByCodeAsync(string code)
-    {
-        return await _context.Wards
-            .FirstOrDefaultAsync(w => w.Code == code);
-    }
+    public Task<Ward?> GetByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+        Query().FirstOrDefaultAsync(entity => entity.Code == code, cancellationToken);
 }

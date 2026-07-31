@@ -1,18 +1,14 @@
+using CivicHero.Backend.Core.Common;
 using CivicHero.Backend.Core.Enums;
 
-namespace CivicHero.Backend.Core.Entities
-{
-    public class ChatMessage
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public int ChatSessionId { get; set; }
-        public string Content { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public MessageSender Sender { get; set; } = MessageSender.User;
+namespace CivicHero.Backend.Core.Entities;
 
-        // Navigation properties
-        public User User { get; set; } = null!;
-        public ChatSession ChatSession { get; set; } = null!;
-    }
+public sealed class ChatMessage : BaseEntity
+{
+    public long ChatSessionId { get; set; }
+    public MessageSender Sender { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public DateTimeOffset SentAt { get; set; }
+
+    public ChatSession ChatSession { get; set; } = null!;
 }

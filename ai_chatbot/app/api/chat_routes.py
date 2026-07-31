@@ -81,7 +81,14 @@ async def generate_chat_response(
                 search_results = knowledge_search.search(sanitized_message, top_k=3)
 
                 if search_results:
-                    context_sources = [result["source"] for result in search_results]
+                    context_sources = [
+                        {
+                            "source": result.get("source", "knowledge-base"),
+                            "text": result.get("text", ""),
+                            "score": result.get("score")
+                        }
+                        for result in search_results
+                    ]
                     context_text = "\n\nRelevant information:\n" + "\n---\n".join([
                         f"Source: {result['source']}\n{result['text']}"
                         for result in search_results
@@ -154,7 +161,7 @@ If you need to consult your knowledge base for specific information, indicate th
 
         # 5. Create and return response
         response = ChatResponse(
-            response=ai_response,
+            message=ai_response,
             conversation_id=conversation_id,
             message_id=str(uuid.uuid4()),
             timestamp=datetime.utcnow(),

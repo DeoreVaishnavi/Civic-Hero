@@ -1,18 +1,15 @@
-using CivicHero.Backend.Core.Enums;
+using CivicHero.Backend.Core.Common;
 
-namespace CivicHero.Backend.Core.Entities
+namespace CivicHero.Backend.Core.Entities;
+
+public sealed class ChatSession : BaseEntity
 {
-    public class ChatSession
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
-        public bool IsActive { get; set; } = true;
+    public long UserId { get; set; }
+    public string SessionId { get; set; } = string.Empty;
+    public string Status { get; set; } = "Active";
+    public DateTimeOffset StartedAt { get; set; }
+    public DateTimeOffset? EndedAt { get; set; }
 
-        // Navigation properties
-        public User User { get; set; } = null!;
-        public ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
-    }
+    public User User { get; set; } = null!;
+    public ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
 }

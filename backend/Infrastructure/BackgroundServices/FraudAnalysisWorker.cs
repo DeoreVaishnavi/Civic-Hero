@@ -1,134 +1,49 @@
-using CivicHero.Backend.Core.Interfaces;
-using CivicHero.Backend.Infrastructure.Data;
+using CivicHero.Backend.Core.Services;
+using CivicHero.Backend.Infrastructure.Configurations;
+using Microsoft.Extensions.Options;
 
 namespace CivicHero.Backend.Infrastructure.BackgroundServices;
 
-/// <summary>
-/// Background service for processing fraud analysis complaints.
-/// Periodically checks for new complaints and runs fraud analysis on them.
-/// </summary>
-public class FraudAnalysisWorker : BackgroundService
+public sealed class FraudAnalysisWorker : BackgroundService
 {
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly AiOptions _options;
     private readonly ILogger<FraudAnalysisWorker> _logger;
-    private readonly IFraudAnalysisService _fraudAnalysisService;
-    private readonly CivicHeroDbContext _context;
-    private Timer _timer;
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(30); // Run every 30 minutes
 
-    public FraudAnalysisWorker(
-        ILogger<FraudAnalysisWorker> logger,
-        IFraudAnalysisService fraudAnalysisService,
-        CivicHeroDbContext context)
+    public FraudAnalysisWorker(IServiceScopeFactory scopeFactory, IOptions<AiOptions> options, ILogger<FraudAnalysisWorker> logger)
     {
+        _scopeFactory = scopeFactory;
+        _options = options.Value;
         _logger = logger;
-        _fraudAnalysisService = fraudAnalysisService;
-        _context = context;
     }
 
-    public override Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("FraudAnalysisWorker starting.");
+        if (!_options.EnableBackgroundTriage)
+        {
+            _logger.LogInformation("CivicHero AI background triage is disabled.");
+            return;
+        }
 
-        // Create a timer that starts immediately and repeats every interval
-        _timer = new Timer(DoWork, null, TimeSpan.Zero, _interval);
-
-        return Task.CompletedTask;
+        await ProcessAsync(stoppingToken);
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(Math.Clamp(_options.WorkerIntervalSeconds, 15, 3600)));
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+            await ProcessAsync(stoppingToken);
     }
 
-    private void DoWork(object state)
-    {
-        _logger.LogInformation("FraudAnalysisWorker performing background work at: {time}", DateTimeOffset.Now);
-
-        try
-        {
-            ProcessPendingComplaints();
-
-            // Optional: Log statistics
-            LogStatistics();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred in FraudAnalysisWorker.");
-        }
-    }
-
-    /// <summary>
-    /// Processes complaints that don't yet have fraud analysis.
-    /// </summary>
-    private void ProcessPendingComplaints()
-    {
-        // Find complaints that don't have fraud analysis yet
-        var complaintsWithoutAnalysis = _context.Complaints
-            .Where(c => !_context.AiFraudAnalyses.Any(a => a.ComplaintId == c.Id))
-            .Take(50) // Process in batches to avoid overwhelming the system
-            .ToList();
-
-        _logger.LogInformation("Found {count} complaints without fraud analysis", complaintsWithoutAnalysis.Count);
-
-        foreach (var complaint in complaintsWithoutAnalysis)
-        {
-            try
-            {
-                // Perform fraud analysis on the complaint
-                // Note: In a real implementation, we would need the complaint text, images, etc.
-                // For this background worker, we'll use placeholder data
-                // In practice, you'd want to fetch the actual complaint details
-
-                var analysis = _fraudAnalysisService.AnalyzeComplaintForFraud(
-                    complaint.Id,
-                    $"Complaint: {complaint.Title} - {complaint.Description}",
-                    null, // No image in background processing for now
-                    complaint.Latitude,
-                    complaint.Longitude,
-                    complaint.CreatedAt).Result;
-
-                _logger.LogInformation(
-                    "Completed fraud analysis for complaint {complaintId}: Score={score}, RiskLevel={risk}",
-                    complaint.Id, analysis.FraudScore, analysis.RiskLevel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to process fraud analysis for complaint {complaintId}", complaint.Id);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Logs statistics about the fraud analysis system.
-    /// </summary>
-    private void LogStatistics()
+    private async Task ProcessAsync(CancellationToken cancellationToken)
     {
         try
         {
-            var totalComplaints = _context.Complaints.Count();
-            var analyzedComplaints = _context.AiFraudAnalyses.Count();
-            var pendingAnalysis = totalComplaints - analyzedComplaints;
-
-            var averageScore = _fraudAnalysisService.CalculateAverageFraudScore().Result;
-
-            _logger.LogInformation(
-                "Fraud Analysis Statistics: Total Complaints={total}, Analyzed={analyzed}, Pending={pending}, Average Score={avgScore:F2}",
-                totalComplaints, analyzedComplaints, pendingAnalysis, averageScore);
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<IAiTriageService>();
+            var count = await service.ProcessPendingAsync(cancellationToken);
+            if (count > 0) _logger.LogInformation("CivicHero AI triaged {Count} complaint(s).", count);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception exception)
         {
-            _logger.LogError(ex, "Failed to log fraud analysis statistics");
+            _logger.LogError(exception, "CivicHero AI background triage failed; the next cycle will retry.");
         }
-    }
-
-    public override Task StopAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("FraudAnalysisWorker stopping.");
-        _timer?.Change(Timeout.Infinite, 0);
-        return Task.CompletedTask;
-    }
-
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        // This method is called when the background service starts.
-        // We've already set up the timer in StartAsync, so we can just return a completed task.
-        // Alternatively, we could use the built-in loop from BackgroundService by overriding ExecuteAsync.
-        // But since we are using a timer, we leave this empty and rely on Start/Stop.
-        return Task.CompletedTask;
     }
 }

@@ -1,48 +1,25 @@
 using CivicHero.Backend.Core.Entities;
-//Let's create file path: Infrastructure/Data/Configurations >We need directory. Let's create if not exists. But assume exists.
-//We'll write file<tool_call>
-//<function=Write>
-//<parameter=content>
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CivicHero.Backend.Infrastructure.Data.Configurations
+namespace CivicHero.Backend.Infrastructure.Data.Configurations;
+
+public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 {
-    public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
+    public void Configure(EntityTypeBuilder<Notification> builder)
     {
-        public void Configure(EntityTypeBuilder<Notification> builder)
-        {
-            builder.ToTable("Notifications");
-
-            builder.HasKey(n => n.Id);
-
-            builder.Property(n => n.UserId)
-                .IsRequired();
-
-            builder.Property(n => n.Type)
-                .IsRequired();
-
-            builder.Property(n => n.Title)
-                .IsRequired()
-                .HasMaxLength(200);
-
-            builder.Property(n => n.Message)
-                .IsRequired()
-                .HasMaxLength(1000);
-
-            builder.Property(n => n.IsRead)
-                .IsRequired();
-
-            builder.Property(n => n.CreatedAt)
-                .IsRequired();
-
-            builder.Property(n => n.ReadAt);
-
-            // Relationship
-            builder.HasOne(n => n.User)
-                .WithMany() // User may have navigation? We'll add later if needed
-                .HasForeignKey(n => n.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        }
+        builder.ToTable("notifications");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.Title).HasMaxLength(200).IsRequired();
+        builder.Property(entity => entity.Message).HasColumnType("text").IsRequired();
+        builder.Property(entity => entity.Type).HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(entity => entity.ReferenceType).HasMaxLength(80);
+        builder.Property(entity => entity.ActionUrl).HasMaxLength(500);
+        builder.HasIndex(entity => new { entity.UserId, entity.IsRead, entity.CreatedAt });
+        builder.HasIndex(entity => new { entity.UserId, entity.IsArchived, entity.CreatedAt });
+        builder.HasOne(entity => entity.User)
+            .WithMany(entity => entity.Notifications)
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

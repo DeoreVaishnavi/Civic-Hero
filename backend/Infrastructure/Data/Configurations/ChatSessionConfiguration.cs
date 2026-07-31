@@ -2,43 +2,21 @@ using CivicHero.Backend.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CivicHero.Backend.Infrastructure.Data.Configurations
+namespace CivicHero.Backend.Infrastructure.Data.Configurations;
+
+public sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSession>
 {
-    public class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSession>
+    public void Configure(EntityTypeBuilder<ChatSession> builder)
     {
-        public void Configure(EntityTypeBuilder<ChatSession> builder)
-        {
-            builder.ToTable("ChatSessions");
-
-            builder.HasKey(cs => cs.Id);
-
-            builder.Property(cs => cs.Id)
-                .ValueGeneratedOnAdd();
-
-            builder.Property(cs => cs.Title)
-                .IsRequired()
-                .HasMaxLength(200);
-
-            builder.Property(cs => cs.CreatedAt)
-                .IsRequired();
-
-            builder.Property(cs => cs.UpdatedAt)
-                .IsRequired(false);
-
-            builder.Property(cs => cs.IsActive)
-                .IsRequired()
-                .HasDefaultValue(true);
-
-            // Relationships
-            builder.HasOne(cs => cs.User)
-                .WithMany() // User doesn't have a navigation for chats (optional)
-                .HasForeignKey(cs => cs.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasMany(cs => cs.Messages)
-                .WithOne(m => m.ChatSession)
-                .HasForeignKey(m => m.ChatSessionId)
-                .OnDelete(DeleteBehavior.Cascade);
-        }
+        builder.ToTable("chat_sessions");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.SessionId).HasMaxLength(100).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(30).IsRequired();
+        builder.HasIndex(entity => entity.SessionId).IsUnique();
+        builder.HasIndex(entity => new { entity.UserId, entity.StartedAt });
+        builder.HasOne(entity => entity.User)
+            .WithMany(entity => entity.ChatSessions)
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

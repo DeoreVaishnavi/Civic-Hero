@@ -32,17 +32,18 @@ class SceneComparisonService:
         self.device = device if torch.cuda.is_available() and device == "cuda" else "cpu"
         self.model = None
         self.preprocess = None
+        self.open_clip_available = OPEN_CLIP_AVAILABLE
 
-        if OPEN_CLIP_AVAILABLE:
+        if self.open_clip_available:
             try:
-                self.model, _, self.preprocess = open_pretrained.create_model_and_transforms(
+                self.model, _, self.preprocess = open_clip.create_model_and_transforms(
                     model_name, pretrained=pretrained, device=self.device
                 )
                 self.model.eval()  # Set to evaluation mode
                 logger.info(f"Loaded CLIP model {model_name} with {pretrained} on {self.device}")
             except Exception as e:
                 logger.error(f"Failed to load CLIP model: {e}")
-                OPEN_CLIP_AVAILABLE = False
+                self.open_clip_available = False
         else:
             logger.warning("OpenCLIP not available, using fallback similarity methods")
 
@@ -101,7 +102,7 @@ class SceneComparisonService:
         Returns:
             Similarity score between 0.0 and 1.0
         """
-        if not OPEN_CLIP_AVAILABLE or self.model is None:
+        if not self.open_clip_available or self.model is None:
             # Fallback to basic histogram comparison if CLIP is not available
             return self._fallback_similarity(image1_bytes, image2_bytes)
 
@@ -146,35 +147,20 @@ class SceneComparisonService:
             Similarity score between 0.0 and 1.0
         """
         try:
-            from PIL import Image
             import cv2
-            import numpy as np
 
-            # Load images
             img1 = self._load_image(image1_bytes)
             img2 = self._load_image(image2_bytes)
-
-            # Convert to grayscale
             gray1 = cv2.cvtColor(np.array(img1), cv2.COLOR_RGB2GRAY)
             gray2 = cv2.cvtColor(np.array(img2), cv2.COLOR_RGB2GRAY)
-
-            # Resize to same dimensions
             height, width = min(gray1.shape[0], gray2.shape[0]), min(gray1.shape[1], gray2.shape[1])
             gray1 = cv2.resize(gray1, (width, height))
             gray2 = cv2.resize(gray2, (width, height))
-
-            # Compute histograms
             hist1 = cv2.calcHist([gray1], [0], None, [256], [0, 256])
             hist2 = cv2.calcHist([gray2], [0], None, [256], [0, 256])
-
-            # Normalize histograms
             cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
             cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
-
-            # Compare histograms using correlation
             similarity = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-
-            # Ensure result is in [0, 1] range
             return max(0.0, min(1.0, (similarity + 1) / 2))
 
         except Exception as e:

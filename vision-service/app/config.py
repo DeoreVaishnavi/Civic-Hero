@@ -23,4 +23,4 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "bmp", "tiff"}
 
 # Server settings
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", "8001"))
+PORT = int(os.getenv("PORT", "8002"))

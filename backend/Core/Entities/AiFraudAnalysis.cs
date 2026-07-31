@@ -1,17 +1,17 @@
-﻿using CivicHero.Backend.Core.Enums;
+using CivicHero.Backend.Core.Common;
 
-namespace CivicHero.Backend.Core.Entities
+namespace CivicHero.Backend.Core.Entities;
+
+public sealed class AiFraudAnalysis : BaseEntity
 {
-    public class AiFraudAnalysis
-    {
-        public int id { get; set; }
-        public int ComplaintId { get; set; }
-        public int FraudScore { get; set; }
-        public FraudRiskLevel RiskLevel { get; set; }
-        public string Reasons { get; set; } = string.Empty;
-        public bool Reviewed { get; set; }
-        public DateTime CreatedAt { get; set; }
-        //public Complaint Complaint { get; set; }
+    public long ComplaintId { get; set; }
+    public float FraudScore { get; set; }
+    public string Verdict { get; set; } = string.Empty;
+    public string? Reasoning { get; set; }
+    public string Provider { get; set; } = "RuleBased";
+    public string Model { get; set; } = "civichero-rules-v1";
+    public bool RequiresManualReview { get; set; }
+    public DateTimeOffset AnalyzedAt { get; set; }
 
-    }
+    public Complaint Complaint { get; set; } = null!;
 }

@@ -2,30 +2,21 @@ using CivicHero.Backend.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CivicHero.Backend.Infrastructure.Data.Configurations
+namespace CivicHero.Backend.Infrastructure.Data.Configurations;
+
+public sealed class ReputationLogConfiguration : IEntityTypeConfiguration<ReputationLog>
 {
-    public class ReputationLogConfiguration : IEntityTypeConfiguration<ReputationLog>
+    public void Configure(EntityTypeBuilder<ReputationLog> builder)
     {
-        public void Configure(EntityTypeBuilder<ReputationLog> builder)
-        {
-            builder.ToTable("ReputationLogs");
-
-            builder.HasKey(rl => rl.Id);
-
-            builder.Property(rl => rl.PointsChange)
-                .IsRequired();
-
-            builder.Property(rl => rl.Reason)
-                .IsRequired()
-                .HasMaxLength(200);
-
-            builder.Property(rl => rl.Timestamp)
-                .IsRequired();
-
-            builder.HasOne(rl => rl.User)
-                .WithMany(u => u.ReputationLogs)
-                .HasForeignKey(rl => rl.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-        }
+        builder.ToTable("reputation_logs");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.Reason).HasMaxLength(300).IsRequired();
+        builder.Property(entity => entity.ReferenceType).HasMaxLength(80);
+        builder.HasIndex(entity => new { entity.UserId, entity.CreatedAt });
+        builder.HasIndex(entity => new { entity.UserId, entity.ReferenceType, entity.ReferenceId, entity.Reason }).IsUnique();
+        builder.HasOne(entity => entity.User)
+            .WithMany(entity => entity.ReputationLogs)
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

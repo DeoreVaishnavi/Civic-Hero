@@ -1,62 +1,52 @@
 using System.Net.Http.Json;
-using CivicHero.Backend.Core.DTOs.Chat;
-using Microsoft.Extensions.Logging;
-using System.Text.Json; // Added for JsonException
+using System.Text.Json.Serialization;
+using CivicHero.Backend.Core.Services;
 
-namespace CivicHero.Backend.Infrastructure.AI
+namespace CivicHero.Backend.Infrastructure.AI;
+
+public sealed class PythonChatbotClient : IPythonChatbotClient
 {
-    public class PythonChatbotClient : IPythonChatbotClient
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<PythonChatbotClient> _logger;
+
+    public PythonChatbotClient(HttpClient httpClient, ILogger<PythonChatbotClient> logger)
     {
-        private readonly HttpClient _httpClient;
-        private readonly ILogger<PythonChatbotClient> _logger;
+        _httpClient = httpClient;
+        _logger = logger;
+    }
 
-        public PythonChatbotClient(HttpClient httpClient, ILogger<PythonChatbotClient> logger)
+    public async Task<PythonChatbotReply?> GenerateAsync(string message, string conversationId, long userId, CancellationToken cancellationToken = default)
+    {
+        try
         {
-            _httpClient = httpClient;
-            _logger = logger;
-        }
+            using var response = await _httpClient.PostAsJsonAsync("api/v1/chat/generate", new
+            {
+                message,
+                conversation_id = conversationId,
+                user_id = userId.ToString(),
+                include_context = true
+            }, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Python chatbot returned HTTP {StatusCode}; using the local fallback.", response.StatusCode);
+                return null;
+            }
 
-        public async Task<PythonChatResponseDto> SendMessageAsync(PythonChatRequestDto request)
+            var payload = await response.Content.ReadFromJsonAsync<Response>(cancellationToken: cancellationToken);
+            return string.IsNullOrWhiteSpace(payload?.Message)
+                ? null
+                : new PythonChatbotReply(payload.Message, Math.Clamp(payload.ConfidenceScore ?? 0.6m, 0m, 1m));
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync("/api/v1/chat/generate", request);
-                response.EnsureSuccessStatusCode();
-
-                var result = await response.Content.ReadFromJsonAsync<PythonChatResponseDto>();
-                return result ?? new PythonChatResponseDto
-                {
-                    Success = false,
-                    ErrorMessage = "Failed to deserialize response from Python service."
-                };
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "HTTP request to Python chatbot service failed.");
-                return new PythonChatResponseDto
-                {
-                    Success = false,
-                    ErrorMessage = $"Failed to connect to Python chatbot service: {ex.Message}"
-                };
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError(ex, "Failed to parse JSON response from Python chatbot service.");
-                return new PythonChatResponseDto
-                {
-                    Success = false,
-                    ErrorMessage = $"Invalid response from Python chatbot service: {ex.Message}"
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error occurred while communicating with Python chatbot service.");
-                return new PythonChatResponseDto
-                {
-                    Success = false,
-                    ErrorMessage = $"An unexpected error occurred: {ex.Message}"
-                };
-            }
+            _logger.LogWarning(exception, "Python chatbot is unavailable; using the local fallback.");
+            return null;
         }
+    }
+
+    private sealed class Response
+    {
+        [JsonPropertyName("message")] public string Message { get; set; } = string.Empty;
+        [JsonPropertyName("confidence_score")] public decimal? ConfidenceScore { get; set; }
     }
 }

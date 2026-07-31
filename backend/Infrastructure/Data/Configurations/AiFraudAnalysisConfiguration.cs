@@ -1,44 +1,24 @@
-﻿using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CivicHero.Backend.Infrastructure.Data.Configurations
+namespace CivicHero.Backend.Infrastructure.Data.Configurations;
+
+public sealed class AiFraudAnalysisConfiguration : IEntityTypeConfiguration<AiFraudAnalysis>
 {
-    public class AiFraudAnalysisConfiguration : IEntityTypeConfiguration<AiFraudAnalysis>
+    public void Configure(EntityTypeBuilder<AiFraudAnalysis> builder)
     {
-        public void Configure(EntityTypeBuilder<AiFraudAnalysis> builder)
-        {
-            builder.ToTable("ai_fraud_analysis");
-            builder.HasKey(x => x.id);
-            builder.Property(x => x.FraudScore)
-            .IsRequired();
-
-            builder.Property(x => x.RiskLevel)
-                .IsRequired()
-                .HasConversion<string>()
-                .HasMaxLength(20);
-
-            builder.Property(x => x.Reasons)
-                .IsRequired()
-                .HasColumnType("text");
-
-            builder.Property(x => x.Reviewed)
-                .IsRequired()
-                .HasDefaultValue(false);
-
-            builder.Property(x => x.CreatedAt)
-                .IsRequired();
-
-            builder.HasIndex(x => x.ComplaintId);
-
-            builder.HasIndex(x => x.FraudScore);
-
-            builder.HasIndex(x => x.RiskLevel);
-
-            //builder.HasOne(x => x.Complaint)
-            //.WithMany()
-            //.HasForeignKey(x => x.ComplaintId)
-            //.OnDelete(DeleteBehavior.Cascade);
-        }
+        builder.ToTable("ai_fraud_analyses");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.Verdict).HasMaxLength(50).IsRequired();
+        builder.Property(entity => entity.Reasoning).HasColumnType("text");
+        builder.Property(entity => entity.Provider).HasMaxLength(40).IsRequired();
+        builder.Property(entity => entity.Model).HasMaxLength(120).IsRequired();
+        builder.HasIndex(entity => new { entity.ComplaintId, entity.AnalyzedAt });
+        builder.HasIndex(entity => entity.RequiresManualReview);
+        builder.HasOne(entity => entity.Complaint)
+            .WithMany(entity => entity.FraudAnalyses)
+            .HasForeignKey(entity => entity.ComplaintId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

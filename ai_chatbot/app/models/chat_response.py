@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -9,7 +9,9 @@ class ChatResponse(BaseModel):
     user_id: Optional[str] = Field(None, description="User identifier")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
     sources: Optional[List[dict]] = Field(None, description="Knowledge sources used for the response")
-    confidence: Optional[float] = Field(None, ge=0.0, le=1.0, description="Confidence score of the response")
+    message_id: str = Field(..., description="Unique message identifier")
+    provider_used: str = Field(..., description="Provider used to generate the response")
+    confidence_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Confidence score of the response")
 
     class Config:
         schema_extra = {
@@ -25,6 +27,8 @@ class ChatResponse(BaseModel):
                         "score": 0.85
                     }
                 ],
-                "confidence": 0.92
+                "message_id": "msg_123",
+                "provider_used": "Groq",
+                "confidence_score": 0.92
             }
         }

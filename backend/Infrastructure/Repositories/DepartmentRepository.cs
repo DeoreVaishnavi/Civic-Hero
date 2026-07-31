@@ -1,18 +1,14 @@
-﻿using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Interfaces;
 using CivicHero.Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicHero.Backend.Infrastructure.Repositories;
 
-public class DepartmentRepository : GenericRepository<Department>
+public sealed class DepartmentRepository : Repository<Department>, IDepartmentRepository
 {
-    public DepartmentRepository(CivicHeroDbContext context) : base(context)
-    {
-    }
+    public DepartmentRepository(CivicDbContext dbContext) : base(dbContext) { }
 
-    public async Task<Department?> GetByNameAsync(string name)
-    {
-        return await _context.Departments
-            .FirstOrDefaultAsync(d => d.Name == name);
-    }
+    public Task<Department?> GetByCodeAsync(string code, CancellationToken cancellationToken = default) =>
+        Query().FirstOrDefaultAsync(entity => entity.Code == code, cancellationToken);
 }

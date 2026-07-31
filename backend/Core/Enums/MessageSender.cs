@@ -1,9 +1,8 @@
-namespace CivicHero.Backend.Core.Enums
+namespace CivicHero.Backend.Core.Enums;
+
+public enum MessageSender
 {
-    public enum MessageSender
-    {
-        User = 1,
-        Assistant = 2,
-        System = 3
-    }
+    Citizen = 1,
+    Assistant = 2,
+    System = 3
 }

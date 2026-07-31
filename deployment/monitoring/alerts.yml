@@ -1,0 +1,19 @@
+groups:
+  - name: civichero-availability
+    rules:
+      - alert: CivicHeroEndpointUnavailable
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CivicHero endpoint unavailable"
+          description: "{{ $labels.instance }} failed health probing for more than two minutes."
+      - alert: CivicHeroEndpointSlow
+        expr: probe_duration_seconds > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CivicHero endpoint is responding slowly"
+          description: "{{ $labels.instance }} has exceeded two seconds for five minutes."

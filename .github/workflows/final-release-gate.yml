@@ -1,0 +1,71 @@
+name: Final Release Gate
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Release candidate version, for example v1.0.0-rc.1
+        required: true
+        default: v1.0.0-rc.1
+permissions:
+  contents: read
+  packages: read
+env:
+  DOTNET_NOLOGO: true
+jobs:
+  source-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Backend build and tests
+        run: |
+          dotnet restore backend/CivicHero.Backend.Tests/CivicHero.Backend.Tests.csproj
+          dotnet build backend/CivicHero.Backend.Tests/CivicHero.Backend.Tests.csproj -c Release --no-restore
+          dotnet test backend/CivicHero.Backend.Tests/CivicHero.Backend.Tests.csproj -c Release --no-build --collect:"XPlat Code Coverage" --results-directory artifacts/phase18/backend-tests
+      - name: Frontend build and tests
+        working-directory: frontend/civichero-web
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+          npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase18-source-test-results
+          path: |
+            artifacts/phase18
+            frontend/civichero-web/coverage
+  container-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release images
+        run: |
+          docker build -f deployment/backend/Dockerfile -t civichero-backend:${{ github.sha }} .
+          docker build -f deployment/frontend/Dockerfile -t civichero-frontend:${{ github.sha }} .
+      - name: Inspect non-root users
+        run: |
+          test "$(docker inspect -f '{{.Config.User}}' civichero-backend:${{ github.sha }})" != ""
+          test "$(docker inspect -f '{{.Config.User}}' civichero-frontend:${{ github.sha }})" != ""
+  staging-evidence:
+    needs: [source-build-test, container-validation]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install release tools
+        run: npm install -g newman
+      - name: API release smoke
+        run: newman run tests/api/CivicHero-Release-Smoke.postman_collection.json --env-var baseUrl='${{ vars.STAGING_URL }}'
+      - name: Require external approval evidence
+        run: |
+          test -n '${{ vars.UAT_APPROVAL_REFERENCE }}'
+          test -n '${{ vars.BACKUP_RESTORE_REFERENCE }}'
+          echo "Release version: ${{ inputs.release_version }}"
+          echo "UAT: ${{ vars.UAT_APPROVAL_REFERENCE }}"
+          echo "Backup restore: ${{ vars.BACKUP_RESTORE_REFERENCE }}"

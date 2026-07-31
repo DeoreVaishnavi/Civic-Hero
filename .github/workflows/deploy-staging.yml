@@ -1,0 +1,54 @@
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: GHCR image tag or commit SHA
+        required: true
+        default: latest
+
+permissions:
+  contents: read
+
+env:
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/civichero-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/civichero-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.STAGING_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+      - name: Upload deployment bundle
+        env:
+          SSH_HOST: ${{ secrets.STAGING_HOST }}
+          SSH_USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_PATH: ${{ vars.STAGING_DEPLOY_PATH }}
+        run: |
+          tar -czf deployment-bundle.tgz deployment scripts/deployment
+          ssh "$SSH_USER@$SSH_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp deployment-bundle.tgz "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+      - name: Deploy immutable image tag
+        env:
+          SSH_HOST: ${{ secrets.STAGING_HOST }}
+          SSH_USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_PATH: ${{ vars.STAGING_DEPLOY_PATH }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" "cd '$DEPLOY_PATH' && tar -xzf deployment-bundle.tgz && BACKEND_IMAGE='$BACKEND_IMAGE:$IMAGE_TAG' FRONTEND_IMAGE='$FRONTEND_IMAGE:$IMAGE_TAG' bash scripts/deployment/remote-deploy.sh deployment/.env.production.local"

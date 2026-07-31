@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/CivicHero.Backend.Tests/CivicHero.Backend.Tests.csproj" />
+    <Project Path="backend/CivicHero.Backend.csproj" />
+  </Folder>
+</Solution>

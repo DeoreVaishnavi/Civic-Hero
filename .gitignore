@@ -1,13 +1,51 @@
-/frontend/node_modules
-
-# Visual Studio / build output
+# .NET / Visual Studio build output
 .vs/
 **/bin/
 **/obj/
 *.user
+*.suo
 
-# Local development secrets
-backend/appsettings.Development.json
+# Node build and test output
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+**/playwright-report/
+**/test-results/
+**/coverage/
+
+# Python caches and virtual environments
+**/__pycache__/
+*.py[cod]
+**/.venv/
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Local configuration and secrets (commit only example files)
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+*accessKeys*.csv
+*credentials*.csv
+*.pem
+*.pfx
+
+# Logs, generated artifacts, and local backups
+*.log
+artifacts/
+**/artifacts/
+.backend-reconciliation-backup/
+backups/
+.config/
+**/*.backup-*
+deployment/.env.local.backup-*
+
 .fake
-
-ai_chatbot/.env

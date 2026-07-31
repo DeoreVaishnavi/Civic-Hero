@@ -22,13 +22,14 @@ public sealed class S3HealthCheck : IHealthCheck
 
             return available
                 ? HealthCheckResult.Healthy(
-                    $"Amazon S3 bucket '{_storageService.BucketName}' is accessible.")
-                : HealthCheckResult.Unhealthy("Amazon S3 bucket is not configured.");
+                    $"{_storageService.Provider} storage '{_storageService.BucketName}' is accessible.")
+                : HealthCheckResult.Unhealthy(
+                    $"{_storageService.Provider} storage is not configured or accessible.");
         }
         catch (Exception exception)
         {
             return HealthCheckResult.Unhealthy(
-                "Amazon S3 is unavailable, the bucket is missing, or access was denied.",
+                $"{_storageService.Provider} storage is unavailable.",
                 exception);
         }
     }

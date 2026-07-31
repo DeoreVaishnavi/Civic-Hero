@@ -8,6 +8,7 @@ public interface IComplaintService
 {
     Task<ComplaintDetailResponse> CreateAsync(CreateComplaintRequest request, CancellationToken cancellationToken = default);
     Task<PagedResponse<ComplaintResponse>> GetAsync(ComplaintQuery query, CancellationToken cancellationToken = default);
+    Task<PagedResponse<ComplaintResponse>> GetPublicAsync(ComplaintQuery query, CancellationToken cancellationToken = default);
     Task<PagedResponse<ComplaintResponse>> GetMineAsync(ComplaintQuery query, CancellationToken cancellationToken = default);
     Task<ComplaintDetailResponse> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<ComplaintDetailResponse> UpdateAsync(long id, UpdateComplaintRequest request, CancellationToken cancellationToken = default);

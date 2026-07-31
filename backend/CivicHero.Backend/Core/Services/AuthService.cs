@@ -7,6 +7,7 @@ using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
 using CivicHero.Backend.Core.Exceptions;
 using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Core.Validation;
 using CivicHero.Backend.Infrastructure.Configurations;
 using CivicHero.Backend.Infrastructure.Security;
 using Microsoft.Extensions.Options;
@@ -70,7 +71,7 @@ public sealed class AuthService : IAuthService
         var verificationToken = GenerateSecureToken();
         var user = new User
         {
-            FullName = request.FullName.Trim(),
+            FullName = PersonNameRules.Normalize(request.FullName),
             Email = email,
             Phone = phone,
             NormalizedPhone = phone,
@@ -124,8 +125,74 @@ public sealed class AuthService : IAuthService
         if (!identifier.Contains('@') && !user.IsPhoneVerified)
             throw new BusinessRuleViolationException("Verify this phone number before using phone login.");
         _twoFactorService.VerifyForLogin(user, request.TwoFactorCode);
-        await RecordSuccessfulLoginAsync(user, cancellationToken);
-        return await CreateSessionAsync(user, cancellationToken);
+        return await CreateSessionAsync(user, cancellationToken, recordSuccessfulLogin: true);
+    }
+
+    public async Task<PhoneOtpRequestResponse> RequestPasswordResetAsync(
+        ForgotPasswordRequest request,
+        string? remoteIp,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Identifier))
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(["Email or verified phone number is required."]);
+
+        var user = await FindByIdentifierAsync(request.Identifier.Trim(), cancellationToken);
+        var verifiedPhone = user is null ? null : GetVerifiedPhone(user);
+        if (user is null || !user.IsActive || user.IsSystemAccount || verifiedPhone is null)
+        {
+            // Always return the same response shape so this endpoint does not reveal account existence.
+            return new PhoneOtpRequestResponse
+            {
+                MaskedPhoneNumber = "your verified phone",
+                ExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(Math.Clamp(_smsOptions.OtpExpiryMinutes, 2, 15)),
+                ResendAfterSeconds = Math.Clamp(_smsOptions.ResendCooldownSeconds, 30, 300)
+            };
+        }
+
+        return await _phoneOtpService.RequestAsync(
+            user,
+            verifiedPhone,
+            OtpPurpose.PasswordReset,
+            remoteIp,
+            cancellationToken);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidatePasswordReset(request);
+
+        var user = await FindByIdentifierAsync(request.Identifier.Trim(), cancellationToken);
+        var verifiedPhone = user is null ? null : GetVerifiedPhone(user);
+        if (user is null || !user.IsActive || user.IsSystemAccount || verifiedPhone is null)
+        {
+            throw new BusinessRuleViolationException("The reset code is invalid or expired.");
+        }
+
+        try
+        {
+            await _phoneOtpService.VerifyAsync(
+                user,
+                verifiedPhone,
+                request.Code,
+                OtpPurpose.PasswordReset,
+                cancellationToken);
+        }
+        catch (BusinessRuleViolationException)
+        {
+            throw new BusinessRuleViolationException("The reset code is invalid or expired.");
+        }
+
+        if (_passwordHasher.Verify(request.NewPassword, user.PasswordHash))
+            throw new BusinessRuleViolationException("Choose a password different from your current password.");
+
+        user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        user.AuthorizationVersion++;
+        user.FailedLoginAttempts = 0;
+        user.LockoutEnd = null;
+        ClearRefreshToken(user);
+
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<PhoneOtpRequestResponse> RequestPhoneLoginOtpAsync(RequestPhoneLoginOtpRequest request, string? remoteIp, CancellationToken cancellationToken = default)
@@ -154,8 +221,7 @@ public sealed class AuthService : IAuthService
         if (!user.IsPhoneVerified) throw new BusinessRuleViolationException("This phone number is not verified.");
         await _phoneOtpService.VerifyAsync(user, phone, request.Code, OtpPurpose.PhoneLogin, cancellationToken);
         _twoFactorService.VerifyForLogin(user, request.TwoFactorCode);
-        await RecordSuccessfulLoginAsync(user, cancellationToken);
-        return await CreateSessionAsync(user, cancellationToken);
+        return await CreateSessionAsync(user, cancellationToken, recordSuccessfulLogin: true);
     }
 
     public async Task<PhoneOtpRequestResponse> RequestPhoneVerificationOtpAsync(long userId, RequestPhoneVerificationOtpRequest request, string? remoteIp, CancellationToken cancellationToken = default)
@@ -248,17 +314,20 @@ public sealed class AuthService : IAuthService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task RecordSuccessfulLoginAsync(User user, CancellationToken cancellationToken)
+    private async Task<AuthSessionResult> CreateSessionAsync(
+        User user,
+        CancellationToken cancellationToken,
+        bool recordSuccessfulLogin = false)
     {
-        user.FailedLoginAttempts = 0;
-        user.LockoutEnd = null;
-        user.LastLoginAt = DateTimeOffset.UtcNow;
-        _userRepository.Update(user);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-    }
+        if (recordSuccessfulLogin)
+        {
+            // Persist login metadata and the new refresh token in one database write.
+            // This avoids a second RDS round trip on every password or OTP login.
+            user.FailedLoginAttempts = 0;
+            user.LockoutEnd = null;
+            user.LastLoginAt = DateTimeOffset.UtcNow;
+        }
 
-    private async Task<AuthSessionResult> CreateSessionAsync(User user, CancellationToken cancellationToken)
-    {
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var refreshToken = GenerateSecureToken();
         var refreshExpiry = DateTimeOffset.UtcNow.AddDays(Math.Clamp(_jwtOptions.RefreshTokenExpiryDays, 1, 30));
@@ -273,6 +342,41 @@ public sealed class AuthService : IAuthService
             ExpiresAtUtc = accessToken.ExpiresAtUtc,
             User = _mapper.Map<UserDto>(user)
         }, refreshToken, refreshExpiry);
+    }
+
+    private static string? GetVerifiedPhone(User user)
+    {
+        if (!user.IsPhoneVerified) return null;
+
+        var value = string.IsNullOrWhiteSpace(user.NormalizedPhone) ? user.Phone : user.NormalizedPhone;
+        if (string.IsNullOrWhiteSpace(value)) return null;
+
+        try { return PhoneNumberNormalizer.Normalize(value); }
+        catch (CivicHero.Backend.Core.Exceptions.ValidationException) { return null; }
+    }
+
+    private static void ValidatePasswordReset(ResetPasswordRequest request)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(request.Identifier))
+            errors.Add("Email or verified phone number is required.");
+        if (string.IsNullOrWhiteSpace(request.Code) || request.Code.Length != 6 || !request.Code.All(char.IsDigit))
+            errors.Add("Enter the six-digit reset code.");
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8 || request.NewPassword.Length > 128)
+            errors.Add("Password must be between 8 and 128 characters.");
+        else
+        {
+            if (!request.NewPassword.Any(char.IsUpper)) errors.Add("Password must contain an uppercase letter.");
+            if (!request.NewPassword.Any(char.IsLower)) errors.Add("Password must contain a lowercase letter.");
+            if (!request.NewPassword.Any(char.IsDigit)) errors.Add("Password must contain a number.");
+            if (!request.NewPassword.Any(character => !char.IsLetterOrDigit(character))) errors.Add("Password must contain a special character.");
+        }
+        if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
+            errors.Add("Password and confirmation password must match.");
+
+        if (errors.Count > 0)
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(errors);
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();

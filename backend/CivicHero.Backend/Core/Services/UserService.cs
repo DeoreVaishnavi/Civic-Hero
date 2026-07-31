@@ -5,6 +5,7 @@ using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
 using CivicHero.Backend.Core.Exceptions;
 using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Core.Validation;
 
 namespace CivicHero.Backend.Core.Services;
 
@@ -77,6 +78,11 @@ public sealed class UserService : IUserService
         if (newRole == UserRole.SuperAdmin && actorRole != UserRole.SuperAdmin)
             throw new UnauthorizedAccessException("Only a SuperAdmin can assign the SuperAdmin role.");
 
+        if (actorRole == UserRole.Admin
+            && newRole != target.Role
+            && newRole is UserRole.Officer or UserRole.Supervisor)
+            throw new UnauthorizedAccessException("Use Staff accounts to create Officer or Supervisor users. SuperAdmin approval is required.");
+
         target.Role = newRole;
         target.DepartmentId = request.DepartmentId;
         target.WardId = request.WardId;
@@ -118,6 +124,10 @@ public sealed class UserService : IUserService
         EnsureCanManage(actorRole, requesterId, target);
         if (requesterId == targetUserId && !isActive)
             throw new BusinessRuleViolationException("You cannot deactivate your own account.");
+        if (isActive
+            && actorRole == UserRole.Admin
+            && target.Role is UserRole.Officer or UserRole.Supervisor)
+            throw new UnauthorizedAccessException("Only a SuperAdmin can activate or approve an Officer or Supervisor account.");
         target.IsActive = isActive;
         InvalidateSessions(target);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -151,7 +161,7 @@ public sealed class UserService : IUserService
 
     private static void ApplyProfile(User user, UpdateProfileRequest request)
     {
-        user.FullName = request.FullName.Trim();
+        user.FullName = PersonNameRules.Normalize(request.FullName);
         user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
     }
 

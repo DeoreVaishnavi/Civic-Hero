@@ -1,16 +1,140 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AssignmentCard from '../../components/common/AssignmentCard.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
 import { assignmentApi } from '../../services/assignmentApi.js';
 
+const normalizeResult = (value) => {
+  if (Array.isArray(value)) {
+    return { items: value, page: 1, totalPages: value.length ? 1 : 0 };
+  }
+
+  const items = Array.isArray(value?.items) ? value.items : [];
+  return {
+    ...value,
+    items,
+    page: Number(value?.page) > 0 ? Number(value.page) : 1,
+    totalPages: Number(value?.totalPages) >= 0 ? Number(value.totalPages) : 0,
+  };
+};
+
 export default function WorkQueue() {
   const [filters, setFilters] = useState({ page: 1, pageSize: 12, status: '', priority: '', search: '', overdueOnly: false });
   const [result, setResult] = useState({ items: [], page: 1, totalPages: 0 });
-  const [loading, setLoading] = useState(true); const [error, setError] = useState('');
-  useEffect(() => { setLoading(true); setError(''); const timer = setTimeout(() => assignmentApi.mine(filters).then(setResult).catch((reason) => setError(reason.message)).finally(() => setLoading(false)), 200); return () => clearTimeout(timer); }, [filters]);
-  return <section className="p-6 lg:p-10"><h2 className="text-3xl font-black text-white">My work queue</h2><p className="mt-2 text-slate-400">Assignments are ordered by priority and SLA deadline.</p>
-    <div className="mt-6 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:grid-cols-4"><input className="input mt-0 md:col-span-2" placeholder="Search work" value={filters.search} onChange={(e) => setFilters((x) => ({ ...x, search: e.target.value, page: 1 }))} /><select className="input mt-0" value={filters.status} onChange={(e) => setFilters((x) => ({ ...x, status: e.target.value, page: 1 }))}><option value="">All assignment states</option><option>Pending</option><option>Accepted</option><option>Completed</option></select><select className="input mt-0" value={filters.priority} onChange={(e) => setFilters((x) => ({ ...x, priority: e.target.value, page: 1 }))}><option value="">All priorities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select><label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={filters.overdueOnly} onChange={(e) => setFilters((x) => ({ ...x, overdueOnly: e.target.checked, page: 1 }))} /> SLA overdue only</label></div>
-    {error && <div className="mt-6 rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 text-rose-100">{error}</div>}
-    {loading ? <p className="mt-8 text-slate-400">Loading work queue…</p> : <>{result.items.length ? <div className="mt-8 grid gap-5 xl:grid-cols-2">{result.items.map((item) => <AssignmentCard key={item.complaintId} item={item} basePath="/officer/assignments" />)}</div> : <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-slate-400">No assignments match these filters.</div>}<Pagination page={result.page} totalPages={result.totalPages} onPageChange={(page) => setFilters((x) => ({ ...x, page }))} /></>}
-  </section>;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setError('');
+      assignmentApi.mine(filters)
+        .then((value) => {
+          if (active) setResult(normalizeResult(value));
+        })
+        .catch((reason) => {
+          if (active) {
+            setResult({ items: [], page: 1, totalPages: 0 });
+            setError(reason?.message || 'Unable to load the work queue.');
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 200);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [filters]);
+
+  return (
+    <section className="page-wrap">
+      <div className="surface">
+        <div className="surface-header">
+          <div>
+            <p className="section-kicker">Officer workspace</p>
+            <h2>My work queue</h2>
+            <p className="muted">Assignments are ordered by priority and SLA deadline.</p>
+          </div>
+          <Link to="/officer" className="button outline">← Back to dashboard</Link>
+        </div>
+
+        <div className="surface-body">
+          <div className="form-grid">
+            <label className="form-label">
+              <span>Search work</span>
+              <input
+                className="input"
+                placeholder="Complaint title, reference or address"
+                value={filters.search}
+                onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value, page: 1 }))}
+              />
+            </label>
+            <label className="form-label">
+              <span>Assignment state</span>
+              <select className="input" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value, page: 1 }))}>
+                <option value="">All assignment states</option>
+                <option>Pending</option><option>Accepted</option><option>Completed</option>
+              </select>
+            </label>
+            <label className="form-label">
+              <span>Priority</span>
+              <select className="input" value={filters.priority} onChange={(event) => setFilters((current) => ({ ...current, priority: event.target.value, page: 1 }))}>
+                <option value="">All priorities</option>
+                <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+              </select>
+            </label>
+            <label className="form-label" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'end' }}>
+              <input type="checkbox" checked={filters.overdueOnly} onChange={(event) => setFilters((current) => ({ ...current, overdueOnly: event.target.checked, page: 1 }))} />
+              <span>SLA overdue only</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="surface section-gap">
+          <div className="surface-body">
+            <div className="alert error" role="alert">{error}</div>
+            <div className="page-actions">
+              <button type="button" className="button primary" onClick={() => setFilters((current) => ({ ...current }))}>Retry</button>
+              <Link to="/officer" className="button outline">Back to dashboard</Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="surface section-gap"><div className="surface-body">Loading work queue…</div></div>
+      ) : result.items.length ? (
+        <>
+          <div className="section-gap issue-card-grid">
+            {result.items.map((item, index) => (
+              <AssignmentCard
+                key={item?.complaintId || item?.assignmentId || `${item?.referenceNumber || 'assignment'}-${index}`}
+                item={item}
+                basePath="/officer/assignments"
+                actionLabel="View details"
+              />
+            ))}
+          </div>
+          <Pagination page={result.page} totalPages={result.totalPages} onPageChange={(page) => setFilters((current) => ({ ...current, page }))} />
+        </>
+      ) : (
+        <div className="surface section-gap">
+          <div className="surface-body">
+            <h3>No assignments match these filters</h3>
+            <p className="muted">Clear the filters or return to the Officer Dashboard.</p>
+            <div className="page-actions">
+              <button type="button" className="button primary" onClick={() => setFilters({ page: 1, pageSize: 12, status: '', priority: '', search: '', overdueOnly: false })}>Clear filters</button>
+              <Link to="/officer" className="button outline">Back to dashboard</Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }

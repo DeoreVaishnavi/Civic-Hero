@@ -5,6 +5,9 @@ const unwrap = (response) => response.data?.data ?? response.data;
 export const rewardApi = {
   points: async () => unwrap(await axiosInstance.get('/rewards/points')),
   leaderboard: async (limit = 25) => unwrap(await axiosInstance.get('/rewards/leaderboard', { params: { limit } })),
+  leaderboardCitizenProfile: async (userId) => unwrap(await axiosInstance.get(`/rewards/leaderboard/${userId}/profile`)),
+  followCitizen: async (userId) => unwrap(await axiosInstance.post(`/rewards/leaderboard/${userId}/follow`)),
+  unfollowCitizen: async (userId) => unwrap(await axiosInstance.delete(`/rewards/leaderboard/${userId}/follow`)),
   badges: async () => unwrap(await axiosInstance.get('/rewards/badges')),
   catalog: async () => unwrap(await axiosInstance.get('/rewards/catalog')),
   redeem: async (rewardCatalogId) => unwrap(await axiosInstance.post('/rewards/redeem', { rewardCatalogId })),

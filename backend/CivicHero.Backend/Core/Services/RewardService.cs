@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using CivicHero.Backend.Core.DTOs.Notifications;
 using CivicHero.Backend.Core.DTOs.Rewards;
 using CivicHero.Backend.Core.Entities;
@@ -18,6 +19,9 @@ public sealed class RewardService : IRewardService
     private const string ClosedRewardReason = "Valid complaint closed";
     private const string AutoClosedRewardReason = "Complaint auto-closed after verification window";
     private const string VerificationBonusReason = "Citizen verification bonus";
+    private const string CitizenProfileEntity = "CitizenProfile";
+    private const string CitizenFollowedAction = "CitizenFollowed";
+    private const string CitizenUnfollowedAction = "CitizenUnfollowed";
 
     private readonly CivicDbContext _db;
     private readonly ICurrentUserService _currentUser;
@@ -76,6 +80,46 @@ public sealed class RewardService : IRewardService
             Tier = Tier(item.Points).Tier,
             IsCurrentUser = currentUserId == item.UserId
         }).ToList();
+    }
+
+    public async Task<LeaderboardCitizenProfileResponse> GetLeaderboardCitizenProfileAsync(long targetUserId, CancellationToken cancellationToken = default)
+    {
+        var currentUserId = RequireCitizenId();
+        return await BuildLeaderboardCitizenProfileAsync(currentUserId, targetUserId, cancellationToken);
+    }
+
+    public async Task<LeaderboardCitizenProfileResponse> FollowCitizenAsync(long targetUserId, CancellationToken cancellationToken = default)
+    {
+        var currentUserId = RequireCitizenId();
+        if (currentUserId == targetUserId)
+            throw new BusinessRuleViolationException("You cannot follow your own profile.");
+
+        await EnsureLeaderboardCitizenExistsAsync(targetUserId, cancellationToken);
+        var followState = await GetFollowStateAsync(targetUserId, currentUserId, cancellationToken);
+        if (!followState.IsFollowing)
+        {
+            _db.AuditLogs.Add(CreateCitizenFollowAudit(currentUserId, targetUserId, CitizenFollowedAction));
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return await BuildLeaderboardCitizenProfileAsync(currentUserId, targetUserId, cancellationToken);
+    }
+
+    public async Task<LeaderboardCitizenProfileResponse> UnfollowCitizenAsync(long targetUserId, CancellationToken cancellationToken = default)
+    {
+        var currentUserId = RequireCitizenId();
+        if (currentUserId == targetUserId)
+            throw new BusinessRuleViolationException("You cannot unfollow your own profile.");
+
+        await EnsureLeaderboardCitizenExistsAsync(targetUserId, cancellationToken);
+        var followState = await GetFollowStateAsync(targetUserId, currentUserId, cancellationToken);
+        if (followState.IsFollowing)
+        {
+            _db.AuditLogs.Add(CreateCitizenFollowAudit(currentUserId, targetUserId, CitizenUnfollowedAction));
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return await BuildLeaderboardCitizenProfileAsync(currentUserId, targetUserId, cancellationToken);
     }
 
     public async Task<IReadOnlyList<BadgeResponse>> GetBadgesAsync(CancellationToken cancellationToken = default)
@@ -216,6 +260,95 @@ public sealed class RewardService : IRewardService
         }
         return awarded;
     }
+
+    private async Task<LeaderboardCitizenProfileResponse> BuildLeaderboardCitizenProfileAsync(long currentUserId, long targetUserId, CancellationToken cancellationToken)
+    {
+        var citizen = await EnsureLeaderboardCitizenExistsAsync(targetUserId, cancellationToken);
+        var points = await BalanceAsync(targetUserId, cancellationToken);
+        var submittedComplaints = await _db.Complaints.AsNoTracking()
+            .CountAsync(entity => entity.CitizenId == targetUserId, cancellationToken);
+        var closedComplaints = await _db.Complaints.AsNoTracking()
+            .CountAsync(entity => entity.CitizenId == targetUserId &&
+                (entity.Status == ComplaintStatus.Closed || entity.Status == ComplaintStatus.ClosedAuto), cancellationToken);
+        var helpfulVerifications = await _db.ComplaintVerifications.AsNoTracking()
+            .CountAsync(entity => entity.CitizenId == targetUserId && entity.Decision == VerificationDecision.Approved, cancellationToken);
+        var supportedIssues = await _db.ComplaintVotes.AsNoTracking()
+            .CountAsync(entity => entity.UserId == targetUserId, cancellationToken);
+        var followState = await GetFollowStateAsync(targetUserId, currentUserId, cancellationToken);
+
+        var badges = new List<string>();
+        if (closedComplaints >= 1) badges.Add("First Fix");
+        if (closedComplaints >= 5) badges.Add("Neighborhood Guardian");
+        if (helpfulVerifications >= 5) badges.Add("Trusted Verifier");
+        if (points >= 1000) badges.Add("Civic Champion");
+
+        return new LeaderboardCitizenProfileResponse
+        {
+            UserId = citizen.Id,
+            CitizenName = MaskName(citizen.FullName),
+            Rank = await CalculateRankAsync(targetUserId, cancellationToken),
+            Points = points,
+            SubmittedComplaints = submittedComplaints,
+            ClosedComplaints = closedComplaints,
+            HelpfulVerifications = helpfulVerifications,
+            SupportedIssues = supportedIssues,
+            Tier = Tier(points).Tier,
+            FollowerCount = followState.FollowerCount,
+            IsFollowing = followState.IsFollowing,
+            IsCurrentUser = currentUserId == targetUserId,
+            MemberSince = citizen.CreatedAt,
+            Badges = badges
+        };
+    }
+
+    private async Task<User> EnsureLeaderboardCitizenExistsAsync(long targetUserId, CancellationToken cancellationToken)
+    {
+        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(entity =>
+            entity.Id == targetUserId &&
+            entity.Role == UserRole.Citizen &&
+            entity.IsActive &&
+            !entity.IsDeleted &&
+            !entity.IsSystemAccount, cancellationToken)
+            ?? throw new NotFoundException("Citizen profile was not found.");
+    }
+
+    private async Task<(int FollowerCount, bool IsFollowing)> GetFollowStateAsync(long targetUserId, long currentUserId, CancellationToken cancellationToken)
+    {
+        var entityId = targetUserId.ToString();
+        var events = await _db.AuditLogs.AsNoTracking()
+            .Where(entity => entity.EntityName == CitizenProfileEntity &&
+                entity.EntityId == entityId &&
+                entity.UserId.HasValue &&
+                (entity.Action == CitizenFollowedAction || entity.Action == CitizenUnfollowedAction))
+            .OrderByDescending(entity => entity.CreatedAt)
+            .ThenByDescending(entity => entity.Id)
+            .Select(entity => new { FollowerId = entity.UserId!.Value, entity.Action })
+            .ToListAsync(cancellationToken);
+
+        var latestByFollower = events
+            .GroupBy(entity => entity.FollowerId)
+            .Select(group => group.First())
+            .ToList();
+
+        return (
+            latestByFollower.Count(entity => entity.Action == CitizenFollowedAction),
+            latestByFollower.Any(entity => entity.FollowerId == currentUserId && entity.Action == CitizenFollowedAction));
+    }
+
+    private AuditLog CreateCitizenFollowAudit(long currentUserId, long targetUserId, string action) => new()
+    {
+        UserId = currentUserId,
+        UserEmail = _currentUser.Email,
+        UserRole = _currentUser.Role,
+        Action = action,
+        EntityName = CitizenProfileEntity,
+        EntityId = targetUserId.ToString(),
+        NewValuesJson = JsonSerializer.Serialize(new { targetUserId }),
+        Severity = "Information",
+        Success = true,
+        HttpStatusCode = 200,
+        CreatedAt = DateTimeOffset.UtcNow
+    };
 
     private async Task<int> CalculateRankAsync(long userId, CancellationToken cancellationToken)
     {

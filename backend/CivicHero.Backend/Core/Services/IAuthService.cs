@@ -10,6 +10,8 @@ public interface IAuthService
     Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);
     Task<AuthSessionResult> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default);
     Task<AuthSessionResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<PhoneOtpRequestResponse> RequestPasswordResetAsync(ForgotPasswordRequest request, string? remoteIp, CancellationToken cancellationToken = default);
+    Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default);
     Task<PhoneOtpRequestResponse> RequestPhoneLoginOtpAsync(RequestPhoneLoginOtpRequest request, string? remoteIp, CancellationToken cancellationToken = default);
     Task<AuthSessionResult> LoginWithPhoneOtpAsync(VerifyPhoneLoginOtpRequest request, CancellationToken cancellationToken = default);
     Task<PhoneOtpRequestResponse> RequestPhoneVerificationOtpAsync(long userId, RequestPhoneVerificationOtpRequest request, string? remoteIp, CancellationToken cancellationToken = default);

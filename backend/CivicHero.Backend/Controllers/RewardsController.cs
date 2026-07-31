@@ -25,6 +25,21 @@ public sealed class RewardsController : ControllerBase
     public async Task<IActionResult> Leaderboard([FromQuery] int limit = 25, CancellationToken cancellationToken = default) =>
         OkEnvelope("Leaderboard loaded.", await _service.GetLeaderboardAsync(limit, cancellationToken));
 
+    [HttpGet("leaderboard/{userId:long}/profile")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> LeaderboardCitizenProfile(long userId, CancellationToken cancellationToken) =>
+        OkEnvelope("Citizen profile loaded.", await _service.GetLeaderboardCitizenProfileAsync(userId, cancellationToken));
+
+    [HttpPost("leaderboard/{userId:long}/follow")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> FollowCitizen(long userId, CancellationToken cancellationToken) =>
+        OkEnvelope("Citizen followed.", await _service.FollowCitizenAsync(userId, cancellationToken));
+
+    [HttpDelete("leaderboard/{userId:long}/follow")]
+    [Authorize(Policy = PermissionConstants.CitizenOnly)]
+    public async Task<IActionResult> UnfollowCitizen(long userId, CancellationToken cancellationToken) =>
+        OkEnvelope("Citizen unfollowed.", await _service.UnfollowCitizenAsync(userId, cancellationToken));
+
     [HttpGet("points")]
     [Authorize(Policy = PermissionConstants.CitizenOnly)]
     public async Task<IActionResult> Points(CancellationToken cancellationToken) =>

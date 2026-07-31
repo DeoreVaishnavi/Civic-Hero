@@ -1,4 +1,5 @@
 using CivicHero.Backend.Core.DTOs.Auth;
+using CivicHero.Backend.Core.Validation;
 using FluentValidation;
 
 namespace CivicHero.Backend.Core.Validators;
@@ -8,8 +9,14 @@ public sealed class RegisterValidator : AbstractValidator<RegisterRequest>
     public RegisterValidator()
     {
         RuleFor(request => request.FullName)
-            .NotEmpty()
-            .MaximumLength(150);
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage("Full name is required.")
+            .MinimumLength(PersonNameRules.MinimumLength)
+                .WithMessage($"Full name must contain at least {PersonNameRules.MinimumLength} letters.")
+            .MaximumLength(PersonNameRules.MaximumLength)
+                .WithMessage($"Full name cannot exceed {PersonNameRules.MaximumLength} characters.")
+            .Must(PersonNameRules.IsValid)
+                .WithMessage("Full name can contain letters and spaces only. Digits and special characters are not allowed.");
 
         RuleFor(request => request.Email)
             .NotEmpty()

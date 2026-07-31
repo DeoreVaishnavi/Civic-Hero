@@ -16,6 +16,35 @@ public sealed class RegisterValidatorTests
     }
 
     [Theory]
+    [InlineData("Abhimanyu123")]
+    [InlineData("John_Doe")]
+    [InlineData("Jane@Doe")]
+    [InlineData("Test!")]
+    [InlineData("A.B.")]
+    public void Full_name_with_digits_or_special_characters_should_fail(string fullName)
+    {
+        var request = ValidRequest();
+        request.FullName = fullName;
+
+        _validator.TestValidate(request)
+            .ShouldHaveValidationErrorFor(item => item.FullName)
+            .WithErrorMessage("Full name can contain letters and spaces only. Digits and special characters are not allowed.");
+    }
+
+    [Theory]
+    [InlineData("Abhimanyu Patil")]
+    [InlineData("अभिमन्यु पाटील")]
+    [InlineData("Élodie Martin")]
+    [InlineData("  Vaishnavi   Deore  ")]
+    public void Alphabetic_full_name_should_pass(string fullName)
+    {
+        var request = ValidRequest();
+        request.FullName = fullName;
+
+        _validator.TestValidate(request).ShouldNotHaveValidationErrorFor(item => item.FullName);
+    }
+
+    [Theory]
     [InlineData("weak")]
     [InlineData("alllowercase123!")]
     [InlineData("ALLUPPERCASE123!")]

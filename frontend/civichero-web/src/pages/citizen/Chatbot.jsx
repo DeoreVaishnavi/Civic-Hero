@@ -11,7 +11,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function Chatbot() {
-  const [sessionId, setSessionId] = useState(() => localStorage.getItem(STORAGE_KEY) || '');
+  const [sessionId, setSessionId] = useState(() => sessionStorage.getItem(STORAGE_KEY) || '');
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('Connecting');
@@ -25,17 +25,21 @@ export default function Chatbot() {
   useEffect(() => {
     let disposed = false;
     const initialize = async () => {
+      localStorage.removeItem(STORAGE_KEY);
       setError('');
       try {
         let session;
         if (sessionId) {
-          try { session = await chatbotApi.getSession(sessionId); }
+          try {
+            session = await chatbotApi.getSession(sessionId);
+            if (String(session?.status || '').toLowerCase() !== 'active') session = await chatbotApi.startSession();
+          }
           catch { session = await chatbotApi.startSession(); }
         } else {
           session = await chatbotApi.startSession();
         }
         if (disposed) return;
-        localStorage.setItem(STORAGE_KEY, session.sessionId);
+        sessionStorage.setItem(STORAGE_KEY, session.sessionId);
         setSessionId(session.sessionId);
         setMessages(session.messages || []);
         setStatus(session.status || 'Active');
@@ -73,7 +77,7 @@ export default function Chatbot() {
     try {
       if (sessionId && status === 'Active') await chatbotApi.endSession(sessionId).catch(() => undefined);
       const session = await chatbotApi.startSession();
-      localStorage.setItem(STORAGE_KEY, session.sessionId);
+      sessionStorage.setItem(STORAGE_KEY, session.sessionId);
       setSessionId(session.sessionId);
       setMessages(session.messages || []);
       setStatus(session.status || 'Active');
@@ -84,7 +88,14 @@ export default function Chatbot() {
   const end = async () => {
     if (!sessionId) return;
     setError('');
-    try { await chatbotApi.endSession(sessionId); setStatus('Ended'); }
+    try {
+      await chatbotApi.endSession(sessionId);
+      sessionStorage.removeItem(STORAGE_KEY);
+      setSessionId('');
+      setMessages([]);
+      setMessage('');
+      setStatus('Ended');
+    }
     catch (reason) { setError(reason.message); }
   };
 
@@ -97,7 +108,7 @@ export default function Chatbot() {
           <header className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 px-5 py-6 text-white sm:px-7">
             <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/10" />
             <div className="relative flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 text-3xl shadow-lg backdrop-blur">✦</div><div><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-100">Secure account assistant</p><h3 className="text-2xl font-black">Ask CivicHero</h3><p className="mt-1 text-sm text-blue-100"><span className={status === 'Active' ? 'text-emerald-200' : 'text-amber-200'}>● {status}</span> · Saved conversation</p></div></div>
+              <div className="flex items-center gap-4"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 text-3xl shadow-lg backdrop-blur">✦</div><div><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-100">Secure account assistant</p><h3 className="text-2xl font-black">Ask CivicHero</h3><p className="mt-1 text-sm text-blue-100"><span className={status === 'Active' ? 'text-emerald-200' : 'text-amber-200'}>● {status}</span> · Visible only in this browser tab</p></div></div>
               <div className="flex gap-2"><button type="button" onClick={startNew} disabled={isSending} className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-black transition hover:bg-white/20 disabled:opacity-50">New chat</button><button type="button" onClick={end} disabled={!activeSession} className="rounded-xl border border-rose-200/20 bg-rose-400/10 px-4 py-2.5 text-sm font-black text-rose-100 transition hover:bg-rose-400/20 disabled:opacity-40">End</button></div>
             </div>
           </header>
@@ -105,7 +116,7 @@ export default function Chatbot() {
           <div className="h-[56vh] min-h-[470px] space-y-5 overflow-y-auto bg-slate-50 px-4 py-6 sm:px-7">
             {messages.map((item) => <Message key={item.id || `${item.sender}-${item.sentAt}`} item={item} />)}
             {isSending && <div className="flex items-center gap-3 text-sm text-slate-500"><div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-100 text-blue-700">✦</div><div className="flex gap-1 rounded-2xl bg-white px-4 py-3 shadow-sm"><i className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-.2s]" /><i className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-.1s]" /><i className="h-2 w-2 animate-bounce rounded-full bg-blue-400" /></div></div>}
-            {messages.length === 0 && !isSending && <div className="grid min-h-[360px] place-items-center text-center"><div><div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-blue-100 text-4xl text-blue-700">✦</div><h3 className="mt-5 text-xl font-black text-slate-900">Starting your assistant session</h3><p className="mt-2 text-sm text-slate-500">Your secure conversation will appear here.</p></div></div>}
+            {messages.length === 0 && !isSending && <div className="grid min-h-[360px] place-items-center text-center"><div><div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-blue-100 text-4xl text-blue-700">✦</div><h3 className="mt-5 text-xl font-black text-slate-900">{status === 'Ended' ? 'Conversation cleared' : 'Starting your assistant session'}</h3><p className="mt-2 text-sm text-slate-500">{status === 'Ended' ? 'Old messages are no longer shown. Select New chat to begin again.' : 'Your secure conversation will appear here.'}</p></div></div>}
             <div ref={bottomRef} />
           </div>
 

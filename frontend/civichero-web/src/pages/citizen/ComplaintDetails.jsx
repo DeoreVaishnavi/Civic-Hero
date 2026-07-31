@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import EvidenceMedia from '../../components/complaints/EvidenceMedia.jsx';
@@ -30,10 +30,20 @@ export default function ComplaintDetails() {
     try { const response = await complaintApi.update(id, form); setDetail(response); setEditing(false); setMessage('Complaint updated.'); }
     catch (reason) { setError(reason.errors?.join(' ') || reason.message); }
   };
-  const withdraw = async () => {
-    if (!confirm('Withdraw this complaint?')) return;
-    try { setDetail(await complaintApi.withdraw(id)); setMessage('Complaint withdrawn.'); }
-    catch (reason) { setError(reason.message); }
+  const deleteComplaint = async () => {
+    const confirmed = window.confirm(
+      'Delete this complaint? This is allowed only before it is assigned to an officer. ' +
+      'The action cannot be undone from the Citizen portal.',
+    );
+    if (!confirmed) return;
+
+    setError('');
+    try {
+      await complaintApi.deleteBeforeAssignment(id);
+      navigate('/citizen/complaints', { replace: true });
+    } catch (reason) {
+      setError(reason.errors?.join(' ') || reason.message);
+    }
   };
   const toggleUpvote = async () => {
     try { if (item.hasUpvoted) await complaintApi.removeUpvote(id); else await complaintApi.upvote(id); await load(); }
@@ -60,7 +70,7 @@ export default function ComplaintDetails() {
       </section>
 
       <section className="surface section-gap">
-        <div className="surface-header"><h3>Complaint information</h3><div className="page-actions">{item.canEdit && <button type="button" onClick={() => setEditing((value) => !value)} className="button outline small">{editing ? 'Cancel editing' : 'Edit complaint'}</button>}{item.canWithdraw && <button type="button" onClick={withdraw} className="button danger small">Withdraw</button>}</div></div>
+        <div className="surface-header"><h3>Complaint information</h3><div className="page-actions">{item.canEdit && <button type="button" onClick={() => setEditing((value) => !value)} className="button outline small">{editing ? 'Cancel editing' : 'Edit complaint'}</button>}{item.canWithdraw && <button type="button" onClick={deleteComplaint} className="button danger small">Delete complaint</button>}</div></div>
         <div className="surface-body">
           <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}><Info label="Category" value={item.category} /><Info label="Priority" value={item.priority} /><Info label="Department" value={item.departmentName} /><Info label="Ward" value={item.wardName} /></div>
           <p style={{ margin: '18px 0 0', color: '#3d4c61', fontSize: 11, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{item.description}</p>

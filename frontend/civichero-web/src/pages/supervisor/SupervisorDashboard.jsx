@@ -23,6 +23,7 @@ export default function SupervisorDashboard() {
         <Quick to="/supervisor/overdue" icon="!" title="Overdue work" text="Intervene in SLA breaches" />
         <Quick to="/supervisor/disputes" icon="⚖" title="Dispute review" text="Review citizen disputes" />
         <Quick to="/supervisor/analytics" icon="↗" title="Team analytics" text="Measure workload and performance" />
+        <Quick to="/supervisor/initiative-engagement" icon="★" title="Initiative feedback" text="Review follows and citizen feedback" />
       </div>
 
       <div className="stat-grid section-gap">

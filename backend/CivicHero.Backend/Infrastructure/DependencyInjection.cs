@@ -30,6 +30,7 @@ public static class DependencyInjection
     {
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<AwsOptions>(configuration.GetSection(AwsOptions.SectionName));
+        services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<MapboxOptions>(configuration.GetSection(MapboxOptions.SectionName));
         services.Configure<SuperAdminBootstrapOptions>(configuration.GetSection(SuperAdminBootstrapOptions.SectionName));
@@ -86,6 +87,7 @@ public static class DependencyInjection
         services.AddScoped<ISmsSender>(provider => provider.GetRequiredService<CivicHero.Backend.Infrastructure.Notifications.ConfiguredSmsSender>());
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IStaffAccountService, StaffAccountService>();
         services.AddScoped<IComplaintService, ComplaintService>();
         services.AddScoped<IAnonymousComplaintService, AnonymousComplaintService>();
         services.AddScoped<IComplaintCommentService, ComplaintCommentService>();
@@ -138,7 +140,22 @@ public static class DependencyInjection
             var config = new AmazonS3Config { RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region) };
             return options.HasExplicitCredentials ? new AmazonS3Client(new BasicAWSCredentials(options.AccessKey!, options.SecretKey!), config) : new AmazonS3Client(config);
         });
-        services.AddScoped<IStorageService, AmazonS3StorageService>();
+        services.AddScoped<AmazonS3StorageService>();
+        services.AddScoped<LocalFileStorageService>();
+        services.AddScoped<ResilientStorageService>();
+        services.AddScoped<IStorageService>(serviceProvider =>
+        {
+            var provider = serviceProvider.GetRequiredService<IOptions<StorageOptions>>()
+                .Value.Provider?.Trim() ?? "S3";
+
+            return provider.ToLowerInvariant() switch
+            {
+                "local" => serviceProvider.GetRequiredService<LocalFileStorageService>(),
+                "s3withlocalfallback" or "s3-with-local-fallback" or "resilient" =>
+                    serviceProvider.GetRequiredService<ResilientStorageService>(),
+                _ => serviceProvider.GetRequiredService<AmazonS3StorageService>()
+            };
+        });
         services.AddHealthChecks()
             .AddCheck<DatabaseHealthCheck>("database", tags: ["ready", "database"])
             .AddCheck<S3HealthCheck>("storage", tags: ["ready", "storage"])

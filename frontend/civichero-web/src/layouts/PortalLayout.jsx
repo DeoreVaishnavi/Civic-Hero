@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import NotificationBell from '../components/common/NotificationBell.jsx';
+import PortalAccountDrawer from '../components/common/PortalAccountDrawer.jsx';
 import RoleBadge from '../components/common/RoleBadge.jsx';
 import CivicLogo from '../components/ui/CivicLogo.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -29,8 +30,10 @@ export default function PortalLayout({ title, subtitle, navItems, basePath }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const handleLogout = async () => {
+    setAccountOpen(false);
     await logout();
     navigate(ROUTE_PATHS.home, { replace: true });
   };
@@ -91,12 +94,30 @@ export default function PortalLayout({ title, subtitle, navItems, basePath }) {
               <input type="search" placeholder="Search complaints, IDs or users" aria-label="Search" />
             </label>
             <NotificationBell basePath={basePath} />
-            <button type="button" className="topbar-profile" title={user?.fullName}>
+            <button
+              type="button"
+              className={`topbar-profile ${accountOpen ? 'active' : ''}`}
+              title={user?.fullName}
+              aria-haspopup="dialog"
+              aria-expanded={accountOpen}
+              aria-controls="portal-account-drawer"
+              onClick={() => setAccountOpen((current) => !current)}
+            >
               <span className="avatar small">{(user?.fullName || 'C')[0].toUpperCase()}</span>
               <span className="topbar-profile-copy"><strong>{user?.fullName || 'User'}</strong><small>{user?.role || 'Citizen'}</small></span>
+              <span className="topbar-profile-caret" aria-hidden="true">âŒ„</span>
             </button>
           </div>
         </header>
+
+        <PortalAccountDrawer
+          open={accountOpen}
+          onClose={() => setAccountOpen(false)}
+          onLogout={handleLogout}
+          user={user}
+          profilePath={basePath === '/citizen' ? '/citizen/profile' : null}
+        />
+
         <main className="portal-main"><Outlet /></main>
       </div>
     </div>

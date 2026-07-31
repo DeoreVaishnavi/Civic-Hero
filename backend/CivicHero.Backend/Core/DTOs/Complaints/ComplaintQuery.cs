@@ -13,5 +13,6 @@ public sealed class ComplaintQuery
     public long? DepartmentId { get; set; }
     public long? WardId { get; set; }
     public string? Search { get; set; }
+    public string SortBy { get; set; } = "newest";
     public string SortOrder { get; set; } = "desc";
 }

@@ -622,3 +622,45 @@ button:disabled { cursor: not-allowed; }
   .heatmap-area-card .surface-body { grid-template-columns: 1fr; }
   .heatmap-area-card .button { grid-column: auto; }
 }
+
+/* Change 14: interactive leaderboard citizen profiles */
+.leaderboard-podium-button { width: 100%; color: inherit; font: inherit; cursor: pointer; }
+.leaderboard-podium-button:disabled { cursor: default; }
+.leaderboard-podium-button:not(:disabled):hover { border-color: #9bbde8; box-shadow: 0 12px 28px rgba(28, 73, 128, .1); }
+.leaderboard-podium-button:focus-visible { outline: 3px solid rgba(23, 105, 224, .25); outline-offset: 3px; }
+.leaderboard-profile-mini-stats { margin: 16px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.leaderboard-profile-mini-stats span { padding: 10px 6px; border: 1px solid var(--civic-line); border-radius: 11px; background: #f8fafc; }
+.leaderboard-profile-mini-stats strong, .leaderboard-profile-mini-stats small { display: block; }
+.leaderboard-profile-mini-stats strong { color: #243650; font-size: 14px; }
+.leaderboard-profile-mini-stats small { margin-top: 3px; color: var(--civic-muted); font-size: 8px; font-weight: 800; }
+.leaderboard-badge-list { margin: 14px 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.leaderboard-profile-overlay { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 22px; background: rgba(6, 22, 42, .62); backdrop-filter: blur(4px); }
+.leaderboard-profile-dialog { position: relative; width: min(720px, 100%); max-height: calc(100vh - 44px); overflow-y: auto; border: 0; border-radius: 20px; background: white; box-shadow: 0 30px 80px rgba(5, 22, 43, .3); }
+.leaderboard-profile-close { position: absolute; z-index: 2; top: 14px; right: 14px; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--civic-line); border-radius: 50%; background: white; color: #40516a; font-size: 22px; line-height: 1; cursor: pointer; }
+.leaderboard-profile-close:hover { background: #f4f7fb; }
+.leaderboard-profile-loading { min-height: 280px; display: grid; place-items: center; color: var(--civic-muted); font-size: 12px; }
+.leaderboard-profile-content { padding: 34px; }
+.leaderboard-profile-heading { display: flex; align-items: center; gap: 18px; padding-right: 44px; }
+.leaderboard-profile-heading .podium-avatar { margin: 0; flex: 0 0 auto; }
+.leaderboard-profile-heading h2 { margin: 2px 0 5px; color: #22344d; }
+.leaderboard-profile-heading p:last-child { margin: 0; color: var(--civic-muted); font-size: 10px; }
+.leaderboard-profile-stats { margin: 26px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.leaderboard-profile-stats > div { min-height: 86px; padding: 14px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--civic-line); border-radius: 13px; background: #f8fafc; }
+.leaderboard-profile-stats strong { color: var(--civic-blue); font-size: 21px; }
+.leaderboard-profile-stats span { margin-top: 5px; color: var(--civic-muted); font-size: 8px; font-weight: 850; line-height: 1.35; }
+.leaderboard-profile-badges { padding: 18px; border-radius: 14px; background: #fffaf0; }
+.leaderboard-profile-badges h3 { margin: 0; color: #3a4658; font-size: 12px; }
+.leaderboard-profile-badges .leaderboard-badge-list { justify-content: flex-start; margin-bottom: 0; }
+.leaderboard-profile-actions { margin-top: 22px; display: flex; justify-content: flex-end; }
+.leaderboard-profile-privacy { margin: 14px 0 0; color: #7b8798; font-size: 9px; line-height: 1.55; text-align: right; }
+
+@media (max-width: 720px) {
+  .leaderboard-profile-overlay { padding: 10px; align-items: end; }
+  .leaderboard-profile-dialog { width: 100%; max-height: calc(100vh - 20px); border-radius: 20px 20px 12px 12px; }
+  .leaderboard-profile-content { padding: 26px 18px 20px; }
+  .leaderboard-profile-heading { align-items: flex-start; }
+  .leaderboard-profile-heading .podium-avatar { width: 58px; height: 58px; border-width: 5px; }
+  .leaderboard-profile-stats { grid-template-columns: repeat(2, 1fr); }
+  .leaderboard-profile-actions .button { width: 100%; }
+  .leaderboard-profile-privacy { text-align: left; }
+}

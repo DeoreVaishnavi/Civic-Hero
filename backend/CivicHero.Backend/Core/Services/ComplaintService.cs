@@ -1,4 +1,4 @@
-﻿using CivicHero.Backend.Core.DTOs.Common;
+using CivicHero.Backend.Core.DTOs.Common;
 using CivicHero.Backend.Core.DTOs.Complaints;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
@@ -143,11 +143,28 @@ public sealed class ComplaintService : IComplaintService
         return await ToPagedResponseAsync(source, query, cancellationToken);
     }
 
+    public async Task<PagedResponse<ComplaintResponse>> GetPublicAsync(ComplaintQuery query, CancellationToken cancellationToken = default)
+    {
+        var source = _complaints.QueryWithSummary()
+            .Where(item => item.Status != ComplaintStatus.Withdrawn &&
+                           item.Status != ComplaintStatus.ClosedFraud &&
+                           item.Status != ComplaintStatus.Merged);
+        source = ApplyFilters(source, query);
+        return await ToPagedResponseAsync(source, query, cancellationToken);
+    }
+
     public async Task<PagedResponse<ComplaintResponse>> GetMineAsync(ComplaintQuery query, CancellationToken cancellationToken = default)
     {
         EnsureCitizen();
         var userId = RequireUserId();
         var source = _complaints.QueryWithSummary().Where(entity => entity.CitizenId == userId);
+
+        // A Citizen-deleted complaint is retained as Withdrawn for auditability, but it
+        // should disappear from the normal "My complaints" feed. Citizens can still
+        // review it explicitly by selecting the Withdrawn status filter.
+        if (string.IsNullOrWhiteSpace(query.Status))
+            source = source.Where(entity => entity.Status != ComplaintStatus.Withdrawn);
+
         source = ApplyFilters(source, query);
         return await ToPagedResponseAsync(source, query, cancellationToken);
     }
@@ -195,16 +212,18 @@ public sealed class ComplaintService : IComplaintService
         var userId = RequireUserId();
 
         if (complaint.CitizenId != userId)
-            throw new UnauthorizedAccessException("Only the citizen who created this complaint can withdraw it.");
-        if (!CanWithdrawStatus(complaint.Status))
-            throw new BusinessRuleViolationException("This complaint can no longer be withdrawn.");
+            throw new UnauthorizedAccessException("Only the citizen who created this complaint can delete it.");
+        if (!CanDeleteBeforeAssignment(complaint))
+            throw new BusinessRuleViolationException("A complaint can be deleted only before it is assigned to an officer.");
 
+        // Preserve the complaint and timeline for audit/legal traceability instead of
+        // physically removing related evidence, votes and workflow records.
         complaint.Status = ComplaintStatus.Withdrawn;
         complaint.Timeline.Add(new ComplaintTimeline
         {
             UserId = userId,
-            EventType = "WITHDRAWN",
-            Description = "Complaint withdrawn by the citizen.",
+            EventType = "DELETED_BY_CITIZEN",
+            Description = "Complaint deleted by the citizen before officer assignment.",
             Timestamp = DateTimeOffset.UtcNow
         });
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -379,7 +398,10 @@ public sealed class ComplaintService : IComplaintService
             var search = $"%{query.Search.Trim()}%";
             source = source.Where(item => EF.Functions.Like(item.Title, search) ||
                                           EF.Functions.Like(item.Description, search) ||
-                                          EF.Functions.Like(item.Address, search));
+                                          EF.Functions.Like(item.Address, search) ||
+                                          EF.Functions.Like(item.Category, search) ||
+                                          EF.Functions.Like(item.Department.Name, search) ||
+                                          EF.Functions.Like(item.Ward.Name, search));
         }
         return source;
     }
@@ -390,9 +412,14 @@ public sealed class ComplaintService : IComplaintService
         CancellationToken cancellationToken)
     {
         var total = await source.CountAsync(cancellationToken);
-        source = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase)
-            ? source.OrderBy(item => item.CreatedAt)
-            : source.OrderByDescending(item => item.CreatedAt);
+        source = (query.SortBy ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "oldest" => source.OrderBy(item => item.CreatedAt),
+            "most-supported" or "supports" => source.OrderByDescending(item => item.Votes.Count).ThenByDescending(item => item.CreatedAt),
+            "recently-updated" or "updated" => source.OrderByDescending(item => item.UpdatedAt).ThenByDescending(item => item.CreatedAt),
+            _ when string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase) => source.OrderBy(item => item.CreatedAt),
+            _ => source.OrderByDescending(item => item.CreatedAt)
+        };
         var items = await source.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToListAsync(cancellationToken);
         return new PagedResponse<ComplaintResponse>
         {
@@ -457,7 +484,7 @@ public sealed class ComplaintService : IComplaintService
             HasUpvoted = !publicView && userId.HasValue && entity.Votes.Any(vote => vote.UserId == userId.Value),
             IsOwner = !publicView && isOwner,
             CanEdit = !publicView && (canAdminEdit || (isOwner && CanEditStatus(entity.Status))),
-            CanWithdraw = !publicView && isOwner && !entity.IsAnonymous && CanWithdrawStatus(entity.Status),
+            CanWithdraw = !publicView && isOwner && !entity.IsAnonymous && CanDeleteBeforeAssignment(entity),
             IsAnonymous = entity.IsAnonymous,
             PossibleEmergency = entity.PossibleEmergency,
             EmergencyReviewStatus = entity.EmergencyReviewStatus.ToString(),
@@ -528,7 +555,9 @@ public sealed class ComplaintService : IComplaintService
 
     private bool RoleIs(string role) => string.Equals(_currentUser.Role, role, StringComparison.OrdinalIgnoreCase);
     private static bool CanEditStatus(ComplaintStatus status) => status is ComplaintStatus.Created or ComplaintStatus.AiTriage;
-    private static bool CanWithdrawStatus(ComplaintStatus status) => status is ComplaintStatus.Created or ComplaintStatus.AiTriage or ComplaintStatus.Assigned;
+    private static bool CanDeleteBeforeAssignment(Complaint complaint) =>
+        complaint.AssignedOfficerId is null &&
+        complaint.Status is ComplaintStatus.Created or ComplaintStatus.AiTriage or ComplaintStatus.FraudReview;
 
     private static double HaversineKm(decimal latitude1, decimal longitude1, decimal latitude2, decimal longitude2)
     {

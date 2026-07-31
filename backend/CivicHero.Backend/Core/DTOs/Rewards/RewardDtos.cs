@@ -21,6 +21,24 @@ public sealed class LeaderboardEntryResponse
     public bool IsCurrentUser { get; set; }
 }
 
+public sealed class LeaderboardCitizenProfileResponse
+{
+    public long UserId { get; set; }
+    public string CitizenName { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public int Points { get; set; }
+    public int SubmittedComplaints { get; set; }
+    public int ClosedComplaints { get; set; }
+    public int HelpfulVerifications { get; set; }
+    public int SupportedIssues { get; set; }
+    public string Tier { get; set; } = string.Empty;
+    public int FollowerCount { get; set; }
+    public bool IsFollowing { get; set; }
+    public bool IsCurrentUser { get; set; }
+    public DateTimeOffset MemberSince { get; set; }
+    public IReadOnlyList<string> Badges { get; set; } = Array.Empty<string>();
+}
+
 public sealed class BadgeResponse
 {
     public string Code { get; set; } = string.Empty;

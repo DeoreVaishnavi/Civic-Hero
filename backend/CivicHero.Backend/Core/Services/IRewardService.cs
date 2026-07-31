@@ -6,6 +6,9 @@ public interface IRewardService
 {
     Task<PointsBalanceResponse> GetPointsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<LeaderboardEntryResponse>> GetLeaderboardAsync(int limit, CancellationToken cancellationToken = default);
+    Task<LeaderboardCitizenProfileResponse> GetLeaderboardCitizenProfileAsync(long targetUserId, CancellationToken cancellationToken = default);
+    Task<LeaderboardCitizenProfileResponse> FollowCitizenAsync(long targetUserId, CancellationToken cancellationToken = default);
+    Task<LeaderboardCitizenProfileResponse> UnfollowCitizenAsync(long targetUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BadgeResponse>> GetBadgesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RewardCatalogResponse>> GetCatalogAsync(CancellationToken cancellationToken = default);
     Task<RedemptionResponse> RedeemAsync(RedeemRewardRequest request, CancellationToken cancellationToken = default);

@@ -9,9 +9,36 @@ const axiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+function removeContentTypeForFormData(config) {
+  if (!(config.data instanceof FormData)) return;
+
+  // The browser must generate the multipart boundary. A manually supplied
+  // multipart Content-Type can reach ASP.NET without a boundary and leave all
+  // [FromForm] complaint fields empty.
+  if (typeof config.headers?.delete === 'function') {
+    config.headers.delete('Content-Type');
+  } else if (config.headers) {
+    delete config.headers['Content-Type'];
+    delete config.headers['content-type'];
+  }
+}
+
+function normalizeValidationErrors(errors) {
+  if (!errors) return [];
+  if (Array.isArray(errors)) return errors.filter(Boolean).map(String);
+  if (typeof errors === 'string') return [errors];
+  if (typeof errors !== 'object') return [];
+
+  return Object.values(errors)
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .filter(Boolean)
+    .map(String);
+}
+
 axiosInstance.interceptors.request.use((config) => {
   const correlationId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
   config.headers.set('X-Correlation-ID', correlationId);
+  removeContentTypeForFormData(config);
 
   const accessToken = useAuthStore.getState().accessToken;
   if (accessToken) {
@@ -28,6 +55,8 @@ axiosInstance.interceptors.response.use(
     const isAuthRequest = originalRequest?.url?.includes('/auth/login') ||
       originalRequest?.url?.includes('/auth/register') ||
       originalRequest?.url?.includes('/auth/verify-email') ||
+      originalRequest?.url?.includes('/auth/forgot-password') ||
+      originalRequest?.url?.includes('/auth/reset-password') ||
       originalRequest?.url?.includes('/auth/refresh-token') ||
       originalRequest?.url?.includes('/auth/phone/');
 
@@ -42,10 +71,23 @@ axiosInstance.interceptors.response.use(
       }
     }
 
+    const isTimeout = error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '');
+    const isNetworkError = error.code === 'ERR_NETWORK' || (!error.response && !isTimeout);
+    const errors = normalizeValidationErrors(error.response?.data?.errors);
+    const configuredTimeoutMessage = originalRequest?.civicTimeoutMessage;
+
     return Promise.reject({
       status: error.response?.status ?? 0,
-      message: error.response?.data?.message || error.message || 'Unable to communicate with CivicHero.',
-      errors: error.response?.data?.errors ?? [],
+      code: error.code || null,
+      isTimeout,
+      isNetworkError,
+      message: error.response?.data?.message ||
+        (isTimeout
+          ? configuredTimeoutMessage || 'The request took too long. Check your connection and try again.'
+          : isNetworkError
+            ? 'CivicHero could not reach the backend. Confirm that the API is running on port 5180.'
+            : error.message || 'Unable to communicate with CivicHero.'),
+      errors,
       traceId: error.response?.data?.traceId || error.response?.headers?.['x-correlation-id'] || null,
       originalError: error,
     });

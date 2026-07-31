@@ -1,21 +1,99 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 import { civicInitiatives } from '../../data/civicInitiatives.js';
+import { initiativeApi } from '../../services/initiativeApi.js';
+
+const emptyFeedback = { rating: 5, category: 'General', feedback: '' };
 
 export default function ProjectsPage() {
   const [type, setType] = useState('All');
   const [category, setCategory] = useState('All');
   const [selectedId, setSelectedId] = useState(civicInitiatives[0].id);
-  const [following, setFollowing] = useState([]);
+  const [engagement, setEngagement] = useState({ followerCount: 0, feedbackCount: 0, averageRating: 0, isFollowing: false });
+  const [loadingEngagement, setLoadingEngagement] = useState(false);
+  const [busyAction, setBusyAction] = useState('');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState(emptyFeedback);
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const filtered = useMemo(() => civicInitiatives.filter((item) => (type === 'All' || item.type === type) && (category === 'All' || item.category === category)), [type, category]);
   const selected = civicInitiatives.find((item) => item.id === selectedId) || filtered[0] || civicInitiatives[0];
   const categories = ['All', ...new Set(civicInitiatives.map((item) => item.category))];
 
-  const follow = () => {
-    setFollowing((current) => current.includes(selected.id) ? current.filter((id) => id !== selected.id) : [...current, selected.id]);
-    setMessage(following.includes(selected.id) ? 'Project removed from your followed list.' : 'You are now following this initiative.');
-    window.setTimeout(() => setMessage(''), 3200);
+  useEffect(() => {
+    let active = true;
+    setLoadingEngagement(true);
+    setError('');
+    initiativeApi.engagement(selected.id)
+      .then((result) => { if (active) setEngagement(result); })
+      .catch((reason) => { if (active) setError(reason.message || 'Unable to load initiative engagement.'); })
+      .finally(() => { if (active) setLoadingEngagement(false); });
+    return () => { active = false; };
+  }, [selected.id, isAuthenticated]);
+
+  const showMessage = (text) => {
+    setMessage(text);
+    window.setTimeout(() => setMessage(''), 3500);
+  };
+
+  const requireCitizen = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `${location.pathname}${location.search}` } });
+      return false;
+    }
+    if ((user?.role || '').toLowerCase() !== 'citizen') {
+      setError('Only Citizen accounts can follow initiatives or submit feedback.');
+      return false;
+    }
+    return true;
+  };
+
+  const follow = async () => {
+    if (!requireCitizen()) return;
+    try {
+      setBusyAction('follow');
+      setError('');
+      const result = await initiativeApi.toggleFollow(selected.id);
+      setEngagement(result);
+      showMessage(result.isFollowing ? 'You are now following this initiative. Supervisors can see this activity.' : 'Initiative removed from your followed list.');
+    } catch (reason) {
+      setError(reason.message || 'Unable to update initiative follow status.');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const openFeedback = () => {
+    if (!requireCitizen()) return;
+    setFeedbackForm(emptyFeedback);
+    setShowFeedback(true);
+  };
+
+  const submitFeedback = async (event) => {
+    event.preventDefault();
+    const trimmed = feedbackForm.feedback.trim();
+    if (trimmed.length < 10) {
+      setError('Please enter at least 10 characters in your feedback.');
+      return;
+    }
+    try {
+      setBusyAction('feedback');
+      setError('');
+      const result = await initiativeApi.submitFeedback(selected.id, { ...feedbackForm, feedback: trimmed });
+      setEngagement(result.engagement);
+      setShowFeedback(false);
+      setFeedbackForm(emptyFeedback);
+      showMessage('Thank you. Your feedback was recorded and sent to the supervisor team.');
+    } catch (reason) {
+      setError(reason.message || 'Unable to submit feedback.');
+    } finally {
+      setBusyAction('');
+    }
   };
 
   return (
@@ -39,6 +117,7 @@ export default function ProjectsPage() {
         </section>
 
         {message && <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">✓ {message}</div>}
+        {error && <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800">{error}</div>}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[.72fr_1.28fr]">
           <section className="space-y-4">
@@ -57,6 +136,12 @@ export default function ProjectsPage() {
             </div>
 
             <div className="p-6 sm:p-9">
+              <div className="mb-7 grid gap-3 sm:grid-cols-3">
+                <EngagementStat label="Followers" value={loadingEngagement ? '…' : engagement.followerCount} />
+                <EngagementStat label="Feedback received" value={loadingEngagement ? '…' : engagement.feedbackCount} />
+                <EngagementStat label="Citizen rating" value={loadingEngagement ? '…' : (engagement.feedbackCount ? `${engagement.averageRating}/5` : 'No rating yet')} />
+              </div>
+
               <div className="grid gap-8 xl:grid-cols-[1fr_.8fr]">
                 <div>
                   <h3 className="text-xl font-black text-slate-950">Live progress and milestones</h3>
@@ -71,11 +156,27 @@ export default function ProjectsPage() {
                 </aside>
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-200 pt-6"><button type="button" onClick={follow} className={`rounded-xl px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 ${following.includes(selected.id) ? 'bg-emerald-600 shadow-emerald-600/20' : 'bg-blue-600 shadow-blue-600/20'}`}>{following.includes(selected.id) ? '✓ Following initiative' : '＋ Follow initiative'}</button><button type="button" onClick={() => { setMessage('Thank you. Your feedback has been recorded for project review.'); window.setTimeout(() => setMessage(''), 3200); }} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">Give feedback</button></div>
+              <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-200 pt-6">
+                <button type="button" onClick={follow} disabled={busyAction === 'follow'} className={`rounded-xl px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60 ${engagement.isFollowing ? 'bg-emerald-600 shadow-emerald-600/20' : 'bg-blue-600 shadow-blue-600/20'}`}>{busyAction === 'follow' ? 'Saving…' : engagement.isFollowing ? '✓ Following initiative' : '＋ Follow initiative'}</button>
+                <button type="button" onClick={openFeedback} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">Give feedback</button>
+                <span className="self-center text-xs font-semibold text-slate-500">Follow activity and feedback are visible to the supervisor team.</span>
+              </div>
             </div>
           </section>
         </div>
       </div>
+
+      {showFeedback && <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="initiative-feedback-title">
+        <form onSubmit={submitFeedback} className="w-full max-w-xl rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8">
+          <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-blue-600">Citizen feedback</p><h2 id="initiative-feedback-title" className="mt-2 text-2xl font-black text-slate-950">{selected.shortTitle}</h2><p className="mt-2 text-sm text-slate-500">Your response will be recorded and sent to supervisors for review.</p></div><button type="button" onClick={() => setShowFeedback(false)} className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-xl font-black text-slate-600" aria-label="Close feedback form">×</button></div>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <label><span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Rating</span><select value={feedbackForm.rating} onChange={(event) => setFeedbackForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"><option value={5}>5 — Excellent</option><option value={4}>4 — Good</option><option value={3}>3 — Average</option><option value={2}>2 — Needs improvement</option><option value={1}>1 — Poor</option></select></label>
+            <label><span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Feedback type</span><select value={feedbackForm.category} onChange={(event) => setFeedbackForm((current) => ({ ...current, category: event.target.value }))} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"><option>General</option><option>Progress</option><option>Quality</option><option>Transparency</option><option>Safety</option><option>Suggestion</option></select></label>
+          </div>
+          <label className="mt-5 block"><span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Your feedback</span><textarea required minLength={10} maxLength={1500} rows={6} value={feedbackForm.feedback} onChange={(event) => setFeedbackForm((current) => ({ ...current, feedback: event.target.value }))} placeholder="Describe what is working, what should improve, or what the supervisor should review." className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100" /><span className="mt-2 block text-right text-xs text-slate-400">{feedbackForm.feedback.length}/1500</span></label>
+          <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setShowFeedback(false)} className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700">Cancel</button><button type="submit" disabled={busyAction === 'feedback'} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 disabled:cursor-wait disabled:opacity-60">{busyAction === 'feedback' ? 'Sending…' : 'Send to supervisor'}</button></div>
+        </form>
+      </div>}
     </main>
   );
 }
@@ -83,5 +184,6 @@ export default function ProjectsPage() {
 function Filter({ label, value, onChange, options }) { return <label><span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">{options.map((option) => <option key={option}>{option}</option>)}</select></label>; }
 function HeroStat({ value, label }) { return <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur"><strong className="block text-xl font-black">{value}</strong><span className="mt-1 block text-xs text-blue-100">{label}</span></div>; }
 function MiniStat({ label, value }) { return <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur"><span className="text-[10px] font-black uppercase tracking-wider text-white/60">{label}</span><strong className="mt-2 block text-sm sm:text-base">{value}</strong></div>; }
+function EngagementStat({ label, value }) { return <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4"><span className="text-[10px] font-black uppercase tracking-[.14em] text-blue-600">{label}</span><strong className="mt-2 block text-xl font-black text-slate-950">{value}</strong></div>; }
 function ProgressVisual({ label, index, selected }) { return <div className={`relative h-36 overflow-hidden rounded-2xl bg-gradient-to-br ${selected.visual.gradient}`}><div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.07)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.07)_1px,transparent_1px)] bg-[length:24px_24px]" /><div className="absolute bottom-5 left-4 right-4 h-2 rounded-full bg-white/15"><span className="block h-full rounded-full bg-white/80" style={{ width: `${Math.min(100, selected.progress + (index - 1) * 22)}%` }} /></div><span className="absolute left-4 top-4 rounded-full bg-black/25 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">{label}</span><span className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl">{selected.visual.icon}</span></div>; }
 function InfoCard({ title, rows }) { return <div className="rounded-2xl border border-slate-200 p-5"><h3 className="font-black text-slate-900">{title}</h3><div className="mt-4 space-y-4">{rows.map(([value, label]) => <div key={`${value}-${label}`} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0"><strong className="block text-sm text-slate-800">{value}</strong><span className="mt-1 block text-xs text-slate-500">{label}</span></div>)}</div></div>; }

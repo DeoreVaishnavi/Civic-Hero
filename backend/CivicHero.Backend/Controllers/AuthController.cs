@@ -90,6 +90,40 @@ public sealed class AuthController : ControllerBase
     }
 
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.RequestPasswordResetAsync(
+            request,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+
+        return Ok(new
+        {
+            success = true,
+            message = "If the account has a verified phone number, a reset code has been sent.",
+            data = result
+        });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _authService.ResetPasswordAsync(request, cancellationToken);
+        return Ok(new
+        {
+            success = true,
+            message = "Password reset successfully. Sign in using your new password."
+        });
+    }
+
+
     [HttpPost("phone/request-login-otp")]
     [AllowAnonymous]
     public async Task<IActionResult> RequestPhoneLoginOtp([FromBody] RequestPhoneLoginOtpRequest request, CancellationToken cancellationToken)

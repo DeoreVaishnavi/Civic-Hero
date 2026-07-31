@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import GovernmentShowcase from '../../components/public/GovernmentShowcase.jsx';
 import PublicHeatmapPreview from '../../components/public/PublicHeatmapPreview.jsx';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 import { ROUTE_PATHS } from '../../routes/routePaths.js';
-import { getApiHealth, getCorrelationHeaderCheck, getDependencyHealth } from '../../services/healthApi.js';
-import { mapApiError } from '../../utils/errorMapper.js';
+import { complaintApi } from '../../services/complaintApi.js';
 
 const features = [
   { icon: '◎', title: 'Evidence-based reporting', text: 'Submit GPS-tagged complaints with clear images, ward, category and a useful description.', tone: 'from-blue-600 to-cyan-500' },
@@ -21,47 +21,60 @@ const steps = [
   ['05', 'Verify', 'The citizen accepts the work or raises a dispute for review.'],
 ];
 
-const trendingIssues = [
+const fallbackTrendingIssues = [
   { title: 'Garbage near Park Lane', ward: 'Ward 3', status: 'In progress', supports: 120, icon: '♻️' },
   { title: 'Pothole on Market Road', ward: 'Ward 5', status: 'Assigned', supports: 86, icon: '🛣️' },
   { title: 'Streetlight outage', ward: 'Ward 1', status: 'Resolved', supports: 54, icon: '💡' },
 ];
 
 export default function HomePage() {
-  const [status, setStatus] = useState('checking');
-  const [health, setHealth] = useState(null);
-  const [correlationCheck, setCorrelationCheck] = useState(null);
-  const [dependencies, setDependencies] = useState([]);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+  const [trendingIssues, setTrendingIssues] = useState(fallbackTrendingIssues);
+  const [supportingId, setSupportingId] = useState(null);
+  const [supportMessage, setSupportMessage] = useState('');
+  const isCitizen = String(user?.role || '').toLowerCase() === 'citizen';
 
-  const checkHealth = useCallback(async () => {
-    setStatus('checking');
-    setError(null);
-    try {
-      const [healthResponse, headerResponse, dependencyResponse] = await Promise.all([
-        getApiHealth(),
-        getCorrelationHeaderCheck(),
-        getDependencyHealth(),
-      ]);
-      setHealth(healthResponse.data);
-      setCorrelationCheck(headerResponse.data);
-      setDependencies(dependencyResponse.data?.checks ?? []);
-      setStatus('connected');
-    } catch (requestError) {
-      setHealth(null);
-      setCorrelationCheck(null);
-      setDependencies([]);
-      setError(mapApiError(requestError));
-      setStatus('unavailable');
-    }
+  useEffect(() => {
+    let active = true;
+    complaintApi.publicFeed({ page: 1, pageSize: 3, sortBy: 'most-supported' })
+      .then((data) => {
+        if (active && data?.items?.length) setTrendingIssues(data.items);
+      })
+      .catch(() => { /* Keep the visual fallback when the API is unavailable. */ });
+    return () => { active = false; };
   }, []);
 
-  useEffect(() => { checkHealth(); }, [checkHealth]);
+  const toggleSupport = async (item) => {
+    if (!item.id) {
+      navigate(ROUTE_PATHS.publicIssues);
+      return;
+    }
+    if (!isAuthenticated) {
+      navigate(ROUTE_PATHS.login, { state: { from: ROUTE_PATHS.publicIssues } });
+      return;
+    }
+    if (!isCitizen) {
+      setSupportMessage('Only Citizen accounts can support complaints.');
+      return;
+    }
 
-  const dependencyMap = useMemo(
-    () => Object.fromEntries(dependencies.map((item) => [item.name, item])),
-    [dependencies],
-  );
+    setSupportingId(item.id);
+    setSupportMessage('');
+    try {
+      const response = item.hasUpvoted
+        ? await complaintApi.removeUpvote(item.id)
+        : await complaintApi.upvote(item.id);
+      setTrendingIssues((current) => current.map((row) => row.id === item.id
+        ? { ...row, hasUpvoted: !row.hasUpvoted, upvoteCount: response?.upvoteCount ?? Math.max(0, (row.upvoteCount || 0) + (row.hasUpvoted ? -1 : 1)) }
+        : row));
+      setSupportMessage(item.hasUpvoted ? 'Support removed.' : 'Thank you. Your support was recorded.');
+    } catch (reason) {
+      setSupportMessage(reason.message || 'Unable to update support.');
+    } finally {
+      setSupportingId(null);
+    }
+  };
 
   return (
     <>
@@ -78,10 +91,8 @@ export default function HomePage() {
             <div className="mt-9 flex flex-wrap gap-3">
               <Link to={ROUTE_PATHS.anonymousReport} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 text-sm font-black text-blue-800 shadow-2xl shadow-black/20 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50">＋ Report complaint</Link>
               <Link to={ROUTE_PATHS.anonymousTrack} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-black text-white backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/15">⌕ Track an issue</Link>
-              <button type="button" onClick={checkHealth} disabled={status === 'checking'} className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-white/10 px-5 py-4 text-sm font-black text-blue-100 transition hover:bg-white/10 disabled:opacity-50">{status === 'checking' ? 'Checking system…' : 'Check system status'}</button>
             </div>
             <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold text-blue-100/75">{['GPS and photo evidence', 'Live status updates', 'Citizen verification', 'Rewards and leaderboard'].map((item) => <span key={item} className="inline-flex items-center gap-2"><i className="grid h-5 w-5 place-items-center rounded-full bg-emerald-400/15 text-[10px] text-emerald-200">✓</i>{item}</span>)}</div>
-            <SystemBanner status={status} health={health} correlationCheck={correlationCheck} error={error} />
           </div>
 
           <HeroPortalPreview />
@@ -117,15 +128,11 @@ export default function HomePage() {
       </section>
 
       <section className="bg-white py-20">
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.15fr_.85fr] lg:px-8">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
-            <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-blue-600">Trending complaints</p><h2 className="mt-2 text-2xl font-black text-slate-950">Issues receiving community attention</h2></div><Link to={ROUTE_PATHS.anonymousTrack} className="text-sm font-black text-blue-700">View issues →</Link></div>
-            <div className="mt-6 space-y-3">{trendingIssues.map((item) => <article key={item.title} className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/40"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-slate-100 text-2xl">{item.icon}</div><div className="min-w-0 flex-1"><h3 className="truncate font-black text-slate-900">{item.title}</h3><p className="mt-1 text-xs text-slate-500">{item.ward} · {item.status}</p></div><div className="text-right"><strong className="block text-lg text-slate-900">{item.supports}</strong><span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Supports</span></div></article>)}</div>
-          </section>
-
-          <section className="rounded-[2rem] bg-gradient-to-br from-blue-700 to-cyan-600 p-7 text-white shadow-2xl shadow-blue-900/20 sm:p-8">
-            <p className="text-xs font-black uppercase tracking-[.2em] text-cyan-100">System readiness</p><h2 className="mt-3 text-2xl font-black">Connected civic infrastructure</h2><p className="mt-3 text-sm leading-6 text-blue-100">CivicHero continuously checks the frontend, API, database and secure evidence storage.</p>
-            <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><Dependency label="Frontend" value="React 19 + Tailwind" status="Healthy" /><Dependency label="Backend" value={health?.service || 'ASP.NET Core 8'} status={status === 'connected' ? 'Healthy' : 'Checking'} /><Dependency label="Database" value="AWS RDS MySQL 8" status={dependencyMap.database?.status || 'Checking'} /><Dependency label="Storage" value="Amazon S3" status={dependencyMap.storage?.status || 'Checking'} /></div>
+            <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-blue-600">Trending complaints</p><h2 className="mt-2 text-2xl font-black text-slate-950">Issues receiving community attention</h2></div><Link to={ROUTE_PATHS.publicIssues} className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100">View issues →</Link></div>
+            {supportMessage && <p className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800">{supportMessage}</p>}
+            <div className="mt-6 grid gap-3 lg:grid-cols-3">{trendingIssues.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50/40 hover:shadow-lg"><div className="flex items-center gap-4"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-slate-100 text-2xl">{item.icon || (item.category === 'Garbage' ? '♻️' : item.category === 'Streetlight' ? '💡' : '📍')}</div><div className="min-w-0 flex-1"><h3 className="truncate font-black text-slate-900">{item.title}</h3><p className="mt-1 text-xs text-slate-500">{item.wardName || item.ward} · {String(item.status || '').replace(/([a-z])([A-Z])/g, '$1 $2')}</p></div><div className="text-right"><strong className="block text-lg text-slate-900">{item.upvoteCount ?? item.supports ?? 0}</strong><span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Supports</span></div></div><button type="button" onClick={() => toggleSupport(item)} disabled={supportingId === item.id} className={`mt-4 w-full rounded-xl px-4 py-2.5 text-xs font-black transition disabled:opacity-60 ${item.hasUpvoted ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>{supportingId === item.id ? 'Updating…' : item.hasUpvoted ? '✓ Supported' : '♥ Support issue'}</button></article>)}</div>
           </section>
         </div>
       </section>
@@ -150,9 +157,3 @@ function HeroPortalPreview() {
 
 function PreviewStat({ label, value, tone }) { return <div className="rounded-xl border border-slate-200 bg-white p-3"><span className={`inline-flex rounded-lg px-2 py-1 text-[9px] font-black ${tone}`}>{label}</span><strong className="mt-3 block text-xl">{value}</strong></div>; }
 function Impact({ value, label, icon }) { return <div className="flex items-center gap-4 border-b border-slate-200 p-6 last:border-0 sm:border-b-0 sm:border-r"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-xl font-black text-blue-700">{icon}</div><div><strong className="block text-2xl font-black text-slate-950">{value}</strong><span className="mt-1 block text-xs font-bold text-slate-500">{label}</span></div></div>; }
-function Dependency({ label, value, status }) { const healthy = String(status).toLowerCase() === 'healthy'; return <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur"><span className="text-[10px] font-black uppercase tracking-wider text-blue-100">{label}</span><strong className="mt-2 block text-sm text-white">{value}</strong><span className={`mt-2 block text-xs font-black ${healthy ? 'text-emerald-200' : 'text-amber-200'}`}>{healthy ? '● Healthy' : `● ${status}`}</span></div>; }
-function SystemBanner({ status, health, correlationCheck, error }) {
-  if (status === 'checking') return <div className="mt-7 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm font-bold text-amber-100">Checking CivicHero API and cloud dependencies…</div>;
-  if (status === 'connected') return <div className="mt-7 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100"><strong>System connected.</strong> API {health?.version || '1.0.0'} · Correlation ID {correlationCheck?.correlationId || health?.correlationId || 'available'}</div>;
-  return <div className="mt-7 rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4 text-sm text-rose-100"><strong>{error?.title || 'API unavailable'}.</strong> Start the backend at http://localhost:5180 and try again.</div>;
-}

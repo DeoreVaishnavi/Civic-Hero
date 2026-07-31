@@ -47,6 +47,11 @@ public sealed class ComplaintsController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] ComplaintQuery query, CancellationToken cancellationToken) =>
         OkEnvelope("Complaints loaded.", await _complaintService.GetAsync(query, cancellationToken));
 
+    [HttpGet("public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PublicFeed([FromQuery] ComplaintQuery query, CancellationToken cancellationToken) =>
+        OkEnvelope("Public complaint feed loaded.", await _complaintService.GetPublicAsync(query, cancellationToken));
+
     [HttpGet("mine")]
     [Authorize(Policy = PermissionConstants.CitizenOnly)]
     public async Task<IActionResult> Mine([FromQuery] ComplaintQuery query, CancellationToken cancellationToken) =>
@@ -79,8 +84,8 @@ public sealed class ComplaintsController : ControllerBase
 
     [HttpDelete("{id:long}")]
     [Authorize(Policy = PermissionConstants.CitizenOnly)]
-    public async Task<IActionResult> Withdraw(long id, CancellationToken cancellationToken) =>
-        OkEnvelope("Complaint withdrawn.", await _complaintService.WithdrawAsync(id, cancellationToken));
+    public async Task<IActionResult> DeleteBeforeAssignment(long id, CancellationToken cancellationToken) =>
+        OkEnvelope("Complaint deleted before assignment.", await _complaintService.WithdrawAsync(id, cancellationToken));
 
     [HttpPost("{id:long}/upvote")]
     [Authorize(Policy = PermissionConstants.CitizenOnly)]

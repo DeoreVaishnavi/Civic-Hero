@@ -76,15 +76,20 @@ export default function UserManagement() {
         <table className="min-w-full divide-y divide-white/10 text-sm">
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wider text-slate-400"><tr><th className="p-4">User</th><th className="p-4">Role</th><th className="p-4">Scope</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
           <tbody className="divide-y divide-white/10 bg-slate-950/40">
-            {loading ? <tr><td colSpan="5" className="p-8 text-center text-slate-400">Loading users…</td></tr> : users.map((person) => (
+            {loading ? <tr><td colSpan="5" className="p-8 text-center text-slate-400">Loading users…</td></tr> : users.map((person) => {
+              const requiresSuperAdminApproval = currentUser?.role === 'Admin'
+                && !person.isActive
+                && ['Officer', 'Supervisor'].includes(person.role);
+              return (
               <tr key={person.id} className="align-top">
                 <td className="p-4"><p className="font-bold text-white">{person.fullName}</p><p className="mt-1 text-slate-400">{person.email}</p><p className="mt-1 text-xs text-slate-600">ID {person.id}</p></td>
                 <td className="p-4"><RoleBadge role={person.role} /></td>
                 <td className="p-4 text-slate-300"><p>{person.departmentName || 'No department'}</p><p className="mt-1 text-xs text-slate-500">{person.wardName || 'No ward'}</p></td>
                 <td className="p-4"><span className={person.isActive ? 'text-emerald-300' : 'text-rose-300'}>{person.isActive ? 'Active' : 'Inactive'}</span><p className="mt-1 text-xs text-slate-500">{person.isEmailVerified ? 'Email verified' : 'Email pending'}</p></td>
-                <td className="p-4"><div className="flex min-w-56 flex-wrap gap-2"><button disabled={working} onClick={() => beginEdit(person)} className="rounded-lg border border-sky-400/30 px-3 py-2 text-sky-200">Edit access</button><button disabled={working || person.id === currentUser?.id} onClick={() => setActive(person)} className="rounded-lg border border-white/15 px-3 py-2 text-slate-200 disabled:opacity-40">{person.isActive ? 'Deactivate' : 'Activate'}</button><button disabled={working} onClick={() => forceLogout(person)} className="rounded-lg border border-amber-400/30 px-3 py-2 text-amber-200">Force logout</button></div></td>
+                <td className="p-4"><div className="flex min-w-56 flex-wrap gap-2"><button disabled={working} onClick={() => beginEdit(person)} className="rounded-lg border border-sky-400/30 px-3 py-2 text-sky-200">Edit access</button><button title={requiresSuperAdminApproval ? 'Open Staff accounts. Only SuperAdmin can approve this account.' : undefined} disabled={working || person.id === currentUser?.id || requiresSuperAdminApproval} onClick={() => setActive(person)} className="rounded-lg border border-white/15 px-3 py-2 text-slate-200 disabled:opacity-40">{requiresSuperAdminApproval ? 'Approval required' : person.isActive ? 'Deactivate' : 'Activate'}</button><button disabled={working} onClick={() => forceLogout(person)} className="rounded-lg border border-amber-400/30 px-3 py-2 text-amber-200">Force logout</button></div></td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

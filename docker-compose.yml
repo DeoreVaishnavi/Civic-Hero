@@ -1,0 +1,88 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: civichero-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      Deployment__AllowHttp: "true"
+      ChatbotService__BaseUrl: http://chatbot-service:8001
+      ChatbotService__TimeoutSeconds: "30"
+      VisionService__BaseUrl: http://vision-service:8002
+      VisionService__TimeoutSeconds: "15"
+      InternalServices__ApiKey: ${INTERNAL_SERVICE_KEY}
+      VisualVerification__Provider: Python
+    volumes:
+      - ./backend/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      chatbot-service:
+        condition: service_healthy
+      vision-service:
+        condition: service_healthy
+    networks:
+      - civichero-network
+
+  chatbot-service:
+    build:
+      context: .
+      dockerfile: ai_chatbot/Dockerfile
+    container_name: civichero-chatbot
+    restart: unless-stopped
+    env_file:
+      - ./ai_chatbot/.env
+    environment:
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      GROQ_MODEL: ${GROQ_CHAT_MODEL:-llama-3.3-70b-versatile}
+      NVIDIA_CHAT_MODEL: ${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}
+      NVIDIA_EMBEDDING_MODEL: ${NVIDIA_EMBED_MODEL:-nvidia/nv-embedqa-e5-v5}
+      KNOWLEDGE_BASE_PATH: /srv/knowledge
+      EMBEDDINGS_OUTPUT_PATH: /srv/generated/embeddings.json
+    volumes:
+      - ./knowledge:/srv/knowledge:ro
+      - chatbot-index:/srv/generated
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - civichero-network
+
+  vision-service:
+    build:
+      context: ./vision-service
+      dockerfile: Dockerfile
+    container_name: civichero-vision
+    restart: unless-stopped
+    environment:
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
+      MODEL_PATH: /app/models/civichero-vision-model
+      DEVICE: ${VISION_DEVICE:-cpu}
+      PORT: "8002"
+    volumes:
+      - ./vision-service/models:/app/models:ro
+    expose:
+      - "8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    networks:
+      - civichero-network
+
+networks:
+  civichero-network:
+    driver: bridge
+
+volumes:
+  chatbot-index:

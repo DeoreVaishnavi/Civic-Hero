@@ -14,7 +14,7 @@ class ChatResponse(BaseModel):
     confidence_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Confidence score of the response")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "message": "To report a pothole on Main Street, please contact the Public Works Department's Street Maintenance Division at (555) 123-4567 or use the online portal at city.gov/pothole-report. You can also submit a request through the city's mobile app.",
                 "conversation_id": "conv_123",

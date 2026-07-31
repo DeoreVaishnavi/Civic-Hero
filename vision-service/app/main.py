@@ -3,9 +3,11 @@ Main FastAPI application for the AI vision microservice.
 Provides endpoint for comparing complaint and resolution images to verify if issues are resolved.
 """
 import logging
+import hmac
+import os
 from typing import List
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Header, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,6 +17,7 @@ from app.schemas.response_models import VisionComparisonResult, VerificationDeci
 from app.services.scene_comparison import scene_comparison_service
 from app.services.issue_detection import issue_detection_service
 from app.services.change_detection import change_detection_service
+from app.services.category_classifier import classify_image
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +39,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def verify_internal_service_key(x_internal_service_key: str = Header(None)):
+    configured_key = os.getenv("INTERNAL_SERVICE_KEY", "").strip()
+    if not configured_key:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Internal service authentication is not configured")
+    if not x_internal_service_key or not hmac.compare_digest(x_internal_service_key.strip(), configured_key):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid X-Internal-Service-Key")
+
+
+@app.post("/api/v1/vision/verify")
+async def verify_complaint_image(
+    file: UploadFile = File(...),
+    expectedCategory: str = Form(...),
+    _: str = Depends(verify_internal_service_key),
+):
+    image_bytes = await file.read()
+    if not image_bytes or len(image_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Image is empty or exceeds the configured size limit")
+
+    predicted_category, confidence, warnings = classify_image(image_bytes)
+    matches = predicted_category.casefold() == expectedCategory.strip().casefold()
+    verification_status = "LikelyValid" if matches and confidence >= CONFIDENCE_THRESHOLD else "NeedsReview"
+    return {
+        "predictedCategory": predicted_category,
+        "confidence": confidence,
+        "matchesExpectedCategory": matches,
+        "verificationStatus": verification_status,
+        "warnings": warnings,
+        "modelVersion": "civichero-vision-v1",
+    }
+
 @app.post("/api/v1/vision/compare-resolution", response_model=VisionComparisonResult)
 async def compare_resolution(
     complaint_image: bytes = File(...),
@@ -44,7 +77,8 @@ async def compare_resolution(
     complaint_description: str = Form(None),
     complaint_latitude: float = Form(None),
     complaint_longitude: float = Form(None),
-    incident_time: str = Form(None)  # ISO format string
+    incident_time: str = Form(None),  # ISO format string
+    _: str = Depends(verify_internal_service_key)
 ):
     """
     Compare a complaint image with a resolution image to determine if the reported issue has been resolved.

@@ -5,6 +5,8 @@ from ai_chatbot.app.agents.provider_failover import ProviderFailoverAgent
 from ai_chatbot.app.rag.knowledge_search import KnowledgeSearch
 from ai_chatbot.app.safety.prompt_guard import PromptGuard
 import logging
+import hmac
+import os
 import uuid
 from datetime import datetime
 
@@ -24,17 +26,21 @@ router = APIRouter(
 # Dependency to verify internal service key
 async def verify_internal_service_key(x_internal_service_key: str = Header(None)):
     """Verify the internal service key for microservice communication"""
-    # In a production environment, this would be validated against a secure store
-    # For now, we'll check if it's present (in real implementation, compare with secret)
+    configured_key = os.getenv("INTERNAL_SERVICE_KEY", "").strip()
+    if not configured_key:
+        logger.error("INTERNAL_SERVICE_KEY is not configured")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Internal service authentication is not configured"
+        )
+
     if not x_internal_service_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing X-Internal-Service-Key header"
         )
 
-    # In production, compare with actual secret key from environment/config
-    # For development, we'll allow any non-empty value
-    if len(x_internal_service_key.strip()) == 0:
+    if not hmac.compare_digest(x_internal_service_key.strip(), configured_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid X-Internal-Service-Key"

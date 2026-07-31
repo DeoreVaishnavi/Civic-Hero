@@ -33,6 +33,8 @@
 **/appsettings.Development.json
 **/appsettings.Local.json
 **/appsettings.*.local.json
+vision-service/models/*
+!vision-service/models/.gitkeep
 *accessKeys*.csv
 *credentials*.csv
 *.pem

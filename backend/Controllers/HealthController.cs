@@ -6,6 +6,7 @@ namespace CivicHero.Backend.Controllers;
 
 [ApiController]
 [Route("api/v1/health")]
+[Route("api/health")]
 public sealed class HealthController : ControllerBase
 {
     private readonly IHostEnvironment _environment;

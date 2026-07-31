@@ -99,10 +99,10 @@ public static class DependencyInjection
         services.AddScoped<IChatbotService, CivicHero.Backend.Core.Services.ChatbotService>();
         services.AddHttpClient<IPythonChatbotClient, PythonChatbotClient>((provider, client) =>
         {
-            var baseUrl = configuration["PythonChatbot:BaseUrl"] ?? "http://localhost:8001/";
+            var baseUrl = configuration["ChatbotService:BaseUrl"] ?? configuration["PythonChatbot:BaseUrl"] ?? "http://localhost:8001/";
             client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/");
-            client.Timeout = TimeSpan.FromSeconds(configuration.GetValue("PythonChatbot:TimeoutSeconds", 30));
-            var serviceKey = configuration["PythonChatbot:InternalServiceKey"];
+            client.Timeout = TimeSpan.FromSeconds(configuration.GetValue("ChatbotService:TimeoutSeconds", configuration.GetValue("PythonChatbot:TimeoutSeconds", 30)));
+            var serviceKey = configuration["InternalServices:ApiKey"] ?? configuration["ChatbotService:InternalServiceKey"] ?? configuration["PythonChatbot:InternalServiceKey"];
             if (!string.IsNullOrWhiteSpace(serviceKey)) client.DefaultRequestHeaders.Add("X-Internal-Service-Key", serviceKey);
         });
         services.AddScoped<IAdministrationService, AdministrationService>();
@@ -118,6 +118,8 @@ public static class DependencyInjection
             var baseUrl = configuration["VisionService:BaseUrl"] ?? "http://localhost:8002/";
             client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/");
             client.Timeout = TimeSpan.FromSeconds(configuration.GetValue("VisionService:TimeoutSeconds", 60));
+            var serviceKey = configuration["InternalServices:ApiKey"] ?? configuration["VisionService:InternalServiceKey"];
+            if (!string.IsNullOrWhiteSpace(serviceKey)) client.DefaultRequestHeaders.Add("X-Internal-Service-Key", serviceKey);
         });
         services.AddScoped<RuleBasedVisualVerificationProvider>();
         services.AddScoped<IVisualVerificationService, VisualVerificationService>();

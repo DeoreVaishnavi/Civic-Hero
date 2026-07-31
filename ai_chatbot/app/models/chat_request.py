@@ -9,7 +9,7 @@ class ChatRequest(BaseModel):
     include_context: bool = Field(True, description="Whether to include contextual information")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "message": "How do I report a pothole on Main Street?",
                 "conversation_id": "conv_123",

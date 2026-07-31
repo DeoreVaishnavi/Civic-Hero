@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.git/
+*.user
+appsettings.Development.json
+appsettings.Local.json
+.env
+.env.*
+*.log
+CivicHero.Backend.Tests/

@@ -7,7 +7,7 @@
 3. Run `configure-phase15-deployment.ps1 -Environment Local`.
 4. Run `scripts/deployment/preflight.ps1 -Environment Local`.
 5. Run `scripts/deployment/start-production-like.ps1`.
-6. Open `http://localhost:8088`.
+6. Open `http://localhost:5173`.
 
 The browser reaches Nginx only. Nginx serves the React container and proxies `/api`,
 `/health` and `/hubs` to the internal ASP.NET Core container.

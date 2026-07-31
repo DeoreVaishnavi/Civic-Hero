@@ -69,6 +69,31 @@ if ($LASTEXITCODE -ne 0) {
 
 $config = Get-Content -LiteralPath $ConfigFile -Raw | ConvertFrom-Json
 
+$envValues = @{}
+Get-Content -LiteralPath $EnvFile |
+    Where-Object { $_ -match '^[^#=]+=' } |
+    ForEach-Object {
+        $pair = $_ -split '=', 2
+        $envValues[$pair[0].Trim()] = $pair[1].Trim()
+    }
+
+$PublicHttpPort = if ($envValues.ContainsKey('PUBLIC_HTTP_PORT')) {
+    [int]$envValues['PUBLIC_HTTP_PORT']
+}
+else {
+    5173
+}
+
+$BackendHostPort = if ($envValues.ContainsKey('BACKEND_HOST_PORT')) {
+    [int]$envValues['BACKEND_HOST_PORT']
+}
+else {
+    5180
+}
+
+$PublicBaseUrl = "http://localhost:$PublicHttpPort"
+$BackendBaseUrl = "http://localhost:$BackendHostPort"
+
 Write-Step "2. Checking the AWS RDS network path"
 
 if ($config.Mode -eq "SsmTunnel") {
@@ -181,7 +206,7 @@ try {
     while ((Get-Date) -lt $deadline) {
         try {
             $response = Invoke-WebRequest `
-                -Uri "http://localhost:5180/health/live" `
+                -Uri "$BackendBaseUrl/health/live" `
                 -UseBasicParsing `
                 -TimeoutSec 5
 
@@ -205,15 +230,15 @@ try {
     & docker @composeArguments "ps"
 
     Write-Host ""
-    Write-Host "Website : http://localhost:8088" -ForegroundColor Green
-    Write-Host "Swagger : http://localhost:5180/swagger" -ForegroundColor Green
-    Write-Host "Health  : http://localhost:5180/health/ready" -ForegroundColor Green
+    Write-Host "Website : $PublicBaseUrl" -ForegroundColor Green
+    Write-Host "Swagger : $BackendBaseUrl/swagger" -ForegroundColor Green
+    Write-Host "Health  : $BackendBaseUrl/health/ready" -ForegroundColor Green
     Write-Host ""
     Write-Host "Startup migrations are disabled. The existing AWS RDS table structure is not changed." -ForegroundColor Yellow
 
     try {
         $ready = Invoke-RestMethod `
-            -Uri "http://localhost:5180/health/ready" `
+            -Uri "$BackendBaseUrl/health/ready" `
             -Method Get `
             -TimeoutSec 15
 
@@ -226,7 +251,7 @@ try {
     }
 
     if (-not $NoBrowser) {
-        Start-Process "http://localhost:8088"
+        Start-Process $PublicBaseUrl
     }
 }
 finally {

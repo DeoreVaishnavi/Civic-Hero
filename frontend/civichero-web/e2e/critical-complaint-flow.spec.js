@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const baseUrl = process.env.CIVICHERO_BASE_URL || 'http://localhost:8088';
+const baseUrl = process.env.CIVICHERO_BASE_URL || 'http://localhost:5173';
 const required = (name) => {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable: ${name}`);

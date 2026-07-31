@@ -1,7 +1,7 @@
 param(
     [string]$ProjectRoot = "C:\Users\vaish\Music\CivicHeroSolution",
     [string]$ReleaseVersion = "v1.0.0-rc.1",
-    [string]$BaseUrl = "http://localhost:8088",
+    [string]$BaseUrl = "http://localhost:5173",
     [switch]$SkipDockerDeployment,
     [switch]$SkipSecurity,
     [switch]$SkipPerformance,

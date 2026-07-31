@@ -2,7 +2,7 @@
 
 ## Base paths
 - Local backend: `http://localhost:5180/api/v1`
-- Production-like Nginx: `http://localhost:8088/api/v1`
+- Production-like Nginx: `http://localhost:5173/api/v1`
 
 ## Authentication
 - `POST /auth/register`

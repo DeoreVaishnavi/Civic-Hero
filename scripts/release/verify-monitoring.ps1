@@ -1,6 +1,6 @@
 param(
     [string]$ProjectRoot = "C:\Users\vaish\Music\CivicHeroSolution",
-    [string]$ApplicationUrl = "http://localhost:8088",
+    [string]$ApplicationUrl = "http://localhost:5173",
     [string]$PrometheusUrl = "http://localhost:9090",
     [string]$GrafanaUrl = "http://localhost:3000"
 )

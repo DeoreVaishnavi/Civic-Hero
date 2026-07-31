@@ -59,6 +59,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = WriteHealthResponseAsync
+});
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = _ => false,

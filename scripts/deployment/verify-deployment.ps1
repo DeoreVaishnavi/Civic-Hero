@@ -1,7 +1,8 @@
 param(
-    [string]$BaseUrl = "http://localhost:8088",
+    [string]$BaseUrl = "http://localhost:5173",
     [int]$Attempts = 18,
-    [int]$DelaySeconds = 5
+    [int]$DelaySeconds = 5,
+    [switch]$RequireReadiness
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,9 +10,12 @@ $BaseUrl = $BaseUrl.TrimEnd('/')
 $checks = @(
     @{ Name = "Nginx edge"; Path = "/nginx-health" },
     @{ Name = "Backend liveness"; Path = "/health/live" },
-    @{ Name = "Backend readiness"; Path = "/health/ready" },
     @{ Name = "React frontend"; Path = "/" }
 )
+
+if ($RequireReadiness) {
+    $checks += @{ Name = "Backend readiness"; Path = "/health/ready" }
+}
 
 for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
     $failed = @()

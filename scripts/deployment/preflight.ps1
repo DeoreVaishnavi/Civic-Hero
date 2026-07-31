@@ -1,10 +1,13 @@
 param(
-    [string]$ProjectRoot = "C:\Users\vaish\Music\CivicHeroSolution",
+    [string]$ProjectRoot = "",
     [ValidateSet("Local", "Production")]
     [string]$Environment = "Local"
 )
 
 $ErrorActionPreference = "Stop"
+if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+    $ProjectRoot = Join-Path $PSScriptRoot "..\.."
+}
 $ProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
 $Deployment = Join-Path $ProjectRoot "deployment"
 $EnvFile = if ($Environment -eq "Production") { Join-Path $Deployment ".env.production.local" } else { Join-Path $Deployment ".env.local" }
@@ -35,6 +38,27 @@ foreach ($name in @("rds_connection.txt", "jwt_secret.txt", "aws_access_key.txt"
 $envText = Get-Content $EnvFile -Raw
 if ($envText -match 'replace-|example\.com|CHANGE-ME|YOUR_') {
     throw "The environment file still contains placeholder values: $EnvFile"
+}
+
+$envValues = @{}
+Get-Content -LiteralPath $EnvFile |
+    Where-Object { $_ -match '^[^#=]+=' } |
+    ForEach-Object {
+        $pair = $_ -split '=', 2
+        $envValues[$pair[0].Trim()] = $pair[1].Trim()
+    }
+
+$publicPort = if ($envValues.ContainsKey('PUBLIC_HTTP_PORT')) {
+    [int]$envValues['PUBLIC_HTTP_PORT']
+}
+else {
+    5173
+}
+
+Write-Host "Public website port: $publicPort" -ForegroundColor Cyan
+$listener = Get-NetTCPConnection -LocalPort $publicPort -State Listen -ErrorAction SilentlyContinue
+if ($listener) {
+    Write-Warning "Port $publicPort is already in use. Do not run the Vite dev server and the Docker website on the same port at the same time. Stop the existing listener or change PUBLIC_HTTP_PORT."
 }
 
 $jwt = Get-Content (Join-Path $SecretDirectory "jwt_secret.txt") -Raw

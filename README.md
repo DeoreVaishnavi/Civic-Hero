@@ -26,3 +26,5 @@ npm run dev
 ```
 
 Open http://localhost:5173.
+
+Port reference and Docker/Vite conflict guidance: [`docs/PORTS.md`](docs/PORTS.md).

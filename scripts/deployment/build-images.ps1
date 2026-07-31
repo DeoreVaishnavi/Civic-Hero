@@ -1,9 +1,12 @@
 param(
-    [string]$ProjectRoot = "C:\Users\vaish\Music\CivicHeroSolution",
+    [string]$ProjectRoot = "",
     [string]$Tag = "phase15-local"
 )
 
 $ErrorActionPreference = "Stop"
+if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+    $ProjectRoot = Join-Path $PSScriptRoot "..\.."
+}
 $ProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker is not installed." }
 

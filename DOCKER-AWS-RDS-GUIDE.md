@@ -62,7 +62,7 @@ start-aws-rds.bat
 Addresses:
 
 ```text
-Website: http://localhost:8088
+Website: http://localhost:5173
 Swagger: http://localhost:5180/swagger
 Health:  http://localhost:5180/health/ready
 ```

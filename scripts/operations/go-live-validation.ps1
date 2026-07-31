@@ -1,6 +1,6 @@
 param(
     [string]$ProjectRoot = "C:\Users\vaish\Music\CivicHeroSolution",
-    [string]$BaseUrl = "http://localhost:8088"
+    [string]$BaseUrl = "http://localhost:5173"
 )
 $ErrorActionPreference = "Stop"
 $ProjectRoot = [IO.Path]::GetFullPath($ProjectRoot)

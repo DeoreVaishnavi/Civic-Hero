@@ -19,7 +19,7 @@ services:
       AI__Provider: ${AI_PROVIDER:-RuleBased}
       AI__ApiKey_FILE: /run/secrets/ai_api_key
       Storage__Provider: S3
-      Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-http://localhost:8088}
+      Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-http://localhost:5173}
       AllowedHosts: ${ALLOWED_HOSTS:-localhost}
       RELEASE_VERSION: ${RELEASE_VERSION:-phase15-local}
       COMMIT_SHA: ${COMMIT_SHA:-local}
@@ -122,7 +122,7 @@ services:
       frontend:
         condition: service_healthy
     ports:
-      - "${PUBLIC_HTTP_PORT:-8088}:80"
+      - "${PUBLIC_HTTP_PORT:-5173}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     restart: unless-stopped

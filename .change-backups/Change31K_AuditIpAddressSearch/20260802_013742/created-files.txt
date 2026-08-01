@@ -1,2 +1,0 @@
-﻿backend/CivicHero.Backend/Core/Services/AuditLogQueryFilter.cs
-backend/CivicHero.Backend.Tests/Unit/Administration/AuditLogQueryFilterTests.cs

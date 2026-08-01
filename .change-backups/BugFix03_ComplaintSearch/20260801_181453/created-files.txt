@@ -1,4 +1,0 @@
-﻿backend\CivicHero.Backend\Core\Utilities\ComplaintSearchParser.cs
-backend\CivicHero.Backend.Tests\Core\ComplaintSearchParserTests.cs
-frontend\civichero-web\src\utils\portalSearch.js
-frontend\civichero-web\src\utils\portalSearch.test.js

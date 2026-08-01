@@ -1,3 +1,0 @@
-import axiosInstance from '../api/axiosInstance.js';
-const unwrap=(r)=>r.data?.data;
-export const verificationApi={pending:async()=>unwrap(await axiosInstance.get('/verification/pending')),queue:async(overdueOnly=false)=>unwrap(await axiosInstance.get('/verification/queue',{params:{overdueOnly}})),get:async(id)=>unwrap(await axiosInstance.get(`/verification/${id}`)),geo:async(id,payload)=>unwrap(await axiosInstance.post(`/verification/${id}/geo-check`,payload)),decide:async(id,payload)=>unwrap(await axiosInstance.post(`/verification/${id}/decision`,payload)),remind:async(id)=>unwrap(await axiosInstance.post(`/verification/${id}/remind`))};

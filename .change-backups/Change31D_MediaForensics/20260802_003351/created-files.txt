@@ -1,7 +1,0 @@
-﻿backend/CivicHero.Backend/Core/DTOs/Ai/MediaForensicsDtos.cs
-backend/CivicHero.Backend/Core/Services/IMediaForensicsService.cs
-backend/CivicHero.Backend/Core/Services/MediaForensicsService.cs
-backend/CivicHero.Backend/Infrastructure/AI/MediaMetadataExtractor.cs
-backend/CivicHero.Backend/Controllers/MediaForensicsController.cs
-backend/CivicHero.Backend.Tests/Unit/AI/MediaMetadataExtractorTests.cs
-frontend/civichero-web/src/components/ai/MediaForensicsPanel.jsx

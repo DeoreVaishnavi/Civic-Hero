@@ -1,3 +1,0 @@
-﻿backend/CivicHero.Backend/Core/Services/VerificationReminderPolicy.cs
-backend/CivicHero.Backend.Tests/Unit/Verification/VerificationReminderPolicyTests.cs
-backend/CivicHero.Backend.Tests/Unit/Verification/VerificationReminderAuthorizationContractTests.cs

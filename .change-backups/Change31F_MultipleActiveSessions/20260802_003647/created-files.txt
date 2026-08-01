@@ -1,4 +1,0 @@
-﻿backend/CivicHero.Backend/Core/Entities/UserSession.cs
-backend/CivicHero.Backend/Infrastructure/Data/Configurations/UserSessionConfiguration.cs
-backend/CivicHero.Backend/Migrations/20260801183000_Change31FMultipleActiveSessions.cs
-backend/CivicHero.Backend.Tests/Unit/Security/JwtSessionClaimTests.cs

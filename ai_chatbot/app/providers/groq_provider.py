@@ -13,7 +13,7 @@ class GroqProvider(BaseLLMProvider):
 
     def __init__(self):
         self.api_key = os.getenv("GROQ_API_KEY")
-        self.model = os.getenv("GROQ_MODEL", "mixtral-8x7b-32768")
+        self.model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
         self.client = None
 
         if self.api_key:

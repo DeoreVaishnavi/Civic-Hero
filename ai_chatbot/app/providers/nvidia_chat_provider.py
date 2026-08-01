@@ -14,7 +14,7 @@ class NVIDIAChatProvider(BaseLLMProvider):
     def __init__(self):
         self.api_key = os.getenv("NVIDIA_API_KEY")
         self.base_url = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
-        self.model = os.getenv("NVIDIA_CHAT_MODEL", "nemotron-3-8b-chat")
+        self.model = os.getenv("NVIDIA_CHAT_MODEL", "meta/llama-3.1-8b-instruct")
         self.client = None
 
         if self.api_key:

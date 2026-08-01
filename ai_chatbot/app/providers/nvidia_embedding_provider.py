@@ -20,7 +20,7 @@ class NVIDIAEmbeddingProvider:
         if not self.api_key:
             raise ValueError("NVIDIA_API_KEY must be set in environment variables")
 
-    def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
+    def generate_embeddings(self, texts: List[str], input_type: str = "passage") -> List[List[float]]:
         """
         Generate embeddings for a list of texts using NVIDIA's API.
 
@@ -39,7 +39,10 @@ class NVIDIAEmbeddingProvider:
         # Prepare the request payload
         payload = {
             "input": texts,
-            "model": self.model
+            "model": self.model,
+            "input_type": input_type,
+            "encoding_format": "float",
+            "truncate": "END",
         }
 
         headers = {
@@ -68,6 +71,13 @@ class NVIDIAEmbeddingProvider:
         except (KeyError, ValueError) as e:
             logger.error(f"Unexpected response format from NVIDIA API: {str(e)}")
             raise Exception(f"Invalid response from NVIDIA embedding API: {str(e)}")
+
+    def generate_embedding(self, text: str) -> List[float]:
+        """Generate one query embedding for semantic knowledge search."""
+        embeddings = self.generate_embeddings([text], input_type="query")
+        if not embeddings:
+            raise ValueError("NVIDIA returned no embedding for the query.")
+        return embeddings[0]
 
     def get_embedding_dimension(self) -> Optional[int]:
         """

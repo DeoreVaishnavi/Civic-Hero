@@ -140,7 +140,7 @@ FEATURES IMPLEMENTED
 
 2. LLM Provider Abstraction:
    - Clean interface for swapping LLM providers
-   - Groq primary provider (mixtral-8x7b-32768)
+   - Groq primary provider (openai/gpt-oss-20b)
    - NVIDIA NIM fallback (nemotron-3-8b-chat)
    - Rule-based deterministic final fallback
 

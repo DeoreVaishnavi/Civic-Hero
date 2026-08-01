@@ -9,6 +9,11 @@ class Settings:
     # NVIDIA API Embedding Provider
     NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
     NVIDIA_EMBEDDING_MODEL: str = os.getenv("NVIDIA_EMBEDDING_MODEL", "nvidia/nv-embedqa-e5-v5")
+    NVIDIA_EMBEDDING_API_URL: str = os.getenv(
+        "NVIDIA_EMBEDDING_API_URL",
+        "https://integrate.api.nvidia.com/v1/embeddings",
+    )
+    NVIDIA_API_TIMEOUT: int = int(os.getenv("NVIDIA_API_TIMEOUT", "30"))
 
     # Application Settings
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

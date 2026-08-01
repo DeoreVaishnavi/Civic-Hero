@@ -33,13 +33,15 @@ services:
       dockerfile: ai_chatbot/Dockerfile
     container_name: civichero-chatbot
     restart: unless-stopped
-    env_file:
-      - ./ai_chatbot/.env
     environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
       INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY}
-      GROQ_MODEL: ${GROQ_CHAT_MODEL:-llama-3.3-70b-versatile}
-      NVIDIA_CHAT_MODEL: ${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}
+      GROQ_MODEL: ${GROQ_CHAT_MODEL:-openai/gpt-oss-20b}
+      NVIDIA_CHAT_MODEL: ${NVIDIA_CHAT_MODEL:-meta/llama-3.1-8b-instruct}
       NVIDIA_EMBEDDING_MODEL: ${NVIDIA_EMBED_MODEL:-nvidia/nv-embedqa-e5-v5}
+      NVIDIA_EMBEDDING_API_URL: ${NVIDIA_EMBEDDING_API_URL:-https://integrate.api.nvidia.com/v1/embeddings}
+      NVIDIA_API_TIMEOUT: ${NVIDIA_API_TIMEOUT:-30}
       KNOWLEDGE_BASE_PATH: /srv/knowledge
       EMBEDDINGS_OUTPUT_PATH: /srv/generated/embeddings.json
     volumes:

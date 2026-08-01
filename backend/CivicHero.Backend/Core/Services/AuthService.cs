@@ -1,5 +1,8 @@
+using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using AutoMapper;
 using CivicHero.Backend.Core.DTOs.Administration;
 using CivicHero.Backend.Core.DTOs.Auth;
@@ -13,6 +16,7 @@ using CivicHero.Backend.Infrastructure.Configurations;
 using CivicHero.Backend.Infrastructure.Data;
 using CivicHero.Backend.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 
 namespace CivicHero.Backend.Core.Services;
@@ -20,6 +24,7 @@ namespace CivicHero.Backend.Core.Services;
 public sealed class AuthService : IAuthService
 {
     private const int MaximumFailedLoginAttempts = 5;
+    private const int MaximumActiveSessionsPerUser = 10;
     private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(30);
 
     private readonly IUserRepository _userRepository;
@@ -31,8 +36,14 @@ public sealed class AuthService : IAuthService
     private readonly IHostEnvironment _environment;
     private readonly ITwoFactorService _twoFactorService;
     private readonly IPhoneOtpService _phoneOtpService;
+    private readonly IPasswordResetTokenService _passwordResetTokenService;
+    private readonly IEmailSender _emailSender;
     private readonly SmsOptions _smsOptions;
+    private readonly EmailOptions _emailOptions;
     private readonly CivicDbContext _db;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IDistributedCache _cache;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository userRepository,
@@ -44,8 +55,14 @@ public sealed class AuthService : IAuthService
         IHostEnvironment environment,
         ITwoFactorService twoFactorService,
         IPhoneOtpService phoneOtpService,
+        IPasswordResetTokenService passwordResetTokenService,
+        IEmailSender emailSender,
         IOptions<SmsOptions> smsOptions,
-        CivicDbContext db)
+        IOptions<EmailOptions> emailOptions,
+        CivicDbContext db,
+        IHttpContextAccessor httpContextAccessor,
+        IDistributedCache cache,
+        ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
@@ -56,8 +73,14 @@ public sealed class AuthService : IAuthService
         _environment = environment;
         _twoFactorService = twoFactorService;
         _phoneOtpService = phoneOtpService;
+        _passwordResetTokenService = passwordResetTokenService;
+        _emailSender = emailSender;
         _smsOptions = smsOptions.Value;
+        _emailOptions = emailOptions.Value;
         _db = db;
+        _httpContextAccessor = httpContextAccessor;
+        _cache = cache;
+        _logger = logger;
     }
 
     public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
@@ -203,6 +226,161 @@ public sealed class AuthService : IAuthService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<PasswordResetLinkRequestResponse> RequestPasswordResetLinkAsync(
+        RequestPasswordResetLinkRequest request,
+        string? remoteIp,
+        CancellationToken cancellationToken = default)
+    {
+        var email = ValidateAndNormalizeResetEmail(request.Email);
+        var resetEndpoint = GetPasswordResetEndpoint();
+        var now = DateTimeOffset.UtcNow;
+        var expiryMinutes = Math.Clamp(_emailOptions.PasswordResetExpiryMinutes, 10, 120);
+        var cooldownSeconds = Math.Clamp(_emailOptions.ResendCooldownSeconds, 30, 900);
+        var expiresAtUtc = now.AddMinutes(expiryMinutes);
+        var response = new PasswordResetLinkRequestResponse
+        {
+            ExpiresAtUtc = expiresAtUtc,
+            ResendAfterSeconds = cooldownSeconds
+        };
+
+        var cooldownKey = $"password-reset-link:{HashToken(email)}";
+        if (await _cache.GetStringAsync(cooldownKey, cancellationToken) is not null)
+            return response;
+
+        await _cache.SetStringAsync(
+            cooldownKey,
+            "requested",
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(cooldownSeconds)
+            },
+            cancellationToken);
+
+        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+        if (user is null || !user.IsActive || !user.IsEmailVerified || user.IsSystemAccount)
+            return response;
+
+        var token = _passwordResetTokenService.CreateToken(user, TimeSpan.FromMinutes(expiryMinutes));
+        var resetUrl = BuildPasswordResetUrl(resetEndpoint, token);
+        var encodedUrl = HtmlEncoder.Default.Encode(resetUrl);
+        var subject = "Reset your CivicHero password";
+        var plainText = $"A password reset was requested for your CivicHero account. Open this secure link within {expiryMinutes} minutes: {resetUrl} If you did not request this, ignore this message.";
+        var html = $"<p>A password reset was requested for your CivicHero account.</p><p><a href=\"{encodedUrl}\">Reset your password</a></p><p>This link expires in {expiryMinutes} minutes and becomes invalid after your password is changed.</p><p>If you did not request this, ignore this message.</p>";
+
+        var delivery = await _emailSender.SendAsync(user.Email, subject, plainText, html, cancellationToken);
+        if (!delivery.Success)
+        {
+            _logger.LogWarning(
+                "Password-reset email could not be delivered using {Provider}. Remote IP: {RemoteIp}. Error: {Error}",
+                delivery.Provider,
+                Truncate(remoteIp, 64),
+                delivery.Error);
+            return response;
+        }
+
+        if (_environment.IsDevelopment())
+            response.DevelopmentResetUrl = resetUrl;
+
+        return response;
+    }
+
+    public async Task<PasswordResetLinkStatusResponse> ValidatePasswordResetLinkAsync(
+        ValidatePasswordResetLinkRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_passwordResetTokenService.TryReadToken(request.Token, out var data, out var expiresAtUtc) || data is null)
+            return new PasswordResetLinkStatusResponse { IsValid = false };
+
+        var valid = await _db.Users.AsNoTracking().AnyAsync(user =>
+            user.Id == data.UserId &&
+            user.Email == data.Email &&
+            user.AuthorizationVersion == data.AuthorizationVersion &&
+            user.IsActive &&
+            user.IsEmailVerified &&
+            !user.IsSystemAccount,
+            cancellationToken);
+
+        return new PasswordResetLinkStatusResponse
+        {
+            IsValid = valid,
+            ExpiresAtUtc = valid ? expiresAtUtc : null
+        };
+    }
+
+    public async Task CompletePasswordResetLinkAsync(
+        CompletePasswordResetLinkRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateNewPassword(request.NewPassword, request.ConfirmPassword);
+
+        if (!_passwordResetTokenService.TryReadToken(request.Token, out var data, out _) || data is null)
+            throw new BusinessRuleViolationException("The password-reset link is invalid or expired.");
+
+        var user = await _db.Users.FirstOrDefaultAsync(entity => entity.Id == data.UserId, cancellationToken);
+        if (user is null ||
+            !user.IsActive ||
+            !user.IsEmailVerified ||
+            user.IsSystemAccount ||
+            !string.Equals(user.Email, data.Email, StringComparison.Ordinal) ||
+            user.AuthorizationVersion != data.AuthorizationVersion)
+        {
+            throw new BusinessRuleViolationException("The password-reset link is invalid or expired.");
+        }
+
+        if (_passwordHasher.Verify(request.NewPassword, user.PasswordHash))
+            throw new BusinessRuleViolationException("Choose a password different from your current password.");
+
+        var now = DateTimeOffset.UtcNow;
+        user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        user.AuthorizationVersion = checked(user.AuthorizationVersion + 1);
+        user.FailedLoginAttempts = 0;
+        user.LockoutEnd = null;
+        ClearRefreshToken(user);
+
+        var activeSessions = await _db.UserSessions
+            .Where(session => session.UserId == user.Id && !session.RevokedAt.HasValue)
+            .ToListAsync(cancellationToken);
+        foreach (var session in activeSessions)
+        {
+            session.RevokedAt = now;
+            session.RevokedReason = "Password reset using secure email link.";
+        }
+
+        var pendingResetOtps = await _db.PhoneOtpChallenges
+            .Where(challenge => challenge.UserId == user.Id &&
+                                challenge.Purpose == OtpPurpose.PasswordReset &&
+                                !challenge.ConsumedAt.HasValue)
+            .ToListAsync(cancellationToken);
+        foreach (var challenge in pendingResetOtps)
+            challenge.ConsumedAt = now;
+
+        var context = _httpContextAccessor.HttpContext;
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = user.Id,
+            UserEmail = user.Email,
+            UserRole = user.Role.ToString(),
+            Action = "PASSWORD_RESET_EMAIL_LINK_COMPLETED",
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            NewValuesJson = JsonSerializer.Serialize(new
+            {
+                method = "SecureEmailLink",
+                allSessionsRevoked = true,
+                completedAtUtc = now
+            }),
+            IpAddress = Truncate(context?.Connection.RemoteIpAddress?.ToString(), 64),
+            UserAgent = Truncate(context?.Request.Headers.UserAgent.ToString(), 1024),
+            CorrelationId = Truncate(context?.TraceIdentifier, 128),
+            Severity = "Warning",
+            Success = true,
+            HttpStatusCode = 200,
+            CreatedAt = now
+        });
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<PhoneOtpRequestResponse> RequestPhoneLoginOtpAsync(RequestPhoneLoginOtpRequest request, string? remoteIp, CancellationToken cancellationToken = default)
     {
         var phone = PhoneNumberNormalizer.Normalize(request.PhoneNumber);
@@ -272,25 +450,78 @@ public sealed class AuthService : IAuthService
     {
         var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
         var tokenHash = HashToken(refreshToken);
-        var user = await _userRepository.GetByRefreshTokenHashAsync(tokenHash, cancellationToken)
-                   ?? throw new UnauthorizedAccessException("Refresh token is invalid.");
-        if (!user.IsActive || (policy.RequireVerifiedEmail && !user.IsEmailVerified) || user.IsSystemAccount ||
-            user.RefreshTokenExpiresAt <= DateTimeOffset.UtcNow || !FixedTimeEquals(user.RefreshTokenHash!, tokenHash))
+        var now = DateTimeOffset.UtcNow;
+
+        var session = await _db.UserSessions
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.RefreshTokenHash == tokenHash, cancellationToken);
+
+        if (session is not null)
         {
-            ClearRefreshToken(user);
-            _userRepository.Update(user);
+            var user = session.User;
+            if (session.RevokedAt.HasValue || session.ExpiresAt <= now ||
+                session.AuthorizationVersion != user.AuthorizationVersion ||
+                !user.IsActive || (policy.RequireVerifiedEmail && !user.IsEmailVerified) || user.IsSystemAccount)
+            {
+                session.RevokedAt ??= now;
+                session.RevokedReason ??= "Refresh token rejected because the session or account is no longer valid.";
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
+            }
+
+            var requirement = await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
+            return await CreateSessionAsync(user, cancellationToken, requirement: requirement, existingSession: session);
+        }
+
+        // Transitional fallback for a refresh token created before Change31F. The first
+        // successful refresh upgrades it into a normal account-backed session record.
+        var legacyUser = await _userRepository.GetByRefreshTokenHashAsync(tokenHash, cancellationToken)
+                         ?? throw new UnauthorizedAccessException("Refresh token is invalid.");
+        if (!legacyUser.IsActive || (policy.RequireVerifiedEmail && !legacyUser.IsEmailVerified) || legacyUser.IsSystemAccount ||
+            legacyUser.RefreshTokenExpiresAt <= now || !FixedTimeEquals(legacyUser.RefreshTokenHash!, tokenHash))
+        {
+            ClearRefreshToken(legacyUser);
+            _userRepository.Update(legacyUser);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
         }
-        var requirement = await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
-        return await CreateSessionAsync(user, cancellationToken, requirement: requirement);
+
+        var legacyRequirement = await EvaluateTwoFactorRequirementAsync(legacyUser, policy, cancellationToken);
+        return await CreateSessionAsync(legacyUser, cancellationToken, requirement: legacyRequirement);
     }
 
-    public async Task LogoutAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(long userId, string? sessionId, CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            var session = await _db.UserSessions
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.SessionId == sessionId, cancellationToken);
+            if (session is not null && !session.RevokedAt.HasValue)
+            {
+                session.RevokedAt = DateTimeOffset.UtcNow;
+                session.RevokedReason = "User logout";
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            return;
+        }
+
+        // A pre-Change31F access token has no sid claim, so it cannot identify one
+        // migrated device safely. Revoke every current-version session rather than
+        // leaving the copied legacy refresh session active after logout.
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
         if (user is null) return;
+        var now = DateTimeOffset.UtcNow;
+        var activeSessions = await _db.UserSessions
+            .Where(x => x.UserId == userId && x.AuthorizationVersion == user.AuthorizationVersion &&
+                !x.RevokedAt.HasValue && x.ExpiresAt > now)
+            .ToListAsync(cancellationToken);
+        foreach (var activeSession in activeSessions)
+        {
+            activeSession.RevokedAt = now;
+            activeSession.RevokedReason = "Logout from a legacy access token without a session identifier.";
+        }
         ClearRefreshToken(user);
+        user.AuthorizationVersion = checked(user.AuthorizationVersion + 1);
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
@@ -334,26 +565,60 @@ public sealed class AuthService : IAuthService
         User user,
         CancellationToken cancellationToken,
         bool recordSuccessfulLogin = false,
-        TwoFactorRequirement? requirement = null)
+        TwoFactorRequirement? requirement = null,
+        UserSession? existingSession = null)
     {
         await EnsureRoleEnabledAsync(user.Role, cancellationToken);
         var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
         requirement ??= await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
         if (recordSuccessfulLogin)
         {
-            // Persist login metadata and the new refresh token in one database write.
-            // This avoids a second RDS round trip on every password or OTP login.
             user.FailedLoginAttempts = 0;
             user.LockoutEnd = null;
-            user.LastLoginAt = DateTimeOffset.UtcNow;
+            user.LastLoginAt = now;
         }
 
-        var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var refreshToken = GenerateSecureToken();
-        var refreshExpiry = DateTimeOffset.UtcNow.AddDays(Math.Clamp(_jwtOptions.RefreshTokenExpiryDays, 1, 30));
-        user.RefreshTokenHash = HashToken(refreshToken);
-        user.RefreshTokenCreatedAt = DateTimeOffset.UtcNow;
-        user.RefreshTokenExpiresAt = refreshExpiry;
+        var refreshExpiry = now.AddDays(Math.Clamp(_jwtOptions.RefreshTokenExpiryDays, 1, 30));
+        var client = ReadClientMetadata();
+        UserSession session;
+
+        if (existingSession is null)
+        {
+            await EnforceSessionLimitAsync(user.Id, user.AuthorizationVersion, cancellationToken);
+            session = new UserSession
+            {
+                UserId = user.Id,
+                SessionId = Guid.NewGuid().ToString("N"),
+                RefreshTokenHash = HashToken(refreshToken),
+                AuthorizationVersion = user.AuthorizationVersion,
+                ExpiresAt = refreshExpiry,
+                LastSeenAt = now,
+                DeviceLabel = client.DeviceLabel,
+                IpAddress = client.IpAddress,
+                UserAgent = client.UserAgent
+            };
+            _db.UserSessions.Add(session);
+        }
+        else
+        {
+            session = existingSession;
+            session.RefreshTokenHash = HashToken(refreshToken);
+            session.AuthorizationVersion = user.AuthorizationVersion;
+            session.ExpiresAt = refreshExpiry;
+            session.LastSeenAt = now;
+            session.IpAddress = client.IpAddress ?? session.IpAddress;
+            session.UserAgent = client.UserAgent ?? session.UserAgent;
+            session.DeviceLabel = client.DeviceLabel;
+            session.RevokedAt = null;
+            session.RevokedReason = null;
+        }
+
+        // Retain the legacy columns only for migration compatibility. New and upgraded
+        // sessions use user_sessions exclusively.
+        ClearRefreshToken(user);
+        var accessToken = _jwtTokenService.GenerateAccessToken(user, session.SessionId);
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return new AuthSessionResult(new AuthResponse
@@ -365,6 +630,57 @@ public sealed class AuthService : IAuthService
             TwoFactorSetupDeadlineUtc = requirement.DeadlineUtc
         }, refreshToken, refreshExpiry);
     }
+
+    private async Task EnforceSessionLimitAsync(long userId, int authorizationVersion, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var active = await _db.UserSessions
+            .Where(x => x.UserId == userId && x.AuthorizationVersion == authorizationVersion &&
+                !x.RevokedAt.HasValue && x.ExpiresAt > now)
+            .OrderBy(x => x.LastSeenAt)
+            .ThenBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var excess = active.Count - MaximumActiveSessionsPerUser + 1;
+        if (excess <= 0) return;
+        foreach (var oldSession in active.Take(excess))
+        {
+            oldSession.RevokedAt = now;
+            oldSession.RevokedReason = "Automatically revoked because the account reached the active-session limit.";
+        }
+    }
+
+    private SessionClientMetadata ReadClientMetadata()
+    {
+        var context = _httpContextAccessor.HttpContext;
+        var userAgent = Truncate(context?.Request.Headers["User-Agent"].ToString(), 500);
+        var ipAddress = Truncate(context?.Connection.RemoteIpAddress?.ToString(), 64);
+        return new SessionClientMetadata(BuildDeviceLabel(userAgent), ipAddress, userAgent);
+    }
+
+    private static string BuildDeviceLabel(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return "Unknown device";
+        var browser = userAgent.Contains("Edg/", StringComparison.OrdinalIgnoreCase) ? "Microsoft Edge" :
+            userAgent.Contains("Firefox/", StringComparison.OrdinalIgnoreCase) ? "Firefox" :
+            userAgent.Contains("Chrome/", StringComparison.OrdinalIgnoreCase) ? "Chrome" :
+            userAgent.Contains("Safari/", StringComparison.OrdinalIgnoreCase) ? "Safari" : "Browser";
+        var platform = userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ? "Android" :
+            userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("iPad", StringComparison.OrdinalIgnoreCase) ? "iOS" :
+            userAgent.Contains("Windows", StringComparison.OrdinalIgnoreCase) ? "Windows" :
+            userAgent.Contains("Macintosh", StringComparison.OrdinalIgnoreCase) ? "macOS" :
+            userAgent.Contains("Linux", StringComparison.OrdinalIgnoreCase) ? "Linux" : "Unknown platform";
+        return $"{browser} on {platform}";
+    }
+
+    private static string? Truncate(string? value, int maximumLength)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim();
+        return trimmed.Length <= maximumLength ? trimmed : trimmed[..maximumLength];
+    }
+
+    private sealed record SessionClientMetadata(string DeviceLabel, string? IpAddress, string? UserAgent);
 
     private static string? GetVerifiedPhone(User user)
     {
@@ -385,21 +701,72 @@ public sealed class AuthService : IAuthService
             errors.Add("Email or verified phone number is required.");
         if (string.IsNullOrWhiteSpace(request.Code) || request.Code.Length != 6 || !request.Code.All(char.IsDigit))
             errors.Add("Enter the six-digit reset code.");
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8 || request.NewPassword.Length > 128)
-            errors.Add("Password must be between 8 and 128 characters.");
-        else
-        {
-            if (!request.NewPassword.Any(char.IsUpper)) errors.Add("Password must contain an uppercase letter.");
-            if (!request.NewPassword.Any(char.IsLower)) errors.Add("Password must contain a lowercase letter.");
-            if (!request.NewPassword.Any(char.IsDigit)) errors.Add("Password must contain a number.");
-            if (!request.NewPassword.Any(character => !char.IsLetterOrDigit(character))) errors.Add("Password must contain a special character.");
-        }
-        if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
-            errors.Add("Password and confirmation password must match.");
 
+        AddPasswordValidationErrors(request.NewPassword, request.ConfirmPassword, errors);
         if (errors.Count > 0)
             throw new CivicHero.Backend.Core.Exceptions.ValidationException(errors);
     }
+
+    private static void ValidateNewPassword(string newPassword, string confirmPassword)
+    {
+        var errors = new List<string>();
+        AddPasswordValidationErrors(newPassword, confirmPassword, errors);
+        if (errors.Count > 0)
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(errors);
+    }
+
+    private static void AddPasswordValidationErrors(string newPassword, string confirmPassword, List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8 || newPassword.Length > 128)
+            errors.Add("Password must be between 8 and 128 characters.");
+        else
+        {
+            if (!newPassword.Any(char.IsUpper)) errors.Add("Password must contain an uppercase letter.");
+            if (!newPassword.Any(char.IsLower)) errors.Add("Password must contain a lowercase letter.");
+            if (!newPassword.Any(char.IsDigit)) errors.Add("Password must contain a number.");
+            if (!newPassword.Any(character => !char.IsLetterOrDigit(character))) errors.Add("Password must contain a special character.");
+        }
+
+        if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
+            errors.Add("Password and confirmation password must match.");
+    }
+
+    private static string ValidateAndNormalizeResetEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(["Registered email address is required."]);
+
+        var normalized = NormalizeEmail(email);
+        try
+        {
+            if (!string.Equals(new MailAddress(normalized).Address, normalized, StringComparison.OrdinalIgnoreCase))
+                throw new FormatException();
+        }
+        catch (FormatException)
+        {
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(["Enter a valid registered email address."]);
+        }
+
+        return normalized;
+    }
+
+    private string GetPasswordResetEndpoint()
+    {
+        var baseUrl = (_emailOptions.FrontendBaseUrl ?? string.Empty).Trim().TrimEnd('/');
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var parsedBase) ||
+            (parsedBase.Scheme != Uri.UriSchemeHttp && parsedBase.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException("Email:FrontendBaseUrl must be an absolute HTTP or HTTPS URL.");
+        }
+
+        var path = string.IsNullOrWhiteSpace(_emailOptions.PasswordResetPath)
+            ? "/reset-password"
+            : "/" + _emailOptions.PasswordResetPath.Trim().Trim('/');
+        return $"{baseUrl}{path}";
+    }
+
+    private static string BuildPasswordResetUrl(string resetEndpoint, string token) =>
+        $"{resetEndpoint}?token={Uri.EscapeDataString(token)}";
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
     private static string GenerateSecureToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)).TrimEnd('=').Replace('+', '-').Replace('/', '_');

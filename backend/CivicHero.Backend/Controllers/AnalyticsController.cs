@@ -56,11 +56,17 @@ public sealed class AnalyticsController : ControllerBase
     public async Task<IActionResult> Heatmap([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
         OkEnvelope("Geographic heatmap data loaded.", await _service.GetHeatmapAsync(filter, cancellationToken));
 
+    [HttpGet("public/heatmap")]
+    [AllowAnonymous]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
+    public async Task<IActionResult> PublicHeatmap([FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken) =>
+        OkEnvelope("Sanitized public geographic heatmap data loaded.", await _service.GetPublicHeatmapAsync(filter, cancellationToken));
+
     [HttpGet("export")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<IActionResult> Export([FromQuery] string report, [FromQuery] AnalyticsFilter filter, CancellationToken cancellationToken)
+    public async Task<IActionResult> Export([FromQuery] string report, [FromQuery] string format = "csv", [FromQuery] AnalyticsFilter? filter = null, CancellationToken cancellationToken = default)
     {
-        var file = await _service.ExportAsync(report, filter, cancellationToken);
+        var file = await _service.ExportAsync(report, format, filter ?? new AnalyticsFilter(), cancellationToken);
         return File(file.Content, file.ContentType, file.FileName);
     }
 

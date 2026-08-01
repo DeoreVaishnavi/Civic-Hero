@@ -1,0 +1,7 @@
+﻿backend/CivicHero.Backend/Core/DTOs/Auth/PasswordResetLinkDtos.cs
+backend/CivicHero.Backend/Core/Interfaces/IEmailSender.cs
+backend/CivicHero.Backend/Core/Interfaces/IPasswordResetTokenService.cs
+backend/CivicHero.Backend/Infrastructure/Notifications/ConfiguredEmailSender.cs
+backend/CivicHero.Backend/Infrastructure/Security/PasswordResetTokenService.cs
+backend/CivicHero.Backend.Tests/Unit/Security/PasswordResetTokenServiceTests.cs
+frontend/civichero-web/src/pages/public/ResetPasswordPage.jsx

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { notificationApi } from '../../services/notificationApi.js';
+import { userApi } from '../../services/userApi.js';
+import { downloadBlob } from '../../utils/exportHelper.js';
 
 const blankBroadcast = {
-  templateKey: '', title: '', message: '', role: '', actionUrl: '', type: 'General',
-  sendInApp: true, sendSignalR: true, sendSms: false, sendEmail: false, scheduledFor: '',
+  templateKey: '', title: '', message: '', audienceType: 'All', role: '', departmentId: '', wardId: '', groupIdentifier: '', selectedUserIds: [],
+  actionUrl: '', type: 'General', sendInApp: true, sendSignalR: true, sendSms: false, sendEmail: false, scheduledFor: '',
 };
 
 const blankTemplate = {
@@ -13,6 +15,13 @@ const blankTemplate = {
 const notificationTypes = [
   'General', 'ComplaintCreated', 'ComplaintAssigned', 'ComplaintProgress', 'ResolutionReady',
   'VerificationRequired', 'DisputeUpdate', 'RewardEarned', 'SlaEscalation', 'SecurityAlert',
+];
+
+const notificationGroups = [
+  ['AllStaff', 'All staff'],
+  ['FieldOperations', 'Field operations'],
+  ['Administrators', 'Administrators'],
+  ['CitizensWithActiveComplaints', 'Citizens with active complaints'],
 ];
 
 export default function BroadcastNotifications() {
@@ -28,8 +37,15 @@ export default function BroadcastNotifications() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deliveryFormat, setDeliveryFormat] = useState('xlsx');
+  const [audienceMetadata, setAudienceMetadata] = useState({ roles: [], departments: [], wards: [] });
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [recipientResults, setRecipientResults] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [recipientLoading, setRecipientLoading] = useState(false);
 
   const loadTemplates = useCallback(async () => setTemplates(await notificationApi.adminTemplates()), []);
+  const loadAudienceMetadata = useCallback(async () => setAudienceMetadata(await userApi.getMetadata()), []);
   const loadSchedules = useCallback(async () => setSchedules(await notificationApi.adminSchedules()), []);
   const loadDeliveries = useCallback(async () => {
     const [list, totals] = await Promise.all([
@@ -51,13 +67,82 @@ export default function BroadcastNotifications() {
     }
   }, [tab, loadTemplates, loadDeliveries, loadSchedules]);
 
-  useEffect(() => { loadTemplates().catch((reason) => setError(reason.message)); }, [loadTemplates]);
+  useEffect(() => {
+    Promise.all([loadTemplates(), loadAudienceMetadata()]).catch((reason) => setError(reason.message));
+  }, [loadTemplates, loadAudienceMetadata]);
   useEffect(() => { refreshCurrentTab(); }, [refreshCurrentTab]);
 
   const selectedTemplate = useMemo(
     () => templates.find((item) => item.key === broadcast.templateKey),
     [templates, broadcast.templateKey],
   );
+
+  const audienceLabel = useMemo(() => {
+    if (broadcast.audienceType === 'Role') return `${broadcast.role || 'Unselected'} role`;
+    if (broadcast.audienceType === 'Department') {
+      const department = audienceMetadata.departments.find((item) => String(item.id) === String(broadcast.departmentId));
+      return department ? `Department group: ${department.name}` : 'Department group';
+    }
+    if (broadcast.audienceType === 'Ward') {
+      const ward = audienceMetadata.wards.find((item) => String(item.id) === String(broadcast.wardId));
+      return ward ? `Ward community: ${ward.name}` : 'Ward community';
+    }
+    if (broadcast.audienceType === 'Group') {
+      const group = notificationGroups.find(([value]) => value === broadcast.groupIdentifier);
+      return group ? `Group: ${group[1]}` : 'Notification group';
+    }
+    if (broadcast.audienceType === 'SelectedUsers') return `${selectedUsers.length} selected user${selectedUsers.length === 1 ? '' : 's'}`;
+    return 'All active users';
+  }, [audienceMetadata, broadcast.audienceType, broadcast.departmentId, broadcast.groupIdentifier, broadcast.role, broadcast.wardId, selectedUsers.length]);
+
+  const changeAudienceType = (audienceType) => {
+    setBroadcast((current) => ({
+      ...current,
+      audienceType,
+      role: '',
+      departmentId: '',
+      wardId: '',
+      groupIdentifier: '',
+      selectedUserIds: [],
+    }));
+    setSelectedUsers([]);
+    setRecipientResults([]);
+    setRecipientSearch('');
+  };
+
+  const searchRecipients = async () => {
+    const query = recipientSearch.trim();
+    if (query.length < 2) {
+      setError('Enter at least two characters to search users.');
+      return;
+    }
+    setRecipientLoading(true); setError('');
+    try {
+      const result = await userApi.getUsers({ search: query, isActive: true, page: 1, pageSize: 20 });
+      setRecipientResults(result.items || []);
+    } catch (reason) {
+      setError(reason.message);
+    } finally {
+      setRecipientLoading(false);
+    }
+  };
+
+  const addRecipient = (user) => {
+    if (!user.isEmailVerified || selectedUsers.some((item) => item.id === user.id)) return;
+    if (selectedUsers.length >= 200) {
+      setError('A broadcast can target at most 200 selected users.');
+      return;
+    }
+    const next = [...selectedUsers, user];
+    setSelectedUsers(next);
+    setBroadcast((current) => ({ ...current, selectedUserIds: next.map((item) => item.id) }));
+  };
+
+  const removeRecipient = (userId) => {
+    const next = selectedUsers.filter((item) => item.id !== userId);
+    setSelectedUsers(next);
+    setBroadcast((current) => ({ ...current, selectedUserIds: next.map((item) => item.id) }));
+  };
 
   const chooseTemplate = (key) => {
     const item = templates.find((candidate) => candidate.key === key);
@@ -73,21 +158,34 @@ export default function BroadcastNotifications() {
 
   const submitBroadcast = async (event) => {
     event.preventDefault();
+    if (broadcast.audienceType === 'SelectedUsers' && selectedUsers.length === 0) {
+      setError('Select at least one recipient.');
+      return;
+    }
+    const action = broadcast.scheduledFor ? 'schedule' : 'send';
+    if (!window.confirm(`Confirm ${action} notification for: ${audienceLabel}?`)) return;
     setLoading(true); setError(''); setStatus('');
     try {
       const result = await notificationApi.adminBroadcast({
         ...broadcast,
         templateKey: broadcast.templateKey || null,
-        role: broadcast.role || null,
+        role: broadcast.audienceType === 'Role' ? broadcast.role || null : null,
+        departmentId: broadcast.audienceType === 'Department' ? Number(broadcast.departmentId) : null,
+        wardId: broadcast.audienceType === 'Ward' ? Number(broadcast.wardId) : null,
+        groupIdentifier: broadcast.audienceType === 'Group' ? broadcast.groupIdentifier || null : null,
+        selectedUserIds: broadcast.audienceType === 'SelectedUsers' ? broadcast.selectedUserIds : [],
         actionUrl: broadcast.actionUrl || null,
         scheduledFor: broadcast.scheduledFor ? new Date(broadcast.scheduledFor).toISOString() : null,
       });
       if (result.status === 'Pending') {
-        setStatus(`Broadcast ${result.broadcastId} scheduled for ${formatDate(result.scheduledFor)}.`);
+        setStatus(`Broadcast ${result.broadcastId} scheduled for ${formatDate(result.scheduledFor)}. Audience: ${result.audienceLabel}; current eligible recipients: ${result.targetUsers}.`);
       } else {
-        setStatus(`Broadcast processed for ${result.targetUsers} users: ${result.successfulDeliveries} sent, ${result.failedDeliveries} failed, ${result.skippedDeliveries} skipped.`);
+        setStatus(`Broadcast processed for ${result.audienceLabel}: ${result.targetUsers} users, ${result.successfulDeliveries} sent, ${result.failedDeliveries} failed, ${result.skippedDeliveries} skipped.`);
       }
       setBroadcast(blankBroadcast);
+      setSelectedUsers([]);
+      setRecipientResults([]);
+      setRecipientSearch('');
       await Promise.all([loadSchedules(), loadDeliveries()]);
     } catch (reason) {
       setError(reason.message);
@@ -157,6 +255,23 @@ export default function BroadcastNotifications() {
     }
   };
 
+  const exportDeliveries = async () => {
+    setLoading(true); setError(''); setStatus('');
+    try {
+      const result = await notificationApi.exportAdminDeliveries(deliveryFormat, {
+        channel: filters.channel || undefined,
+        status: filters.status || undefined,
+        search: filters.search || undefined,
+      });
+      downloadBlob(result.blob, result.fileName);
+      setStatus(`Delivery report downloaded as ${deliveryFormat.toUpperCase()}.`);
+    } catch (reason) {
+      setError(reason.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const cancelSchedule = async (item) => {
     if (!window.confirm(`Cancel scheduled broadcast ${item.id}?`)) return;
     setError(''); setStatus('');
@@ -196,12 +311,99 @@ export default function BroadcastNotifications() {
                 {templates.filter((item) => item.isActive).map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
               </select>
             </Field>
-            <Field label="Audience">
-              <select value={broadcast.role} onChange={(event) => setBroadcast({ ...broadcast, role: event.target.value })} className="input">
-                <option value="">All active users</option><option>Citizen</option><option>Officer</option><option>Supervisor</option><option>Admin</option><option>SuperAdmin</option>
+            <Field label="Audience type">
+              <select value={broadcast.audienceType} onChange={(event) => changeAudienceType(event.target.value)} className="input">
+                <option value="All">All active users</option>
+                <option value="Role">One role</option>
+                <option value="Department">Department group</option>
+                <option value="Ward">Ward community</option>
+                <option value="Group">Predefined group</option>
+                <option value="SelectedUsers">Selected users</option>
               </select>
             </Field>
           </div>
+
+          {broadcast.audienceType === 'Role' && (
+            <Field label="Role">
+              <select required value={broadcast.role} onChange={(event) => setBroadcast({ ...broadcast, role: event.target.value })} className="input">
+                <option value="">Select role</option>
+                {(audienceMetadata.roles || []).map((role) => <option key={role} value={role}>{role}</option>)}
+              </select>
+            </Field>
+          )}
+
+          {broadcast.audienceType === 'Department' && (
+            <div>
+              <Field label="Department group">
+                <select required value={broadcast.departmentId} onChange={(event) => setBroadcast({ ...broadcast, departmentId: event.target.value })} className="input">
+                  <option value="">Select department</option>
+                  {(audienceMetadata.departments || []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}
+                </select>
+              </Field>
+              <p className="mt-2 text-xs text-slate-500">Includes active department-scoped staff and verified Citizens with complaint activity in that department.</p>
+            </div>
+          )}
+
+          {broadcast.audienceType === 'Ward' && (
+            <div>
+              <Field label="Ward community">
+                <select required value={broadcast.wardId} onChange={(event) => setBroadcast({ ...broadcast, wardId: event.target.value })} className="input">
+                  <option value="">Select ward</option>
+                  {(audienceMetadata.wards || []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}
+                </select>
+              </Field>
+              <p className="mt-2 text-xs text-slate-500">Includes active ward-scoped staff and verified Citizens with complaint activity in that ward.</p>
+            </div>
+          )}
+
+          {broadcast.audienceType === 'Group' && (
+            <div>
+              <Field label="Predefined group">
+                <select required value={broadcast.groupIdentifier} onChange={(event) => setBroadcast({ ...broadcast, groupIdentifier: event.target.value })} className="input">
+                  <option value="">Select group</option>
+                  {notificationGroups.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </Field>
+              <p className="mt-2 text-xs text-slate-500">Groups are calculated from current user roles and active complaint ownership. They do not require a new database table.</p>
+            </div>
+          )}
+
+          {broadcast.audienceType === 'SelectedUsers' && (
+            <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+              <div>
+                <p className="text-sm font-bold text-slate-300">Find recipients</p>
+                <div className="mt-2 flex gap-2">
+                  <input value={recipientSearch} onChange={(event) => setRecipientSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); searchRecipients(); } }} placeholder="Search by name or email" className="input !mt-0" />
+                  <button type="button" disabled={recipientLoading} onClick={searchRecipients} className="rounded-xl border border-sky-400/30 bg-sky-400/10 px-5 font-black text-sky-100 disabled:opacity-50">Search</button>
+                </div>
+              </div>
+
+              {recipientResults.length > 0 && (
+                <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-white/10 p-3">
+                  {recipientResults.map((item) => {
+                    const added = selectedUsers.some((selected) => selected.id === item.id);
+                    return (
+                      <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 p-3">
+                        <div><p className="font-bold text-white">{item.fullName}</p><p className="text-xs text-slate-500">{item.email} · {item.role}{item.departmentName ? ` · ${item.departmentName}` : ''}</p></div>
+                        <button type="button" disabled={added || !item.isEmailVerified} onClick={() => addRecipient(item)} className="smallButton disabled:opacity-40">{added ? 'Added' : item.isEmailVerified ? 'Add' : 'Email unverified'}</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-bold text-slate-300">Selected recipients ({selectedUsers.length}/200)</p>
+                {selectedUsers.length === 0 ? <p className="mt-2 text-sm text-slate-500">No recipients selected.</p> : (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedUsers.map((item) => <button key={item.id} type="button" onClick={() => removeRecipient(item.id)} className="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1.5 text-xs font-bold text-sky-100">{item.fullName} ×</button>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <p className="rounded-xl border border-indigo-400/20 bg-indigo-400/10 p-3 text-sm text-indigo-100">Selected audience: <strong>{audienceLabel}</strong>. Only active, email-verified, non-deleted accounts are eligible.</p>
           {selectedTemplate && <p className="rounded-xl border border-sky-400/20 bg-sky-400/10 p-3 text-sm text-sky-100">Template placeholders supported: {'{{FullName}}'}, {'{{Email}}'}, {'{{Role}}'}, {'{{UserId}}'}.</p>}
           <Field label="Title"><input required={!broadcast.templateKey} maxLength={200} value={broadcast.title} onChange={(event) => setBroadcast({ ...broadcast, title: event.target.value })} className="input" /></Field>
           <Field label="Message"><textarea required={!broadcast.templateKey} rows={6} maxLength={2000} value={broadcast.message} onChange={(event) => setBroadcast({ ...broadcast, message: event.target.value })} className="input" /></Field>
@@ -262,11 +464,12 @@ export default function BroadcastNotifications() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Metric label="Recorded" value={summary.total} /><Metric label="Sent" value={summary.sent} /><Metric label="Failed" value={summary.failed} /><Metric label="Skipped" value={summary.skipped} /><Metric label="Not configured" value={summary.notConfigured} />
           </div>
-          <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-4">
+          <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-5">
             <input placeholder="Recipient, email or title" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value, page: 1 })} className="input !mt-0" />
             <select value={filters.channel} onChange={(event) => setFilters({ ...filters, channel: event.target.value, page: 1 })} className="input !mt-0"><option value="">All channels</option><option>InApp</option><option>SignalR</option><option>SMS</option><option>Email</option></select>
             <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value, page: 1 })} className="input !mt-0"><option value="">All statuses</option><option>Sent</option><option>Failed</option><option>Skipped</option><option>NotConfigured</option></select>
-            <button type="button" onClick={loadDeliveries} className="rounded-xl bg-sky-500 px-4 py-2 font-black text-white">Apply filters</button>
+            <select value={deliveryFormat} onChange={(event) => setDeliveryFormat(event.target.value)} className="input !mt-0"><option value="csv">CSV</option><option value="xlsx">Excel</option><option value="pdf">PDF</option></select>
+            <div className="grid grid-cols-2 gap-2"><button type="button" onClick={loadDeliveries} className="rounded-xl border border-white/10 px-3 py-2 font-black text-white hover:bg-white/10">Filter</button><button type="button" disabled={loading} onClick={exportDeliveries} className="rounded-xl bg-sky-500 px-3 py-2 font-black text-white disabled:opacity-50">Export</button></div>
           </div>
           <div className="overflow-x-auto rounded-2xl border border-white/10">
             <table className="min-w-full divide-y divide-white/10 text-left text-sm">
@@ -287,7 +490,7 @@ export default function BroadcastNotifications() {
           {schedules.map((item) => (
             <article key={item.id} className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black text-white">{item.title || item.templateKey || 'Scheduled notification'}</p><p className="mt-1 text-xs text-slate-500">{item.id}</p></div><Status value={item.status} /></div>
-              <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-2 lg:grid-cols-4"><p><span className="text-slate-500">Audience:</span> {item.role || 'All users'}</p><p><span className="text-slate-500">Scheduled:</span> {formatDate(item.scheduledFor)}</p><p><span className="text-slate-500">Recipients:</span> {item.recipientCount}</p><p><span className="text-slate-500">Created:</span> {formatDate(item.createdAt)}</p></div>
+              <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-2 lg:grid-cols-4"><p><span className="text-slate-500">Audience:</span> {item.audienceLabel || item.role || 'All active users'}</p><p><span className="text-slate-500">Scheduled:</span> {formatDate(item.scheduledFor)}</p><p><span className="text-slate-500">Recipients:</span> {item.recipientCount}</p><p><span className="text-slate-500">Created:</span> {formatDate(item.createdAt)}</p></div>
               {item.error && <p className="mt-3 rounded-xl bg-rose-500/10 p-3 text-sm text-rose-200">{item.error}</p>}
               {item.status === 'Pending' && <button type="button" onClick={() => cancelSchedule(item)} className="smallDanger mt-4">Cancel schedule</button>}
             </article>

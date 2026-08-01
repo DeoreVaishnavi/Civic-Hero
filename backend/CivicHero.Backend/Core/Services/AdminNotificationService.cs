@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CivicHero.Backend.Core.DTOs.Analytics;
 using CivicHero.Backend.Core.DTOs.Notifications;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
@@ -120,7 +121,10 @@ public sealed class AdminNotificationService : IAdminNotificationService
         var actorEmail = _currentUser.Email;
         var now = DateTimeOffset.UtcNow;
         if (request.ScheduledFor.HasValue && request.ScheduledFor.Value > now.AddSeconds(30))
-            return await CreateScheduleAsync(request, adminId, actorEmail, cancellationToken);
+        {
+            var audience = await ResolveAudienceAsync(request, cancellationToken);
+            return await CreateScheduleAsync(request, adminId, actorEmail, audience, cancellationToken);
+        }
 
         return await ExecuteBroadcastInternalAsync(request, Guid.NewGuid().ToString("N"), adminId, actorEmail, cancellationToken);
     }
@@ -128,28 +132,7 @@ public sealed class AdminNotificationService : IAdminNotificationService
     public async Task<NotificationDeliveryListResponse> GetDeliveryLogsAsync(NotificationDeliveryQuery query, CancellationToken cancellationToken = default)
     {
         RequireAdminId();
-        var audits = await _db.AuditLogs.AsNoTracking()
-            .Where(entity => entity.Action == DeliveryAction)
-            .OrderByDescending(entity => entity.CreatedAt)
-            .ToListAsync(cancellationToken);
-        var items = audits.Select(TryMapDelivery).Where(item => item is not null).Cast<NotificationDeliveryResponse>();
-
-        if (!string.IsNullOrWhiteSpace(query.Channel))
-            items = items.Where(item => item.Channel.Equals(query.Channel.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrWhiteSpace(query.Status))
-            items = items.Where(item => item.Status.Equals(query.Status.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrWhiteSpace(query.BroadcastId))
-            items = items.Where(item => item.BroadcastId.Equals(query.BroadcastId.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrWhiteSpace(query.Search))
-        {
-            var search = query.Search.Trim();
-            items = items.Where(item =>
-                item.RecipientName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                item.RecipientEmail.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                item.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var materialized = items.ToList();
+        var materialized = await LoadFilteredDeliveryLogsAsync(query, cancellationToken);
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
         return new NotificationDeliveryListResponse
@@ -159,6 +142,19 @@ public sealed class AdminNotificationService : IAdminNotificationService
             PageSize = pageSize,
             TotalCount = materialized.Count
         };
+    }
+
+    public async Task<AnalyticsExportResult> ExportDeliveryLogsAsync(NotificationDeliveryQuery query, string format, CancellationToken cancellationToken = default)
+    {
+        RequireAdminId();
+        var items = (await LoadFilteredDeliveryLogsAsync(query, cancellationToken)).Take(5000).ToList();
+        var table = new ReportTable(
+            "CivicHero notification delivery report",
+            ["Time", "Broadcast ID", "Recipient", "Email", "Channel", "Provider", "Status", "Title", "Attempt", "Error"],
+            items.Select(item => (IReadOnlyList<object?>)new object?[]
+            { item.CreatedAt, item.BroadcastId, item.RecipientName, item.RecipientEmail, item.Channel, item.Provider, item.Status, item.Title, item.AttemptNumber, item.Error }).ToList(),
+            $"Generated {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm} UTC. Maximum 5,000 filtered records.");
+        return ReportDocumentBuilder.Build(table, format, $"civichero-notification-deliveries-{DateTime.UtcNow:yyyyMMdd-HHmm}");
     }
 
     public async Task<NotificationDeliverySummaryResponse> GetDeliverySummaryAsync(CancellationToken cancellationToken = default)
@@ -269,6 +265,8 @@ public sealed class AdminNotificationService : IAdminNotificationService
                 var result = await ExecuteBroadcastInternalAsync(state.Request, state.Id, state.CreatedByUserId, state.CreatedByEmail, cancellationToken);
                 state.Status = ScheduleStatuses.Completed;
                 state.CompletedAt = DateTimeOffset.UtcNow;
+                state.AudienceType = result.AudienceType;
+                state.AudienceLabel = result.AudienceLabel;
                 state.RecipientCount = result.TargetUsers;
                 state.Error = null;
                 executed++;
@@ -289,7 +287,12 @@ public sealed class AdminNotificationService : IAdminNotificationService
         return executed;
     }
 
-    private async Task<AdminBroadcastResult> CreateScheduleAsync(AdminBroadcastNotificationRequest request, long adminId, string? actorEmail, CancellationToken cancellationToken)
+    private async Task<AdminBroadcastResult> CreateScheduleAsync(
+        AdminBroadcastNotificationRequest request,
+        long adminId,
+        string? actorEmail,
+        ResolvedAudience audience,
+        CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid().ToString("N");
         var now = DateTimeOffset.UtcNow;
@@ -298,10 +301,13 @@ public sealed class AdminNotificationService : IAdminNotificationService
             Id = id,
             Status = ScheduleStatuses.Pending,
             Request = request,
+            AudienceType = audience.Type,
+            AudienceLabel = audience.Label,
             ScheduledFor = request.ScheduledFor!.Value,
             CreatedAt = now,
             CreatedByUserId = adminId,
-            CreatedByEmail = actorEmail
+            CreatedByEmail = actorEmail,
+            RecipientCount = audience.Users.Count
         };
         _db.SystemSettings.Add(new SystemSetting
         {
@@ -316,9 +322,30 @@ public sealed class AdminNotificationService : IAdminNotificationService
             UpdatedAt = now,
             UpdatedByUserId = adminId
         });
-        _db.AuditLogs.Add(CreateAdminAudit(adminId, "NotificationBroadcastScheduled", "SystemSetting", SchedulePrefix + id, null, new { id, state.ScheduledFor, request.Role, request.TemplateKey }));
+        _db.AuditLogs.Add(CreateAdminAudit(adminId, "NotificationBroadcastScheduled", "SystemSetting", SchedulePrefix + id, null, new
+        {
+            id,
+            state.ScheduledFor,
+            audienceType = audience.Type,
+            audienceLabel = audience.Label,
+            previewRecipients = audience.Users.Count,
+            request.Role,
+            request.DepartmentId,
+            request.WardId,
+            request.GroupIdentifier,
+            selectedUserIds = request.SelectedUserIds,
+            request.TemplateKey
+        }));
         await _db.SaveChangesAsync(cancellationToken);
-        return new AdminBroadcastResult { BroadcastId = id, Status = ScheduleStatuses.Pending, ScheduledFor = state.ScheduledFor };
+        return new AdminBroadcastResult
+        {
+            BroadcastId = id,
+            Status = ScheduleStatuses.Pending,
+            AudienceType = audience.Type,
+            AudienceLabel = audience.Label,
+            TargetUsers = audience.Users.Count,
+            ScheduledFor = state.ScheduledFor
+        };
     }
 
     private async Task<AdminBroadcastResult> ExecuteBroadcastInternalAsync(
@@ -329,10 +356,8 @@ public sealed class AdminNotificationService : IAdminNotificationService
         CancellationToken cancellationToken)
     {
         var content = await ResolveContentAsync(request, cancellationToken);
-        var usersQuery = _db.Users.AsNoTracking().Where(entity => entity.IsActive && entity.IsEmailVerified && !entity.IsDeleted);
-        if (!string.IsNullOrWhiteSpace(request.Role) && Enum.TryParse<UserRole>(request.Role, true, out var role))
-            usersQuery = usersQuery.Where(entity => entity.Role == role);
-        var users = await usersQuery.OrderBy(entity => entity.Id).ToListAsync(cancellationToken);
+        var audience = await ResolveAudienceAsync(request, cancellationToken);
+        var users = audience.Users;
         var userIds = users.Select(entity => entity.Id).ToList();
         var preferences = await _db.NotificationPreferences.AsNoTracking()
             .Where(entity => userIds.Contains(entity.UserId))
@@ -370,12 +395,28 @@ public sealed class AdminNotificationService : IAdminNotificationService
                 _db.AuditLogs.Add(log);
             }
         }
-        _db.AuditLogs.Add(CreateAdminAudit(actorId, "NotificationBroadcastCompleted", "NotificationBroadcast", broadcastId, null, new { targetUsers = users.Count, sent, failed, skipped, request.Role, content.TemplateKey }));
+        _db.AuditLogs.Add(CreateAdminAudit(actorId, "NotificationBroadcastCompleted", "NotificationBroadcast", broadcastId, null, new
+        {
+            targetUsers = users.Count,
+            sent,
+            failed,
+            skipped,
+            audienceType = audience.Type,
+            audienceLabel = audience.Label,
+            request.Role,
+            request.DepartmentId,
+            request.WardId,
+            request.GroupIdentifier,
+            selectedUserIds = request.SelectedUserIds,
+            content.TemplateKey
+        }));
         await _db.SaveChangesAsync(cancellationToken);
         return new AdminBroadcastResult
         {
             BroadcastId = broadcastId,
             Status = ScheduleStatuses.Completed,
+            AudienceType = audience.Type,
+            AudienceLabel = audience.Label,
             TargetUsers = users.Count,
             SuccessfulDeliveries = sent,
             FailedDeliveries = failed,
@@ -521,6 +562,222 @@ public sealed class AdminNotificationService : IAdminNotificationService
         if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(message))
             throw new BusinessRuleViolationException("Broadcast title and message are required when no complete template is selected.");
         return new ResolvedBroadcastContent(title, message, CanonicalNotificationType(type), actionUrl, template?.Key);
+    }
+
+    private async Task<ResolvedAudience> ResolveAudienceAsync(
+        AdminBroadcastNotificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var audienceType = CanonicalAudienceType(request);
+        request.AudienceType = audienceType;
+
+        IQueryable<User> usersQuery = _db.Users.AsNoTracking()
+            .Where(entity => entity.IsActive && entity.IsEmailVerified && !entity.IsDeleted);
+        string audienceLabel;
+
+        switch (audienceType)
+        {
+            case "All":
+                request.Role = null;
+                request.DepartmentId = null;
+                request.WardId = null;
+                request.GroupIdentifier = null;
+                request.SelectedUserIds = [];
+                audienceLabel = "All active users";
+                break;
+
+            case "Role":
+                if (!Enum.TryParse<UserRole>(request.Role, true, out var role))
+                    throw new BusinessRuleViolationException("Select a valid role for the broadcast audience.");
+                request.Role = role.ToString();
+                request.DepartmentId = null;
+                request.WardId = null;
+                request.GroupIdentifier = null;
+                request.SelectedUserIds = [];
+                usersQuery = usersQuery.Where(entity => entity.Role == role);
+                audienceLabel = $"{role} role";
+                break;
+
+            case "Department":
+            {
+                var departmentId = request.DepartmentId
+                    ?? throw new BusinessRuleViolationException("Select a department group for the broadcast audience.");
+                var department = await _db.Departments.AsNoTracking()
+                    .FirstOrDefaultAsync(entity => entity.Id == departmentId && entity.IsActive && !entity.IsDeleted, cancellationToken)
+                    ?? throw new NotFoundException("Selected department group was not found or is inactive.");
+                var citizenIds = _db.Complaints.AsNoTracking()
+                    .Where(entity => entity.DepartmentId == departmentId && !entity.IsDeleted)
+                    .Select(entity => entity.CitizenId);
+                usersQuery = usersQuery.Where(entity =>
+                    entity.DepartmentId == departmentId ||
+                    (entity.Role == UserRole.Citizen && citizenIds.Contains(entity.Id)));
+                request.Role = null;
+                request.WardId = null;
+                request.GroupIdentifier = null;
+                request.SelectedUserIds = [];
+                audienceLabel = $"Department group: {department.Name}";
+                break;
+            }
+
+            case "Ward":
+            {
+                var wardId = request.WardId
+                    ?? throw new BusinessRuleViolationException("Select a ward for the broadcast audience.");
+                var ward = await _db.Wards.AsNoTracking()
+                    .FirstOrDefaultAsync(entity => entity.Id == wardId && entity.IsActive && !entity.IsDeleted, cancellationToken)
+                    ?? throw new NotFoundException("Selected ward was not found or is inactive.");
+                var citizenIds = _db.Complaints.AsNoTracking()
+                    .Where(entity => entity.WardId == wardId && !entity.IsDeleted)
+                    .Select(entity => entity.CitizenId);
+                usersQuery = usersQuery.Where(entity =>
+                    entity.WardId == wardId ||
+                    (entity.Role == UserRole.Citizen && citizenIds.Contains(entity.Id)));
+                request.Role = null;
+                request.DepartmentId = null;
+                request.GroupIdentifier = null;
+                request.SelectedUserIds = [];
+                audienceLabel = $"Ward community: {ward.Name}";
+                break;
+            }
+
+            case "Group":
+            {
+                var groupIdentifier = CanonicalGroupIdentifier(request.GroupIdentifier);
+                request.Role = null;
+                request.DepartmentId = null;
+                request.WardId = null;
+                request.GroupIdentifier = groupIdentifier;
+                request.SelectedUserIds = [];
+
+                switch (groupIdentifier)
+                {
+                    case "AllStaff":
+                        usersQuery = usersQuery.Where(entity => entity.Role != UserRole.Citizen);
+                        audienceLabel = "Group: All staff";
+                        break;
+                    case "FieldOperations":
+                        usersQuery = usersQuery.Where(entity =>
+                            entity.Role == UserRole.Officer || entity.Role == UserRole.Supervisor);
+                        audienceLabel = "Group: Field operations";
+                        break;
+                    case "Administrators":
+                        usersQuery = usersQuery.Where(entity =>
+                            entity.Role == UserRole.Admin || entity.Role == UserRole.SuperAdmin);
+                        audienceLabel = "Group: Administrators";
+                        break;
+                    case "CitizensWithActiveComplaints":
+                    {
+                        var inactiveStatuses = new[]
+                        {
+                            ComplaintStatus.Merged,
+                            ComplaintStatus.Closed,
+                            ComplaintStatus.ClosedAuto,
+                            ComplaintStatus.ClosedFraud,
+                            ComplaintStatus.Withdrawn
+                        };
+                        var citizenIds = _db.Complaints.AsNoTracking()
+                            .Where(entity => !entity.IsDeleted && !inactiveStatuses.Contains(entity.Status))
+                            .Select(entity => entity.CitizenId);
+                        usersQuery = usersQuery.Where(entity =>
+                            entity.Role == UserRole.Citizen && citizenIds.Contains(entity.Id));
+                        audienceLabel = "Group: Citizens with active complaints";
+                        break;
+                    }
+                    default:
+                        throw new BusinessRuleViolationException("Notification group is not supported.");
+                }
+                break;
+            }
+
+            case "SelectedUsers":
+            {
+                var selectedIds = (request.SelectedUserIds ?? [])
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+                if (selectedIds.Count == 0)
+                    throw new BusinessRuleViolationException("Select at least one user for the broadcast audience.");
+                if (selectedIds.Count > 200)
+                    throw new BusinessRuleViolationException("A broadcast can target at most 200 selected users.");
+
+                request.Role = null;
+                request.DepartmentId = null;
+                request.WardId = null;
+                request.GroupIdentifier = null;
+                request.SelectedUserIds = selectedIds;
+                usersQuery = usersQuery.Where(entity => selectedIds.Contains(entity.Id));
+                audienceLabel = selectedIds.Count == 1 ? "1 selected user" : $"{selectedIds.Count} selected users";
+                break;
+            }
+
+            default:
+                throw new BusinessRuleViolationException("Notification audience type is not supported.");
+        }
+
+        var users = await usersQuery.OrderBy(entity => entity.Id).ToListAsync(cancellationToken);
+        if (audienceType == "SelectedUsers")
+        {
+            var missingIds = request.SelectedUserIds.Except(users.Select(user => user.Id)).Take(10).ToList();
+            if (missingIds.Count > 0)
+                throw new BusinessRuleViolationException(
+                    $"Selected users are missing, inactive, unverified, or deleted: {string.Join(", ", missingIds)}.");
+        }
+
+        return new ResolvedAudience(audienceType, audienceLabel, users);
+    }
+
+    private static string CanonicalAudienceType(AdminBroadcastNotificationRequest request)
+    {
+        var value = string.IsNullOrWhiteSpace(request.AudienceType)
+            ? (string.IsNullOrWhiteSpace(request.Role) ? "All" : "Role")
+            : request.AudienceType.Trim();
+        return value.ToLowerInvariant() switch
+        {
+            "all" => "All",
+            "role" => "Role",
+            "department" => "Department",
+            "ward" => "Ward",
+            "group" => "Group",
+            "selectedusers" or "selected-users" or "users" => "SelectedUsers",
+            _ => throw new BusinessRuleViolationException("Notification audience type is not supported.")
+        };
+    }
+
+    private static string CanonicalGroupIdentifier(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new BusinessRuleViolationException("Select a predefined notification group.");
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "allstaff" or "all-staff" => "AllStaff",
+            "fieldoperations" or "field-operations" => "FieldOperations",
+            "administrators" or "admins" => "Administrators",
+            "citizenswithactivecomplaints" or "citizens-with-active-complaints" => "CitizensWithActiveComplaints",
+            _ => throw new BusinessRuleViolationException("Notification group is not supported.")
+        };
+    }
+
+    private static string DescribeAudienceRequest(AdminBroadcastNotificationRequest request)
+    {
+        var type = CanonicalAudienceType(request);
+        return type switch
+        {
+            "Role" => $"{request.Role ?? "Unknown"} role",
+            "Department" => request.DepartmentId.HasValue ? $"Department group #{request.DepartmentId.Value}" : "Department group",
+            "Ward" => request.WardId.HasValue ? $"Ward community #{request.WardId.Value}" : "Ward community",
+            "Group" => request.GroupIdentifier switch
+            {
+                "AllStaff" => "Group: All staff",
+                "FieldOperations" => "Group: Field operations",
+                "Administrators" => "Group: Administrators",
+                "CitizensWithActiveComplaints" => "Group: Citizens with active complaints",
+                _ => "Notification group"
+            },
+            "SelectedUsers" => (request.SelectedUserIds?.Count ?? 0) == 1
+                ? "1 selected user"
+                : $"{request.SelectedUserIds?.Count ?? 0} selected users",
+            _ => "All active users"
+        };
     }
 
     private static string Render(string template, User user) => template
@@ -692,19 +949,56 @@ public sealed class AdminNotificationService : IAdminNotificationService
     {
         var state = DeserializeSchedule(setting.Value);
         if (state is null) return null;
+        var audienceType = string.IsNullOrWhiteSpace(state.AudienceType)
+            ? CanonicalAudienceType(state.Request)
+            : state.AudienceType;
         return new ScheduledBroadcastResponse
         {
             Id = state.Id,
             Status = state.Status,
             TemplateKey = state.Request.TemplateKey,
             Title = state.Request.Title,
+            AudienceType = audienceType,
+            AudienceLabel = string.IsNullOrWhiteSpace(state.AudienceLabel) ? DescribeAudienceRequest(state.Request) : state.AudienceLabel,
             Role = state.Request.Role,
+            DepartmentId = state.Request.DepartmentId,
+            WardId = state.Request.WardId,
+            GroupIdentifier = state.Request.GroupIdentifier,
+            SelectedUserCount = state.Request.SelectedUserIds?.Count ?? 0,
             ScheduledFor = state.ScheduledFor,
             CreatedAt = state.CreatedAt,
             CompletedAt = state.CompletedAt,
             RecipientCount = state.RecipientCount,
             Error = state.Error
         };
+    }
+
+
+    private async Task<List<NotificationDeliveryResponse>> LoadFilteredDeliveryLogsAsync(NotificationDeliveryQuery query, CancellationToken cancellationToken)
+    {
+        var audits = await _db.AuditLogs.AsNoTracking()
+            .Where(entity => entity.Action == DeliveryAction)
+            .OrderByDescending(entity => entity.CreatedAt)
+            .Take(20000)
+            .ToListAsync(cancellationToken);
+        IEnumerable<NotificationDeliveryResponse> items = audits.Select(TryMapDelivery).Where(item => item is not null).Cast<NotificationDeliveryResponse>();
+
+        if (!string.IsNullOrWhiteSpace(query.Channel))
+            items = items.Where(item => item.Channel.Equals(query.Channel.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            items = items.Where(item => item.Status.Equals(query.Status.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(query.BroadcastId))
+            items = items.Where(item => item.BroadcastId.Equals(query.BroadcastId.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            items = items.Where(item =>
+                item.RecipientName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                item.RecipientEmail.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                item.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return items.ToList();
     }
 
     private long RequireAdminId()
@@ -717,6 +1011,7 @@ public sealed class AdminNotificationService : IAdminNotificationService
     private static string? Truncate(string? value, int maxLength) => string.IsNullOrWhiteSpace(value) ? null : value.Length <= maxLength ? value : value[..maxLength];
 
     private sealed record ResolvedBroadcastContent(string Title, string Message, string Type, string? ActionUrl, string? TemplateKey);
+    private sealed record ResolvedAudience(string Type, string Label, IReadOnlyList<User> Users);
 
     private sealed class DeliveryRecord
     {
@@ -744,6 +1039,8 @@ public sealed class AdminNotificationService : IAdminNotificationService
         public string Id { get; set; } = string.Empty;
         public string Status { get; set; } = ScheduleStatuses.Pending;
         public AdminBroadcastNotificationRequest Request { get; set; } = new();
+        public string AudienceType { get; set; } = string.Empty;
+        public string AudienceLabel { get; set; } = string.Empty;
         public DateTimeOffset ScheduledFor { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset? LastAttemptAt { get; set; }

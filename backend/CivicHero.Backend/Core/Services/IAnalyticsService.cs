@@ -12,5 +12,7 @@ public interface IAnalyticsService
     Task<SlaAnalyticsResponse> GetSlaAnalyticsAsync(AnalyticsFilter filter, CancellationToken cancellationToken = default);
     Task<SatisfactionAnalyticsResponse> GetSatisfactionAnalyticsAsync(AnalyticsFilter filter, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<HeatmapPointResponse>> GetHeatmapAsync(AnalyticsFilter filter, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PublicHeatmapPointResponse>> GetPublicHeatmapAsync(AnalyticsFilter filter, CancellationToken cancellationToken = default);
     Task<AnalyticsExportResult> ExportAsync(string report, AnalyticsFilter filter, CancellationToken cancellationToken = default);
+    Task<AnalyticsExportResult> ExportAsync(string report, string format, AnalyticsFilter filter, CancellationToken cancellationToken = default);
 }

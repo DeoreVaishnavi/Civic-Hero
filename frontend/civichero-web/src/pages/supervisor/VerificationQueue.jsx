@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { verificationApi } from '../../services/verificationApi.js';
 
+const formatDate = (value) => (value ? new Date(value).toLocaleString() : 'Not sent');
+
 const label = (decision) => ({
   Pending: 'Awaiting citizen',
   NotResolvedYet: 'Not resolved yet',
@@ -47,11 +49,12 @@ export default function VerificationQueue() {
     setBusy(true);
     setError('');
     try {
-      await verificationApi.remind(complaintId);
-      setMessage('Citizen verification reminder recorded.');
+      const result = await verificationApi.remind(complaintId);
+      setSelected((current) => current?.complaintId === complaintId ? result : current);
+      setMessage('Citizen verification reminder sent and audited.');
       await load();
     } catch (requestError) {
-      setError(requestError.errors?.join(' ') || requestError.message || 'Unable to record reminder.');
+      setError(requestError.errors?.join(' ') || requestError.message || 'Unable to send reminder.');
     } finally {
       setBusy(false);
     }
@@ -118,13 +121,20 @@ export default function VerificationQueue() {
               <p className={`mt-3 text-xs ${item.isOverdue ? 'text-rose-300' : 'text-slate-500'}`}>
                 {item.isOverdue ? 'Citizen verification is overdue.' : `Due ${new Date(item.dueAt).toLocaleString()}`}
               </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Reminders: {item.reminderCount || 0}/{item.reminderLimit || 0}
+                {item.lastReminderSentAt ? ` · Last sent ${formatDate(item.lastReminderSentAt)}` : ''}
+              </p>
+              {!item.canRemind && item.reminderUnavailableReason && !item.requiresSupervisorDecision && (
+                <p className="mt-2 text-xs text-amber-200">{item.reminderUnavailableReason}</p>
+              )}
               <div className="mt-4 flex flex-wrap gap-3">
                 <button type="button" onClick={() => open(item.complaintId)} className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-bold text-white">
                   Open
                 </button>
                 {!item.requiresSupervisorDecision && (
-                  <button type="button" disabled={busy} onClick={() => remind(item.complaintId)} className="rounded-lg border border-amber-400/30 px-4 py-2 text-sm font-bold text-amber-200 disabled:opacity-50">
-                    Record reminder
+                  <button type="button" disabled={busy || !item.canRemind} onClick={() => remind(item.complaintId)} className="rounded-lg border border-amber-400/30 px-4 py-2 text-sm font-bold text-amber-200 disabled:opacity-50">
+                    Send reminder
                   </button>
                 )}
               </div>
@@ -147,6 +157,28 @@ export default function VerificationQueue() {
                 <Metric label="Distance" value={selected.distanceMetres == null ? 'Not captured' : `${Math.round(selected.distanceMetres)} m`} />
                 <Metric label="Citizen evidence" value={selected.citizenEvidence?.length || 0} />
               </div>
+
+              {selected.decision === 'Pending' && (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-slate-300">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-amber-100">Controlled verification reminders</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {selected.reminderCount || 0}/{selected.reminderLimit || 0} sent · Last: {formatDate(selected.lastReminderSentAt)}
+                      </p>
+                    </div>
+                    <button type="button" disabled={busy || !selected.canRemind} onClick={() => remind(selected.complaintId)} className="rounded-lg border border-amber-400/30 px-4 py-2 text-sm font-bold text-amber-200 disabled:opacity-50">
+                      Send reminder
+                    </button>
+                  </div>
+                  {!selected.canRemind && selected.reminderUnavailableReason && (
+                    <p className="mt-3 text-xs text-amber-200">{selected.reminderUnavailableReason}</p>
+                  )}
+                  {selected.nextReminderAllowedAt && (
+                    <p className="mt-2 text-xs text-slate-500">Next eligible time: {formatDate(selected.nextReminderAllowedAt)}</p>
+                  )}
+                </div>
+              )}
 
               {selected.remarks && <p className="rounded-xl bg-slate-950/50 p-4 text-slate-300">{selected.remarks}</p>}
 

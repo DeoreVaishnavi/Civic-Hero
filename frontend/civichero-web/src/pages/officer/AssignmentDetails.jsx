@@ -3,8 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import SlaBadge from '../../components/common/SlaBadge.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { assignmentApi } from '../../services/assignmentApi.js';
+import { verificationApi } from '../../services/verificationApi.js';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const formatDate = (value) => (value ? new Date(value).toLocaleString() : 'Not sent');
 const transferReasons = [
   ['WrongDepartment', 'Wrong department'],
   ['OutsideScope', 'Outside my work scope'],
@@ -20,6 +22,7 @@ export default function AssignmentDetails() {
   const validComplaintId = Number.isSafeInteger(numericComplaintId) && numericComplaintId > 0;
 
   const [item, setItem] = useState(null);
+  const [verification, setVerification] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(25);
@@ -47,9 +50,21 @@ export default function AssignmentDetails() {
       const result = await assignmentApi.getByComplaintId(numericComplaintId);
       if (!result || typeof result !== 'object') throw new Error('The assignment API returned an empty response.');
       setItem(result);
+
+      if (String(result.complaintStatus || '').toLowerCase() === 'verificationpending') {
+        try {
+          setVerification(await verificationApi.get(numericComplaintId));
+        } catch {
+          setVerification(null);
+        }
+      } else {
+        setVerification(null);
+      }
+
       return result;
     } catch (reason) {
       setItem(null);
+      setVerification(null);
       setError(reason?.message || 'Unable to load this assignment.');
       return null;
     } finally {
@@ -123,6 +138,11 @@ export default function AssignmentDetails() {
     await assignmentApi.requestCitizenInformation(numericComplaintId, citizenRequest.trim());
     setCitizenRequest('');
   }, 'Private information request sent to the Citizen.');
+
+  const sendVerificationReminder = () => run(async () => {
+    const result = await verificationApi.remind(numericComplaintId);
+    setVerification(result);
+  }, 'Citizen verification reminder sent and recorded in the audit trail.');
 
   if (loading) return <section className="page-wrap"><div className="surface"><div className="surface-body">Loading assignment details…</div></div></section>;
 
@@ -218,6 +238,33 @@ export default function AssignmentDetails() {
               <button type="button" disabled={!item.canAddProgress || message.trim().length < 5 || busy} onClick={addProgress} className="button primary full">Save progress</button>
             </div>
           </section>
+
+          {String(item.complaintStatus || '').toLowerCase() === 'verificationpending' && (
+            <section className="surface">
+              <div className="surface-header"><h3>Citizen verification reminder</h3></div>
+              <div className="surface-body">
+                <p className="muted">You may remind the Citizen only for this assigned complaint. Officer reminders are limited and separated by a 12-hour cooldown.</p>
+                {verification ? (
+                  <>
+                    <div className="form-grid">
+                      <Info label="Verification due" value={formatDate(verification.dueAt)} />
+                      <Info label="Your reminders" value={`${verification.reminderCount || 0}/${verification.reminderLimit || 0}`} />
+                      <Info label="Last reminder" value={formatDate(verification.lastReminderSentAt)} />
+                      <Info label="Next eligible time" value={verification.nextReminderAllowedAt ? formatDate(verification.nextReminderAllowedAt) : 'Now'} />
+                    </div>
+                    {!verification.canRemind && verification.reminderUnavailableReason && (
+                      <div className="alert warning">{verification.reminderUnavailableReason}</div>
+                    )}
+                    <button type="button" className="button outline full" disabled={busy || !verification.canRemind} onClick={sendVerificationReminder}>
+                      Send verification reminder
+                    </button>
+                  </>
+                ) : (
+                  <p className="muted">Verification information is not available. Refresh this assignment before trying again.</p>
+                )}
+              </div>
+            </section>
+          )}
 
           <section className="surface">
             <div className="surface-header"><h3>Request transfer</h3></div>

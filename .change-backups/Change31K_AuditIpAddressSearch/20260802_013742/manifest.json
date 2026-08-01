@@ -1,0 +1,62 @@
+{
+  "change": "Change31K_AuditIpAddressSearch",
+  "baselineZip": "CivicHeroSolution(4).zip",
+  "baselineBranch": "Vaishnavi",
+  "baselineCommit": "00f3756d825015d11299f9ce834d7876804e5b43",
+  "prerequisites": [
+    "Change31A_SupervisorAiReview",
+    "Change31B_NotificationAudienceTargeting",
+    "Change31C_CitizenEngagementReport",
+    "Change31D_MediaForensics",
+    "Change31E_AccountComplaintDrafts",
+    "Change31F_MultipleActiveSessions",
+    "Change31G_AdminSelectedSessionManagement",
+    "Change31H_SecureEmailPasswordReset",
+    "Change31I_PublicLiveHeatmap",
+    "Change31J_OfficerVerificationReminder"
+  ],
+  "databaseSchemaChange": false,
+  "migrationChange": false,
+  "automaticMigrationExecution": false,
+  "seedChange": false,
+  "configurationFilesChanged": false,
+  "runtimeDatabaseWrites": false,
+  "runtimeWritesDescription": "Audit-log list and export operations remain read-only. The same IP-address filter is applied to both.",
+  "files": [
+    {
+      "path": "backend/CivicHero.Backend/Core/DTOs/Administration/AdministrationDtos.cs",
+      "baselineSha256": "5b52546356d54848285c7df0148e816cdc3f1a64fafe4a1c0d97f43771b62a93",
+      "payloadSha256": "adb1b14cb3753fd4306b5e5e52fa1c368bb1516beea74c9f50fcb87af2449930",
+      "newFile": false,
+      "expectedState": "Change31J_OfficerVerificationReminder applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/AdministrationService.cs",
+      "baselineSha256": "d0fb55b5725cfe09aeae47096b87a4a09426799a886e56bfeb7ee8839cb13b3b",
+      "payloadSha256": "887683310202f052bca6ec92b206a24776f2065ca74bc4fed7543ed7c2ca3f26",
+      "newFile": false,
+      "expectedState": "Change31J_OfficerVerificationReminder applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/AuditLogQueryFilter.cs",
+      "baselineSha256": null,
+      "payloadSha256": "34d12c3b144de60336d22ed9df58be72b42acb2f3155d619f0935e0bec2197e6",
+      "newFile": true,
+      "expectedState": "Change31J_OfficerVerificationReminder applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Unit/Administration/AuditLogQueryFilterTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "a70989a0f206913f9c0ffd2675b49729992845204dd3646dda029d0884e203d0",
+      "newFile": true,
+      "expectedState": "Change31J_OfficerVerificationReminder applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/admin/AuditLogs.jsx",
+      "baselineSha256": "70d59d0f576ea5c91d15882058c571899fb1b9b020407430189b95dd09d8ada8",
+      "payloadSha256": "75995381acd6e197659ba7c29dbbb4b985782ca8d85aa66a48f1d7e731150402",
+      "newFile": false,
+      "expectedState": "Change31J_OfficerVerificationReminder applied"
+    }
+  ]
+}

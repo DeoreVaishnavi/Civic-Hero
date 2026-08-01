@@ -66,6 +66,7 @@ public sealed class UpdateSystemSettingRequest
 public sealed class AuditLogQuery
 {
     public string? Search { get; set; }
+    public string? IpAddress { get; set; }
     public string? Action { get; set; }
     public string? EntityName { get; set; }
     public string? UserRole { get; set; }

@@ -124,6 +124,55 @@ public sealed class AuthController : ControllerBase
     }
 
 
+    [HttpPost("password-reset/request-link")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RequestPasswordResetLink(
+        [FromBody] RequestPasswordResetLinkRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.RequestPasswordResetLinkAsync(
+            request,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+
+        return Ok(new
+        {
+            success = true,
+            message = "If an eligible account exists, a secure password-reset link has been sent.",
+            data = result
+        });
+    }
+
+    [HttpPost("password-reset/validate-link")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ValidatePasswordResetLink(
+        [FromBody] ValidatePasswordResetLinkRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.ValidatePasswordResetLinkAsync(request, cancellationToken);
+        return Ok(new
+        {
+            success = true,
+            message = result.IsValid ? "Password-reset link is valid." : "Password-reset link is invalid or expired.",
+            data = result
+        });
+    }
+
+    [HttpPost("password-reset/complete")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CompletePasswordResetLink(
+        [FromBody] CompletePasswordResetLinkRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _authService.CompletePasswordResetLinkAsync(request, cancellationToken);
+        return Ok(new
+        {
+            success = true,
+            message = "Password reset successfully. Sign in using your new password."
+        });
+    }
+
+
     [HttpPost("phone/request-login-otp")]
     [AllowAnonymous]
     public async Task<IActionResult> RequestPhoneLoginOtp([FromBody] RequestPhoneLoginOtpRequest request, CancellationToken cancellationToken)
@@ -191,7 +240,7 @@ public sealed class AuthController : ControllerBase
     {
         if (_currentUser.UserId.HasValue)
         {
-            await _authService.LogoutAsync(_currentUser.UserId.Value, cancellationToken);
+            await _authService.LogoutAsync(_currentUser.UserId.Value, User.FindFirst("sid")?.Value, cancellationToken);
         }
 
         Response.Cookies.Delete(_jwtOptions.RefreshCookieName, GetCookieOptions(DateTimeOffset.UtcNow));

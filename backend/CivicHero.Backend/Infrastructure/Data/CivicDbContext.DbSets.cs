@@ -6,7 +6,10 @@ namespace CivicHero.Backend.Infrastructure.Data;
 public sealed partial class CivicDbContext
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<Complaint> Complaints => Set<Complaint>();
+    public DbSet<ComplaintDraft> ComplaintDrafts => Set<ComplaintDraft>();
+    public DbSet<ComplaintDraftEvidence> ComplaintDraftEvidence => Set<ComplaintDraftEvidence>();
     public DbSet<ComplaintImage> ComplaintImages => Set<ComplaintImage>();
     public DbSet<ComplaintTimeline> ComplaintTimelines => Set<ComplaintTimeline>();
     public DbSet<ComplaintVote> ComplaintVotes => Set<ComplaintVote>();

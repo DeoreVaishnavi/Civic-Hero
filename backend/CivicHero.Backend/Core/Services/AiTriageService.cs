@@ -1,4 +1,6 @@
+using System.Text.Json;
 using CivicHero.Backend.Core.DTOs.Ai;
+using CivicHero.Backend.Core.DTOs.Notifications;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
 using CivicHero.Backend.Core.Exceptions;
@@ -13,18 +15,28 @@ namespace CivicHero.Backend.Core.Services;
 
 public sealed class AiTriageService : IAiTriageService
 {
+    private const string EscalatedToAdminDecision = "EscalatedToAdmin";
+
     private readonly CivicDbContext _db;
     private readonly GeminiAiService _gemini;
     private readonly RuleBasedAiService _rules;
     private readonly ICurrentUserService _currentUser;
+    private readonly INotificationService _notifications;
     private readonly AiOptions _options;
 
-    public AiTriageService(CivicDbContext db, GeminiAiService gemini, RuleBasedAiService rules, ICurrentUserService currentUser, IOptions<AiOptions> options)
+    public AiTriageService(
+        CivicDbContext db,
+        GeminiAiService gemini,
+        RuleBasedAiService rules,
+        ICurrentUserService currentUser,
+        INotificationService notifications,
+        IOptions<AiOptions> options)
     {
         _db = db;
         _gemini = gemini;
         _rules = rules;
         _currentUser = currentUser;
+        _notifications = notifications;
         _options = options.Value;
     }
 
@@ -96,6 +108,7 @@ public sealed class AiTriageService : IAiTriageService
     {
         var complaint = await _db.Complaints.Include(entity => entity.Citizen).FirstOrDefaultAsync(entity => entity.Id == complaintId, cancellationToken)
             ?? throw new NotFoundException("Complaint was not found.");
+        if (_currentUser.IsAuthenticated) EnsureComplaintReviewScope(complaint);
         if (!force && complaint.AiTriagedAt.HasValue)
         {
             var latest = await _db.AiTriageAnalyses.AsNoTracking().Where(entity => entity.ComplaintId == complaintId)
@@ -168,33 +181,124 @@ public sealed class AiTriageService : IAiTriageService
 
     public async Task<IReadOnlyList<AiReviewQueueItem>> GetReviewQueueAsync(CancellationToken cancellationToken = default)
     {
-        var rows = await _db.AiTriageAnalyses.AsNoTracking().Include(entity => entity.Complaint).ThenInclude(entity => entity.Citizen)
-            .Where(entity => entity.RequiresManualReview && entity.ReviewedAt == null)
-            .OrderByDescending(entity => entity.AnalyzedAt).Take(250).ToListAsync(cancellationToken);
-        return rows.GroupBy(entity => entity.ComplaintId).Select(group => group.First()).Select(entity => new AiReviewQueueItem(
-            entity.ComplaintId, entity.Complaint.Title, entity.Complaint.Citizen.FullName, entity.Complaint.Status.ToString(),
-            entity.PredictedCategory, entity.PredictedPriority.ToString(), entity.DuplicateStatus, entity.DuplicateScore,
-            entity.FraudVerdict, entity.FraudScore, entity.Reasoning, entity.AnalyzedAt)).ToList();
+        EnsureReviewRole();
+        IQueryable<AiTriageAnalysis> source = _db.AiTriageAnalyses.AsNoTracking()
+            .Include(entity => entity.Complaint).ThenInclude(entity => entity.Citizen)
+            .Include(entity => entity.Complaint).ThenInclude(entity => entity.Department)
+            .Include(entity => entity.Complaint).ThenInclude(entity => entity.Ward)
+            .Where(entity => entity.RequiresManualReview && entity.ReviewedAt == null);
+
+        source = ApplyReviewScope(source);
+        if (IsSupervisor())
+            source = source.Where(entity => entity.ReviewDecision == null || entity.ReviewDecision != EscalatedToAdminDecision);
+
+        var rows = await source.OrderByDescending(entity => entity.AnalyzedAt)
+            .Take(250)
+            .ToListAsync(cancellationToken);
+        var latestRows = rows.GroupBy(entity => entity.ComplaintId)
+            .Select(group => group.OrderByDescending(entity => entity.AnalyzedAt).First())
+            .ToList();
+        var predictedDepartmentIds = latestRows.Where(entity => entity.PredictedDepartmentId.HasValue)
+            .Select(entity => entity.PredictedDepartmentId!.Value)
+            .Distinct()
+            .ToArray();
+        var predictedDepartments = predictedDepartmentIds.Length == 0
+            ? new Dictionary<long, string>()
+            : await _db.Departments.AsNoTracking()
+                .Where(entity => predictedDepartmentIds.Contains(entity.Id))
+                .ToDictionaryAsync(entity => entity.Id, entity => entity.Name, cancellationToken);
+
+        return latestRows.Select(entity => new AiReviewQueueItem(
+            entity.ComplaintId,
+            entity.Complaint.Title,
+            entity.Complaint.Citizen.FullName,
+            entity.Complaint.Status.ToString(),
+            entity.Complaint.DepartmentId,
+            entity.Complaint.Department.Name,
+            entity.Complaint.WardId,
+            entity.Complaint.Ward.Name,
+            entity.Complaint.Category,
+            entity.PredictedCategory,
+            entity.PredictedDepartmentId,
+            entity.PredictedDepartmentId.HasValue && predictedDepartments.TryGetValue(entity.PredictedDepartmentId.Value, out var predictedName) ? predictedName : null,
+            entity.PredictedPriority.ToString(),
+            entity.DuplicateStatus,
+            entity.DuplicateComplaintId,
+            entity.DuplicateScore,
+            entity.FraudVerdict,
+            entity.FraudScore,
+            entity.Reasoning,
+            string.Equals(entity.ReviewDecision, EscalatedToAdminDecision, StringComparison.OrdinalIgnoreCase),
+            string.Equals(entity.ReviewDecision, EscalatedToAdminDecision, StringComparison.OrdinalIgnoreCase) ? entity.ReviewNotes : null,
+            entity.AnalyzedAt)).ToList();
     }
 
     public async Task<AiTriageResponse> DecideAsync(long complaintId, AiReviewDecisionRequest request, CancellationToken cancellationToken = default)
     {
-        var complaint = await _db.Complaints.FirstOrDefaultAsync(entity => entity.Id == complaintId, cancellationToken)
+        EnsureReviewRole();
+        var complaint = await _db.Complaints
+            .FirstOrDefaultAsync(entity => entity.Id == complaintId, cancellationToken)
             ?? throw new NotFoundException("Complaint was not found.");
-        var analysis = await _db.AiTriageAnalyses.Where(entity => entity.ComplaintId == complaintId && entity.ReviewedAt == null)
-            .OrderByDescending(entity => entity.AnalyzedAt).FirstOrDefaultAsync(cancellationToken)
+        EnsureComplaintReviewScope(complaint);
+
+        var pendingAnalyses = await _db.AiTriageAnalyses
+            .Where(entity => entity.ComplaintId == complaintId && entity.ReviewedAt == null && entity.RequiresManualReview)
+            .OrderByDescending(entity => entity.AnalyzedAt)
+            .ToListAsync(cancellationToken);
+        var analysis = pendingAnalyses.FirstOrDefault()
             ?? throw new NotFoundException("No pending AI review was found for this complaint.");
-        var decision = request.Decision.Trim();
-        analysis.ReviewDecision = decision;
-        analysis.ReviewNotes = request.Notes?.Trim();
-        analysis.ReviewedByUserId = _currentUser.UserId;
-        analysis.ReviewedAt = DateTimeOffset.UtcNow;
-        analysis.RequiresManualReview = false;
+        if (IsSupervisor() && string.Equals(analysis.ReviewDecision, EscalatedToAdminDecision, StringComparison.OrdinalIgnoreCase))
+            throw new BusinessRuleViolationException("This AI review has already been escalated to an administrator.");
+
+        var decision = (request.Decision ?? string.Empty).Trim();
+        var notes = request.Notes?.Trim();
+        EnsureDecisionAllowed(decision);
+        if (decision.Equals("Escalate", StringComparison.OrdinalIgnoreCase))
+        {
+            RequireDetailedNotes(notes, "Escalation notes");
+            MarkSupersededAnalyses(pendingAnalyses.Skip(1));
+            analysis.ReviewDecision = EscalatedToAdminDecision;
+            analysis.ReviewNotes = notes;
+            analysis.ReviewedByUserId = RequireCurrentUserId();
+            analysis.ReviewedAt = null;
+            analysis.RequiresManualReview = true;
+            complaint.Status = ComplaintStatus.FraudReview;
+            complaint.Timeline.Add(new ComplaintTimeline
+            {
+                UserId = _currentUser.UserId,
+                EventType = "AI_REVIEW_ESCALATED",
+                Description = $"Supervisor escalated the AI review to Admin. Reason: {notes}",
+                Timestamp = DateTimeOffset.UtcNow
+            });
+            AddReviewAudit("AI_REVIEW_ESCALATED_TO_ADMIN", complaint, analysis, new { decision = EscalatedToAdminDecision, notes });
+            await _db.SaveChangesAsync(cancellationToken);
+            await NotifyAdministratorsAsync(complaint, notes!, cancellationToken);
+            return Map(complaint, analysis);
+        }
+
+        var previous = new
+        {
+            status = complaint.Status.ToString(),
+            complaint.Category,
+            complaint.DepartmentId,
+            complaint.WardId,
+            complaint.DuplicateOfComplaintId,
+            analysis.ReviewDecision,
+            analysis.ReviewNotes
+        };
+        string? routingSummary = null;
 
         if (decision.Equals("Clear", StringComparison.OrdinalIgnoreCase))
         {
             complaint.Status = ComplaintStatus.Created;
             complaint.DuplicateOfComplaintId = null;
+            complaint.ClosedAt = null;
+        }
+        else if (decision.Equals("RejectInvalid", StringComparison.OrdinalIgnoreCase))
+        {
+            RequireDetailedNotes(notes, "Rejection reason");
+            complaint.Status = ComplaintStatus.ClosedFraud;
+            complaint.ClosedAt = DateTimeOffset.UtcNow;
         }
         else if (decision.Equals("ConfirmFraud", StringComparison.OrdinalIgnoreCase))
         {
@@ -203,29 +307,61 @@ public sealed class AiTriageService : IAiTriageService
         }
         else if (decision.Equals("Merge", StringComparison.OrdinalIgnoreCase))
         {
+            if (IsSupervisor()) RequireDetailedNotes(notes, "Merge reason");
             if (!request.MergeIntoComplaintId.HasValue || request.MergeIntoComplaintId.Value == complaintId)
                 throw new ValidationException(["A different parent complaint ID is required for merge."]);
-            var parentExists = await _db.Complaints.AsNoTracking().AnyAsync(entity => entity.Id == request.MergeIntoComplaintId.Value, cancellationToken);
-            if (!parentExists) throw new NotFoundException("The parent complaint was not found.");
+            var parent = await _db.Complaints.AsNoTracking()
+                .FirstOrDefaultAsync(entity => entity.Id == request.MergeIntoComplaintId.Value, cancellationToken)
+                ?? throw new NotFoundException("The parent complaint was not found.");
+            if (IsSupervisor()) EnsureComplaintReviewScope(parent);
             complaint.Status = ComplaintStatus.Merged;
             complaint.DuplicateOfComplaintId = request.MergeIntoComplaintId.Value;
         }
+        else if (decision.Equals("OverrideRouting", StringComparison.OrdinalIgnoreCase))
+        {
+            RequireDetailedNotes(notes, "Routing override reason");
+            routingSummary = await ApplyRoutingOverrideAsync(complaint, request, notes!, cancellationToken);
+        }
         else if (!decision.Equals("Reanalyze", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ValidationException(["Decision must be Clear, ConfirmFraud, Merge, or Reanalyze."]);
+            throw new ValidationException(["Decision must be Clear, OverrideRouting, RejectInvalid, Escalate, Merge, ConfirmFraud, or Reanalyze."]);
         }
 
+        MarkSupersededAnalyses(pendingAnalyses.Skip(1));
+        analysis.ReviewDecision = decision;
+        analysis.ReviewNotes = notes;
+        analysis.ReviewedByUserId = RequireCurrentUserId();
+        analysis.ReviewedAt = DateTimeOffset.UtcNow;
+        analysis.RequiresManualReview = false;
+
+        var description = routingSummary is null
+            ? $"Manual AI review decision: {decision}. {notes}".Trim()
+            : $"Manual AI review decision: {decision}. {routingSummary} Reason: {notes}";
         complaint.Timeline.Add(new ComplaintTimeline
         {
             UserId = _currentUser.UserId,
             EventType = "AI_REVIEW_DECISION",
-            Description = $"Manual AI review decision: {decision}. {request.Notes}".Trim(),
+            Description = description,
             Timestamp = DateTimeOffset.UtcNow
         });
+        AddReviewAudit("AI_REVIEW_DECISION_RECORDED", complaint, analysis, new
+        {
+            decision,
+            notes,
+            request.MergeIntoComplaintId,
+            request.Category,
+            request.DepartmentId,
+            request.WardId,
+            status = complaint.Status.ToString(),
+            complaint.DuplicateOfComplaintId
+        }, previous);
         await _db.SaveChangesAsync(cancellationToken);
-        return decision.Equals("Reanalyze", StringComparison.OrdinalIgnoreCase)
-            ? await AnalyzeComplaintAsync(complaintId, true, cancellationToken)
-            : Map(complaint, analysis);
+
+        if (decision.Equals("Reanalyze", StringComparison.OrdinalIgnoreCase))
+            return await AnalyzeComplaintAsync(complaintId, true, cancellationToken);
+
+        await NotifyCitizenAboutDecisionAsync(complaint, decision, notes, cancellationToken);
+        return Map(complaint, analysis);
     }
 
     public async Task<IReadOnlyList<HotspotResponse>> GetHotspotsAsync(int days, CancellationToken cancellationToken = default)
@@ -268,6 +404,211 @@ public sealed class AiTriageService : IAiTriageService
             catch when (!cancellationToken.IsCancellationRequested) { _db.ChangeTracker.Clear(); }
         }
         return processed;
+    }
+
+    private bool IsSupervisor() => string.Equals(_currentUser.Role, nameof(UserRole.Supervisor), StringComparison.OrdinalIgnoreCase);
+
+    private bool IsAdministrator() => _currentUser.Role is nameof(UserRole.Admin) or nameof(UserRole.SuperAdmin);
+
+    private void EnsureReviewRole()
+    {
+        if (!IsSupervisor() && !IsAdministrator())
+            throw new UnauthorizedAccessException("Supervisor or administrator permission is required.");
+    }
+
+    private IQueryable<AiTriageAnalysis> ApplyReviewScope(IQueryable<AiTriageAnalysis> source)
+    {
+        if (!IsSupervisor()) return source;
+        var departmentId = _currentUser.DepartmentId
+            ?? throw new UnauthorizedAccessException("Supervisor department scope is missing.");
+        source = source.Where(entity => entity.Complaint.DepartmentId == departmentId);
+        if (_currentUser.WardId.HasValue)
+            source = source.Where(entity => entity.Complaint.WardId == _currentUser.WardId.Value);
+        return source;
+    }
+
+    private void EnsureComplaintReviewScope(Complaint complaint)
+    {
+        if (IsAdministrator()) return;
+        if (!IsSupervisor())
+            throw new UnauthorizedAccessException("Supervisor or administrator permission is required.");
+        var departmentId = _currentUser.DepartmentId
+            ?? throw new UnauthorizedAccessException("Supervisor department scope is missing.");
+        if (complaint.DepartmentId != departmentId)
+            throw new UnauthorizedAccessException("This complaint is outside the Supervisor's department scope.");
+        if (_currentUser.WardId.HasValue && complaint.WardId != _currentUser.WardId.Value)
+            throw new UnauthorizedAccessException("This complaint is outside the Supervisor's ward scope.");
+    }
+
+    private void EnsureDecisionAllowed(string decision)
+    {
+        if (string.IsNullOrWhiteSpace(decision))
+            throw new ValidationException(["An AI review decision is required."]);
+
+        var supervisorAllowed = new[] { "Clear", "OverrideRouting", "RejectInvalid", "Escalate", "Merge", "Reanalyze" };
+        var administratorAllowed = new[] { "Clear", "OverrideRouting", "RejectInvalid", "ConfirmFraud", "Merge", "Reanalyze" };
+        var allowed = IsSupervisor() ? supervisorAllowed : administratorAllowed;
+        if (!allowed.Any(value => value.Equals(decision, StringComparison.OrdinalIgnoreCase)))
+            throw new ValidationException([$"Decision '{decision}' is not permitted for the current role."]);
+    }
+
+    private static void RequireDetailedNotes(string? notes, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(notes) || notes.Trim().Length < 5)
+            throw new ValidationException([$"{fieldName} must contain at least 5 characters."]);
+    }
+
+    private void MarkSupersededAnalyses(IEnumerable<AiTriageAnalysis> analyses)
+    {
+        var reviewedAt = DateTimeOffset.UtcNow;
+        foreach (var analysis in analyses)
+        {
+            analysis.ReviewDecision = "Superseded";
+            analysis.ReviewNotes = "A newer AI analysis was reviewed for this complaint.";
+            analysis.ReviewedByUserId = RequireCurrentUserId();
+            analysis.ReviewedAt = reviewedAt;
+            analysis.RequiresManualReview = false;
+        }
+    }
+
+    private long RequireCurrentUserId() => _currentUser.UserId
+        ?? throw new UnauthorizedAccessException("Authenticated user identity is required.");
+
+    private async Task<string> ApplyRoutingOverrideAsync(
+        Complaint complaint,
+        AiReviewDecisionRequest request,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        var category = request.Category?.Trim();
+        if (string.IsNullOrWhiteSpace(category))
+            throw new ValidationException(["Category is required for a routing override."]);
+        if (!request.DepartmentId.HasValue || !request.WardId.HasValue)
+            throw new ValidationException(["Department and ward are required for a routing override."]);
+
+        var department = await _db.Departments.AsNoTracking()
+            .FirstOrDefaultAsync(entity => entity.Id == request.DepartmentId.Value && entity.IsActive, cancellationToken)
+            ?? throw new NotFoundException("The selected active department was not found.");
+        var ward = await _db.Wards.AsNoTracking()
+            .FirstOrDefaultAsync(entity => entity.Id == request.WardId.Value &&
+                                           entity.DepartmentId == request.DepartmentId.Value &&
+                                           entity.IsActive, cancellationToken)
+            ?? throw new BusinessRuleViolationException("The selected ward is not active in the selected department.");
+
+        if (IsSupervisor())
+        {
+            var departmentId = _currentUser.DepartmentId
+                ?? throw new UnauthorizedAccessException("Supervisor department scope is missing.");
+            if (department.Id != departmentId)
+                throw new UnauthorizedAccessException("A Supervisor cannot route a complaint outside their department scope. Escalate it to Admin instead.");
+            if (_currentUser.WardId.HasValue && ward.Id != _currentUser.WardId.Value)
+                throw new UnauthorizedAccessException("A Supervisor cannot route a complaint outside their ward scope.");
+        }
+
+        var currentAssignment = await _db.ComplaintAssignments
+            .Include(entity => entity.Officer)
+            .FirstOrDefaultAsync(entity => entity.ComplaintId == complaint.Id && entity.IsCurrent, cancellationToken);
+        var assignmentInvalidated = currentAssignment is not null &&
+            (currentAssignment.Officer.DepartmentId != department.Id ||
+             (currentAssignment.Officer.WardId.HasValue && currentAssignment.Officer.WardId.Value != ward.Id));
+
+        if (assignmentInvalidated)
+        {
+            currentAssignment!.IsCurrent = false;
+            currentAssignment.Status = AssignmentStatus.Cancelled;
+            currentAssignment.ReassignedAt = DateTimeOffset.UtcNow;
+            currentAssignment.Reason = $"AI review routing override: {reason}";
+            complaint.AssignedOfficerId = null;
+            complaint.Status = ComplaintStatus.ReassignmentPending;
+        }
+        else if (complaint.Status is ComplaintStatus.AiTriage or ComplaintStatus.FraudReview or ComplaintStatus.Created)
+        {
+            complaint.Status = ComplaintStatus.Created;
+        }
+
+        complaint.Category = category;
+        complaint.DepartmentId = department.Id;
+        complaint.WardId = ward.Id;
+        complaint.DuplicateOfComplaintId = null;
+        complaint.ClosedAt = null;
+
+        return $"Routing changed to {department.Name} / {ward.Name}, category {category}." +
+               (assignmentInvalidated ? " The incompatible current assignment was cancelled." : string.Empty);
+    }
+
+    private void AddReviewAudit(
+        string action,
+        Complaint complaint,
+        AiTriageAnalysis analysis,
+        object newValues,
+        object? oldValues = null)
+    {
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = _currentUser.UserId,
+            UserEmail = _currentUser.Email,
+            UserRole = _currentUser.Role,
+            Action = action,
+            EntityName = nameof(Complaint),
+            EntityId = complaint.Id.ToString(),
+            OldValuesJson = oldValues is null ? null : JsonSerializer.Serialize(oldValues),
+            NewValuesJson = JsonSerializer.Serialize(new
+            {
+                reviewAnalysisId = analysis.Id,
+                complaintId = complaint.Id,
+                values = newValues
+            }),
+            Severity = action.Contains("ESCALATED", StringComparison.OrdinalIgnoreCase) ? "Warning" : "Information",
+            Success = true,
+            HttpStatusCode = 200,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+    }
+
+    private async Task NotifyAdministratorsAsync(Complaint complaint, string reason, CancellationToken cancellationToken)
+    {
+        var adminIds = await _db.Users.AsNoTracking()
+            .Where(entity => !entity.IsDeleted && entity.IsActive &&
+                             (entity.Role == UserRole.Admin || entity.Role == UserRole.SuperAdmin))
+            .Select(entity => entity.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var adminId in adminIds)
+        {
+            await _notifications.SendAsync(new NotificationDispatchRequest(
+                adminId,
+                "AI review escalated by Supervisor",
+                $"Complaint CH-{complaint.Id:000000} requires an administrator decision. Reason: {reason}",
+                nameof(NotificationType.General),
+                "Complaint",
+                complaint.Id,
+                "/admin/ai-review"), cancellationToken);
+        }
+    }
+
+    private async Task NotifyCitizenAboutDecisionAsync(
+        Complaint complaint,
+        string decision,
+        string? notes,
+        CancellationToken cancellationToken)
+    {
+        var (title, message) = decision.ToLowerInvariant() switch
+        {
+            "clear" => ("Complaint review completed", "Your complaint passed human AI review and returned to the assignment queue."),
+            "overriderouting" => ("Complaint routing reviewed", "Your complaint category and routing were corrected after human review."),
+            "rejectinvalid" or "confirmfraud" => ("Complaint rejected after review", $"Your complaint was rejected after human review. Reason: {notes}"),
+            "merge" => ("Complaint merged", $"Your complaint was linked to an existing complaint after duplicate review. Reason: {notes}"),
+            _ => (string.Empty, string.Empty)
+        };
+        if (string.IsNullOrWhiteSpace(title)) return;
+
+        await _notifications.SendAsync(new NotificationDispatchRequest(
+            complaint.CitizenId,
+            title,
+            message,
+            nameof(NotificationType.ComplaintProgress),
+            "Complaint",
+            complaint.Id,
+            $"/citizen/complaints/{complaint.Id}"), cancellationToken);
     }
 
     private async Task<FraudCheckResponse> BuildFraudResponseAsync(AiTextRequest request, AiProviderResult result, CancellationToken cancellationToken)

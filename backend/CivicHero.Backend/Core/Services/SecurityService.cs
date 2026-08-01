@@ -1,9 +1,7 @@
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using CivicHero.Backend.Core.Constants;
+using System.Text.Json;
 using CivicHero.Backend.Core.DTOs.Security;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
@@ -17,6 +15,7 @@ namespace CivicHero.Backend.Core.Services;
 
 public sealed class SecurityService : ISecurityService
 {
+    private static readonly JsonSerializerOptions AuditJsonOptions = new(JsonSerializerDefaults.Web);
     private readonly CivicDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -43,18 +42,32 @@ public sealed class SecurityService : ISecurityService
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, cancellationToken)
                    ?? throw new NotFoundException("User account was not found.");
         var principal = _httpContextAccessor.HttpContext?.User;
+        var sessionId = principal?.FindFirstValue("sid");
+        UserSession? session = null;
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            session = await _db.UserSessions.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.SessionId == sessionId, cancellationToken);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var hasCurrentSession = session is not null && !session.RevokedAt.HasValue && session.ExpiresAt > now &&
+            session.AuthorizationVersion == user.AuthorizationVersion;
+        var hasLegacySession = string.IsNullOrWhiteSpace(sessionId) && user.RefreshTokenHash != null && user.RefreshTokenExpiresAt > now;
+
         return new SecuritySessionDto(
             user.Id,
             user.Email,
             user.Role.ToString(),
             user.IsEmailVerified,
             user.IsActive,
-            user.RefreshTokenHash != null && user.RefreshTokenExpiresAt > DateTimeOffset.UtcNow,
-            user.RefreshTokenCreatedAt,
-            user.RefreshTokenExpiresAt,
+            hasCurrentSession || hasLegacySession,
+            session?.CreatedAt ?? user.RefreshTokenCreatedAt,
+            session?.ExpiresAt ?? user.RefreshTokenExpiresAt,
             user.LastLoginAt,
             ReadUnixTimeClaim(principal, JwtRegisteredClaimNames.Exp),
             principal?.FindFirstValue(JwtRegisteredClaimNames.Jti),
+            sessionId,
             user.AuthorizationVersion,
             DateTimeOffset.UtcNow);
     }
@@ -78,7 +91,7 @@ public sealed class SecurityService : ISecurityService
         user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
         user.FailedLoginAttempts = 0;
         user.LockoutEnd = null;
-        RevokeSessions(user);
+        await RevokeAllSessionsAsync(user, "Password changed", cancellationToken);
 
         await _db.SaveChangesAsync(cancellationToken);
         return new SecurityActionResultDto(user.Id, user.Email, "Password changed and sessions revoked", DateTimeOffset.UtcNow);
@@ -118,25 +131,28 @@ public sealed class SecurityService : ISecurityService
                    ?? throw new NotFoundException("User account was not found.");
 
         var now = DateTimeOffset.UtcNow;
-        var sessions = new List<ActiveSessionDto>();
-        if (!string.IsNullOrWhiteSpace(user.RefreshTokenHash) && user.RefreshTokenExpiresAt > now)
-        {
-            var context = _httpContextAccessor.HttpContext;
-            sessions.Add(new ActiveSessionDto(
-                CreateSessionId(user),
+        var currentSessionId = _httpContextAccessor.HttpContext?.User.FindFirstValue("sid");
+        var sessions = await _db.UserSessions.AsNoTracking()
+            .Where(x => x.UserId == userId && x.AuthorizationVersion == user.AuthorizationVersion &&
+                !x.RevokedAt.HasValue && x.ExpiresAt > now)
+            .OrderByDescending(x => x.LastSeenAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .Select(x => new ActiveSessionDto(
+                x.SessionId,
                 "Refresh token",
-                "Current stored login",
-                context?.Connection.RemoteIpAddress?.ToString(),
-                Truncate(context?.Request.Headers["User-Agent"].ToString(), 500),
-                user.RefreshTokenCreatedAt,
-                user.RefreshTokenExpiresAt,
-                user.LastLoginAt,
-                true));
-        }
+                x.DeviceLabel,
+                x.IpAddress,
+                x.UserAgent,
+                x.CreatedAt,
+                x.ExpiresAt,
+                x.LastSeenAt,
+                x.SessionId == currentSessionId,
+                false))
+            .ToListAsync(cancellationToken);
 
         return new ActiveSessionsResponseDto(
-            false,
-            "The current CivicHero schema stores one refresh token per account. A new login replaces the previous stored refresh session.",
+            true,
+            "CivicHero stores a separate revocable refresh session for each browser or device. Up to 10 active sessions are retained per account.",
             sessions,
             now);
     }
@@ -151,16 +167,16 @@ public sealed class SecurityService : ISecurityService
         var userId = RequireCurrentUserId();
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken)
                    ?? throw new NotFoundException("User account was not found.");
+        var now = DateTimeOffset.UtcNow;
+        var session = await _db.UserSessions.FirstOrDefaultAsync(x => x.UserId == userId &&
+            x.SessionId == sessionId.Trim() && !x.RevokedAt.HasValue && x.ExpiresAt > now &&
+            x.AuthorizationVersion == user.AuthorizationVersion, cancellationToken)
+            ?? throw new NotFoundException("The selected active session was not found.");
 
-        if (string.IsNullOrWhiteSpace(user.RefreshTokenHash) || user.RefreshTokenExpiresAt <= DateTimeOffset.UtcNow)
-            throw new NotFoundException("The selected active session was not found.");
-
-        if (!string.Equals(CreateSessionId(user), sessionId.Trim(), StringComparison.OrdinalIgnoreCase))
-            throw new NotFoundException("The selected active session was not found.");
-
-        RevokeSessions(user);
+        session.RevokedAt = now;
+        session.RevokedReason = "Revoked by account owner";
         await _db.SaveChangesAsync(cancellationToken);
-        return new SecurityActionResultDto(user.Id, user.Email, "Selected session revoked", DateTimeOffset.UtcNow);
+        return new SecurityActionResultDto(user.Id, user.Email, "Selected session revoked", now);
     }
 
     public async Task<SecurityActionResultDto> RevokeMySessionsAsync(CancellationToken cancellationToken = default)
@@ -168,7 +184,7 @@ public sealed class SecurityService : ISecurityService
         var userId = RequireCurrentUserId();
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken)
                    ?? throw new NotFoundException("User account was not found.");
-        RevokeSessions(user);
+        await RevokeAllSessionsAsync(user, "Revoked by account owner", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return new SecurityActionResultDto(user.Id, user.Email, "All sessions revoked", DateTimeOffset.UtcNow);
     }
@@ -178,7 +194,8 @@ public sealed class SecurityService : ISecurityService
         var now = DateTimeOffset.UtcNow;
         var cutoff = now.AddHours(-24);
         var activeUsers = await _db.Users.AsNoTracking().CountAsync(x => x.IsActive, cancellationToken);
-        var activeSessions = await _db.Users.AsNoTracking().CountAsync(x => x.RefreshTokenHash != null && x.RefreshTokenExpiresAt > now, cancellationToken);
+        var activeSessions = await _db.UserSessions.AsNoTracking().CountAsync(x => !x.RevokedAt.HasValue &&
+            x.ExpiresAt > now && x.AuthorizationVersion == x.User.AuthorizationVersion && x.User.IsActive, cancellationToken);
         var lockedAccounts = await _db.Users.AsNoTracking().CountAsync(x => x.LockoutEnd > now, cancellationToken);
         var withFailures = await _db.Users.AsNoTracking().CountAsync(x => x.FailedLoginAttempts > 0, cancellationToken);
         var failedWrites = await _db.AuditLogs.AsNoTracking().CountAsync(x => !x.Success && x.CreatedAt >= cutoff, cancellationToken);
@@ -229,22 +246,161 @@ public sealed class SecurityService : ISecurityService
     public async Task<SecurityActionResultDto> RevokeUserSessionsAsync(long userId, CancellationToken cancellationToken = default)
     {
         var user = await LoadManagedUserAsync(userId, cancellationToken);
-        RevokeSessions(user);
+        await RevokeAllSessionsAsync(user, $"Revoked by {_currentUser.Role ?? "administrator"}", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return new SecurityActionResultDto(user.Id, user.Email, "User sessions revoked", DateTimeOffset.UtcNow);
     }
 
-    private static string CreateSessionId(User user)
+    public async Task<ManagedSessionsResponseDto> GetManagedSessionsAsync(
+        string? search,
+        string? role,
+        int take = 100,
+        CancellationToken cancellationToken = default)
     {
-        var material = $"{user.Id}|{user.RefreshTokenHash}|{user.RefreshTokenCreatedAt:O}|{user.AuthorizationVersion}";
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(material)))[..24].ToLowerInvariant();
+        var actorId = RequireCurrentUserId();
+        var actorRole = RequireActorRole();
+        var now = DateTimeOffset.UtcNow;
+        take = Math.Clamp(take, 1, 200);
+
+        var query = _db.UserSessions.AsNoTracking()
+            .Where(x => !x.RevokedAt.HasValue && x.ExpiresAt > now &&
+                x.AuthorizationVersion == x.User.AuthorizationVersion &&
+                x.User.IsActive && x.User.IsEmailVerified && !x.User.IsDeleted);
+
+        if (actorRole != UserRole.SuperAdmin)
+            query = query.Where(x => x.User.Role != UserRole.SuperAdmin);
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            if (!Enum.TryParse<UserRole>(role.Trim(), true, out var requestedRole))
+                throw new CivicHero.Backend.Core.Exceptions.ValidationException(["Role filter is invalid."]);
+            if (requestedRole == UserRole.SuperAdmin && actorRole != UserRole.SuperAdmin)
+                throw new UnauthorizedAccessException("Only a SuperAdmin may view SuperAdmin sessions.");
+            query = query.Where(x => x.User.Role == requestedRole);
+        }
+
+        var normalizedSearch = search?.Trim();
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            query = query.Where(x =>
+                x.User.Email.Contains(normalizedSearch) ||
+                x.User.FullName.Contains(normalizedSearch) ||
+                x.SessionId.Contains(normalizedSearch) ||
+                x.DeviceLabel.Contains(normalizedSearch) ||
+                (x.IpAddress != null && x.IpAddress.Contains(normalizedSearch)));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var currentSessionId = _httpContextAccessor.HttpContext?.User.FindFirstValue("sid");
+        var sessions = await query
+            .OrderByDescending(x => x.LastSeenAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .Take(take)
+            .Select(x => new ManagedSessionDto(
+                x.SessionId,
+                x.UserId,
+                x.User.FullName,
+                x.User.Email,
+                x.User.Role.ToString(),
+                x.DeviceLabel,
+                x.IpAddress,
+                x.UserAgent,
+                x.CreatedAt,
+                x.ExpiresAt,
+                x.LastSeenAt,
+                x.UserId == actorId && x.SessionId == currentSessionId))
+            .ToListAsync(cancellationToken);
+
+        return new ManagedSessionsResponseDto(total, sessions, now);
     }
 
-    private static string? Truncate(string? value, int maximumLength)
+    public async Task<ManagedSessionRevocationDto> RevokeManagedSessionAsync(
+        string sessionId,
+        RevokeManagedSessionRequest request,
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        var trimmed = value.Trim();
-        return trimmed.Length <= maximumLength ? trimmed : trimmed[..maximumLength];
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(["Session identifier is required."]);
+
+        var reason = ValidateManagedSessionReason(request.Reason);
+        var actorId = RequireCurrentUserId();
+        var actorRole = RequireActorRole();
+        var now = DateTimeOffset.UtcNow;
+        var normalizedSessionId = sessionId.Trim();
+
+        var session = await _db.UserSessions
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.SessionId == normalizedSessionId &&
+                !x.RevokedAt.HasValue && x.ExpiresAt > now &&
+                x.AuthorizationVersion == x.User.AuthorizationVersion, cancellationToken)
+            ?? throw new NotFoundException("The selected active session was not found.");
+
+        if (session.User.Role == UserRole.SuperAdmin && actorRole != UserRole.SuperAdmin)
+            throw new UnauthorizedAccessException("Only a SuperAdmin may revoke a SuperAdmin session.");
+
+        session.RevokedAt = now;
+        session.RevokedReason = reason;
+
+        var context = _httpContextAccessor.HttpContext;
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = actorId,
+            UserEmail = _currentUser.Email,
+            UserRole = _currentUser.Role,
+            Action = "SELECTED_USER_SESSION_REVOKED",
+            EntityName = "SecuritySession",
+            EntityId = session.SessionId,
+            OldValuesJson = JsonSerializer.Serialize(new
+            {
+                status = "Active",
+                session.UserId,
+                session.User.Email,
+                session.DeviceLabel,
+                session.IpAddress,
+                session.LastSeenAt,
+                session.ExpiresAt
+            }, AuditJsonOptions),
+            NewValuesJson = JsonSerializer.Serialize(new
+            {
+                status = "Revoked",
+                reason,
+                revokedAtUtc = now
+            }, AuditJsonOptions),
+            IpAddress = context?.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = context?.Request.Headers.UserAgent.ToString(),
+            CorrelationId = context?.TraceIdentifier,
+            Severity = "Warning",
+            Success = true,
+            HttpStatusCode = 200,
+            CreatedAt = now
+        });
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return new ManagedSessionRevocationDto(
+            session.SessionId,
+            session.UserId,
+            session.User.Email,
+            session.DeviceLabel,
+            reason,
+            now);
+    }
+
+    private async Task RevokeAllSessionsAsync(User user, string reason, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var active = await _db.UserSessions
+            .Where(x => x.UserId == user.Id && !x.RevokedAt.HasValue && x.ExpiresAt > now)
+            .ToListAsync(cancellationToken);
+        foreach (var session in active)
+        {
+            session.RevokedAt = now;
+            session.RevokedReason = reason;
+        }
+
+        user.RefreshTokenHash = null;
+        user.RefreshTokenCreatedAt = null;
+        user.RefreshTokenExpiresAt = null;
+        user.AuthorizationVersion = checked(user.AuthorizationVersion + 1);
     }
 
     private async Task<User> LoadManagedUserAsync(long userId, CancellationToken cancellationToken)
@@ -258,6 +414,18 @@ public sealed class SecurityService : ISecurityService
 
     private long RequireCurrentUserId() => _currentUser.UserId
         ?? throw new UnauthorizedAccessException("Authenticated user identifier is missing.");
+
+    private UserRole RequireActorRole() => Enum.TryParse<UserRole>(_currentUser.Role, true, out var role)
+        ? role
+        : throw new UnauthorizedAccessException("Authenticated role is invalid.");
+
+    private static string ValidateManagedSessionReason(string? reason)
+    {
+        var normalized = reason?.Trim() ?? string.Empty;
+        if (normalized.Length is < 10 or > 400)
+            throw new CivicHero.Backend.Core.Exceptions.ValidationException(["An audited reason containing 10–400 characters is required."]);
+        return normalized;
+    }
 
     private static void ValidatePasswordChange(ChangePasswordRequest request)
     {
@@ -284,14 +452,6 @@ public sealed class SecurityService : ISecurityService
 
         if (errors.Count > 0)
             throw new CivicHero.Backend.Core.Exceptions.ValidationException(errors);
-    }
-
-    private static void RevokeSessions(User user)
-    {
-        user.RefreshTokenHash = null;
-        user.RefreshTokenCreatedAt = null;
-        user.RefreshTokenExpiresAt = null;
-        user.AuthorizationVersion = checked(user.AuthorizationVersion + 1);
     }
 
     private static DateTimeOffset? ReadUnixTimeClaim(ClaimsPrincipal? principal, string claimType)

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using CivicHero.Backend.Core.DTOs.Analytics;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
@@ -25,6 +26,20 @@ public sealed class AnalyticsService : IAnalyticsService
         ComplaintStatus.ClosedFraud,
         ComplaintStatus.Withdrawn,
         ComplaintStatus.Merged
+    ];
+
+    private static readonly ComplaintStatus[] PublicHeatmapStatuses =
+    [
+        ComplaintStatus.Assigned,
+        ComplaintStatus.ReassignmentPending,
+        ComplaintStatus.InProgress,
+        ComplaintStatus.Escalated,
+        ComplaintStatus.Resolved,
+        ComplaintStatus.VerificationPending,
+        ComplaintStatus.Disputed,
+        ComplaintStatus.Appealed,
+        ComplaintStatus.Closed,
+        ComplaintStatus.ClosedAuto
     ];
 
     private readonly CivicDbContext _db;
@@ -289,49 +304,480 @@ public sealed class AnalyticsService : IAnalyticsService
             .ToList();
     }
 
-    public async Task<AnalyticsExportResult> ExportAsync(string report, AnalyticsFilter filter, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PublicHeatmapPointResponse>> GetPublicHeatmapAsync(AnalyticsFilter filter, CancellationToken cancellationToken = default)
+    {
+        var period = ResolvePublicPeriod(filter);
+        var query = _db.Complaints.AsNoTracking()
+            .Include(c => c.Ward)
+            .Where(c => !c.IsDeleted &&
+                        c.CreatedAt >= period.From && c.CreatedAt <= period.To &&
+                        PublicHeatmapStatuses.Contains(c.Status) &&
+                        c.Latitude >= -90 && c.Latitude <= 90 &&
+                        c.Longitude >= -180 && c.Longitude <= 180);
+
+        if (filter.DepartmentId.HasValue)
+            query = query.Where(c => c.DepartmentId == filter.DepartmentId.Value);
+        if (filter.WardId.HasValue)
+            query = query.Where(c => c.WardId == filter.WardId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.Category) && !filter.Category.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            var category = filter.Category.Trim();
+            query = query.Where(c => c.Category == category);
+        }
+        if (!string.IsNullOrWhiteSpace(filter.Status) && !filter.Status.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Enum.TryParse<ComplaintStatus>(filter.Status.Trim(), true, out var status))
+                throw new CivicHero.Backend.Core.Exceptions.ValidationException([$"Unknown complaint status '{filter.Status}'."]);
+            if (!PublicHeatmapStatuses.Contains(status))
+                throw new CivicHero.Backend.Core.Exceptions.ValidationException(["The requested status is not available on the public heatmap."]);
+            query = query.Where(c => c.Status == status);
+        }
+
+        var complaints = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .Take(25000)
+            .ToListAsync(cancellationToken);
+        return complaints
+            // Public coordinates are deliberately reduced to roughly one-kilometre cells.
+            // The public response never includes a complaint ID, title, address, citizen,
+            // evidence, or exact latitude/longitude.
+            .GroupBy(c => new
+            {
+                Latitude = Math.Round(c.Latitude, 2),
+                Longitude = Math.Round(c.Longitude, 2),
+                c.WardId,
+                WardName = c.Ward?.Name
+            })
+            .Select(group =>
+            {
+                var items = group.ToList();
+                var high = items.Count(c => c.Priority == ComplaintPriority.High);
+                var critical = items.Count(c => c.Priority == ComplaintPriority.Critical);
+                var active = items.Count(c => !ClosedStatuses.Contains(c.Status));
+                var resolutionPending = items.Count(c => c.Status is ComplaintStatus.Resolved or ComplaintStatus.VerificationPending);
+                var solved = items.Count(c => ClosedStatuses.Contains(c.Status));
+                var disputed = items.Count(c => c.Status is ComplaintStatus.Disputed or ComplaintStatus.Appealed);
+                var score = Round(active + (high * 2m) + (critical * 3m));
+                var dominant = items.GroupBy(c => string.IsNullOrWhiteSpace(c.Category) ? "Uncategorised" : c.Category)
+                    .OrderByDescending(g => g.Count()).ThenBy(g => g.Key).First().Key;
+                var risk = score >= 25 ? "Critical" : score >= 12 ? "High" : score >= 5 ? "Medium" : "Low";
+                var resolutionHours = items
+                    .Where(c => c.ClosedAt.HasValue || c.ResolvedAt.HasValue)
+                    .Select(c => ((c.ClosedAt ?? c.ResolvedAt)!.Value - c.CreatedAt).TotalHours)
+                    .Where(value => value >= 0)
+                    .ToList();
+
+                return new PublicHeatmapPointResponse(
+                    group.Key.Latitude,
+                    group.Key.Longitude,
+                    items.Count,
+                    active,
+                    resolutionPending,
+                    solved,
+                    disputed,
+                    Percent(solved, items.Count),
+                    Round(resolutionHours.Count == 0 ? 0 : (decimal)resolutionHours.Average()),
+                    score,
+                    dominant,
+                    risk,
+                    group.Key.WardId,
+                    group.Key.WardName,
+                    items.Max(c => c.UpdatedAt),
+                    Slice(items.GroupBy(c => string.IsNullOrWhiteSpace(c.Category) ? "Uncategorised" : c.Category).Select(g => (g.Key, g.Count())), items.Count),
+                    Slice(items.GroupBy(c => c.Status.ToString()).Select(g => (g.Key, g.Count())), items.Count));
+            })
+            .OrderByDescending(point => point.HeatScore)
+            .ThenByDescending(point => point.ComplaintCount)
+            .Take(200)
+            .ToList();
+    }
+
+    public Task<AnalyticsExportResult> ExportAsync(string report, AnalyticsFilter filter, CancellationToken cancellationToken = default) =>
+        ExportAsync(report, "csv", filter, cancellationToken);
+
+    public async Task<AnalyticsExportResult> ExportAsync(string report, string format, AnalyticsFilter filter, CancellationToken cancellationToken = default)
     {
         report = (report ?? string.Empty).Trim().ToLowerInvariant();
-        var builder = new StringBuilder();
+        var generatedAt = DateTimeOffset.UtcNow;
+        ReportTable table;
+
         switch (report)
         {
+            case "overview":
+            {
+                var row = await GetOverviewAsync(filter, cancellationToken);
+                table = new ReportTable(
+                    "CivicHero analytics overview",
+                    ["Metric", "Value"],
+                    [
+                        ["Period from", row.Period.From], ["Period to", row.Period.To],
+                        ["Total complaints", row.TotalComplaints], ["Open complaints", row.OpenComplaints],
+                        ["Closed complaints", row.ClosedComplaints], ["Resolution rate (%)", row.ResolutionRate],
+                        ["Average resolution hours", row.AverageResolutionHours], ["SLA compliance (%)", row.SlaCompliance],
+                        ["Satisfaction score", row.SatisfactionScore], ["Registered users", row.RegisteredUsers],
+                        ["Active users", row.ActiveUsers], ["Active departments", row.ActiveDepartments],
+                        ["Active wards", row.ActiveWards]
+                    ],
+                    $"Generated {generatedAt:yyyy-MM-dd HH:mm} UTC");
+                break;
+            }
             case "complaints":
             {
-                var (_, complaints) = await LoadComplaintsAsync(filter, cancellationToken);
-                CsvRow(builder, "ComplaintId", "CreatedAt", "Title", "Category", "Priority", "Status", "Department", "Ward", "Officer", "ResolvedAt", "ClosedAt");
-                foreach (var item in complaints.OrderByDescending(c => c.CreatedAt))
-                    CsvRow(builder, item.Id, item.CreatedAt, item.Title, item.Category, item.Priority, item.Status, item.Department?.Name, item.Ward?.Name, item.AssignedOfficer?.FullName, item.ResolvedAt, item.ClosedAt);
+                var (period, complaints) = await LoadComplaintsAsync(filter, cancellationToken);
+                table = new ReportTable(
+                    "CivicHero complaint register",
+                    ["Complaint ID", "Created at", "Title", "Category", "Priority", "Status", "Department", "Ward", "Officer", "Resolved at", "Closed at"],
+                    complaints.OrderByDescending(item => item.CreatedAt).Take(5000).Select(item => (IReadOnlyList<object?>)new object?[]
+                    { item.Id, item.CreatedAt, item.Title, item.Category, item.Priority.ToString(), item.Status.ToString(), item.Department?.Name, item.Ward?.Name, item.AssignedOfficer?.FullName, item.ResolvedAt, item.ClosedAt }).ToList(),
+                    $"Period {period.From:yyyy-MM-dd} to {period.To:yyyy-MM-dd}");
                 break;
             }
             case "departments":
-                CsvRow(builder, "Rank", "Department", "Total", "Open", "Closed", "Escalated", "ResolutionRate", "AverageResolutionHours", "SlaCompliance", "Satisfaction");
-                foreach (var row in await GetDepartmentAnalyticsAsync(filter, cancellationToken)) CsvRow(builder, row.Rank, row.DepartmentName, row.Total, row.Open, row.Closed, row.Escalated, row.ResolutionRate, row.AverageResolutionHours, row.SlaCompliance, row.SatisfactionScore);
+            {
+                var rows = await GetDepartmentAnalyticsAsync(filter, cancellationToken);
+                table = new ReportTable(
+                    "CivicHero department performance",
+                    ["Rank", "Department", "Total", "Open", "Closed", "Escalated", "Resolution rate (%)", "Average resolution hours", "SLA compliance (%)", "Satisfaction"],
+                    rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.Rank, row.DepartmentName, row.Total, row.Open, row.Closed, row.Escalated, row.ResolutionRate, row.AverageResolutionHours, row.SlaCompliance, row.SatisfactionScore }).ToList(),
+                    $"Generated {generatedAt:yyyy-MM-dd HH:mm} UTC");
                 break;
+            }
             case "officers":
-                CsvRow(builder, "Officer", "Department", "Ward", "Assigned", "Active", "Completed", "CompletionRate", "AverageCompletionHours", "SlaCompliance", "RevisitRate");
-                foreach (var row in await GetOfficerAnalyticsAsync(filter, cancellationToken)) CsvRow(builder, row.OfficerName, row.DepartmentName, row.WardName, row.Assigned, row.Active, row.Completed, row.CompletionRate, row.AverageCompletionHours, row.SlaCompliance, row.RevisitRate);
+            {
+                var rows = await GetOfficerAnalyticsAsync(filter, cancellationToken);
+                table = new ReportTable(
+                    "CivicHero Officer performance",
+                    ["Officer", "Department", "Ward", "Assigned", "Active", "Completed", "Completion rate (%)", "Average completion hours", "SLA compliance (%)", "Revisit rate (%)"],
+                    rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.OfficerName, row.DepartmentName, row.WardName, row.Assigned, row.Active, row.Completed, row.CompletionRate, row.AverageCompletionHours, row.SlaCompliance, row.RevisitRate }).ToList(),
+                    $"Generated {generatedAt:yyyy-MM-dd HH:mm} UTC");
                 break;
+            }
             case "wards":
-                CsvRow(builder, "Ward", "Department", "Total", "Open", "HighPriority", "Critical", "Closed", "ResolutionRate", "HeatScore", "Latitude", "Longitude");
-                foreach (var row in await GetWardAnalyticsAsync(filter, cancellationToken)) CsvRow(builder, row.WardName, row.DepartmentName, row.Total, row.Open, row.HighPriority, row.Critical, row.Closed, row.ResolutionRate, row.HeatScore, row.Latitude, row.Longitude);
+            {
+                var rows = await GetWardAnalyticsAsync(filter, cancellationToken);
+                table = new ReportTable(
+                    "CivicHero ward analysis",
+                    ["Ward", "Department", "Total", "Open", "High priority", "Critical", "Closed", "Resolution rate (%)", "Heat score", "Latitude", "Longitude"],
+                    rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.WardName, row.DepartmentName, row.Total, row.Open, row.HighPriority, row.Critical, row.Closed, row.ResolutionRate, row.HeatScore, row.Latitude, row.Longitude }).ToList(),
+                    $"Generated {generatedAt:yyyy-MM-dd HH:mm} UTC");
                 break;
+            }
             case "sla":
             {
                 var row = await GetSlaAnalyticsAsync(filter, cancellationToken);
-                CsvRow(builder, "Metric", "Value");
-                CsvRow(builder, "Total assignments", row.TotalAssignments);
-                CsvRow(builder, "Assignment compliant", row.AssignmentCompliant);
-                CsvRow(builder, "Resolution compliant", row.ResolutionCompliant);
-                CsvRow(builder, "Currently overdue", row.CurrentlyOverdue);
-                CsvRow(builder, "Overall compliance rate", row.OverallComplianceRate);
+                table = new ReportTable(
+                    "CivicHero SLA compliance",
+                    ["Metric", "Value"],
+                    [
+                        ["Period from", row.Period.From], ["Period to", row.Period.To],
+                        ["Total assignments", row.TotalAssignments], ["Assignment compliant", row.AssignmentCompliant],
+                        ["Resolution compliant", row.ResolutionCompliant], ["Currently overdue", row.CurrentlyOverdue],
+                        ["Assignment compliance rate (%)", row.AssignmentComplianceRate],
+                        ["Resolution compliance rate (%)", row.ResolutionComplianceRate],
+                        ["Overall compliance rate (%)", row.OverallComplianceRate]
+                    ],
+                    $"Generated {generatedAt:yyyy-MM-dd HH:mm} UTC");
+                break;
+            }
+            case "satisfaction":
+            {
+                var row = await GetSatisfactionAnalyticsAsync(filter, cancellationToken);
+                var satisfactionRows = new List<IReadOnlyList<object?>>
+                {
+                    new object?[] { "Period from", row.Period.From },
+                    new object?[] { "Period to", row.Period.To },
+                    new object?[] { "Rating count", row.RatingCount },
+                    new object?[] { "Average rating", row.AverageRating },
+                    new object?[] { "Approval rate (%)", row.ApprovalRate },
+                    new object?[] { "Dispute rate (%)", row.DisputeRate }
+                };
+                satisfactionRows.AddRange(row.RatingDistribution.Select(item => (IReadOnlyList<object?>)new object?[] { item.Name, item.Count }));
+                table = new ReportTable(
+                    "CivicHero Citizen satisfaction",
+                    ["Metric", "Value"],
+                    satisfactionRows,
+                    $"Generated {generatedAt:yyyy-MM-dd HH:mm} UTC");
+                break;
+            }
+            case "citizen-engagement":
+            case "citizenengagement":
+            {
+                var (period, rows) = await BuildCitizenEngagementAsync(filter, cancellationToken);
+                table = new ReportTable(
+                    "CivicHero Citizen engagement",
+                    [
+                        "Citizen ID", "Citizen", "Email", "Ward", "Account active", "Last login",
+                        "Complaints submitted", "Active complaints", "Closed complaints", "Supports cast",
+                        "Public comments", "Verification responses", "Approved verifications", "Average service rating",
+                        "Reward transactions", "Points earned", "Points deducted", "Reward redemptions", "Points spent",
+                        "Initiative follows", "Initiative feedback", "Average initiative rating", "Total engagement actions",
+                        "Last activity"
+                    ],
+                    rows.Select(row => (IReadOnlyList<object?>)new object?[]
+                    {
+                        row.CitizenId, row.CitizenName, row.CitizenEmail, row.WardName, row.AccountActive, row.LastLoginAt,
+                        row.ComplaintsSubmitted, row.ActiveComplaints, row.ClosedComplaints, row.SupportsCast,
+                        row.PublicComments, row.VerificationResponses, row.ApprovedVerifications, row.AverageServiceRating,
+                        row.RewardTransactions, row.PointsEarned, row.PointsDeducted, row.RewardRedemptions, row.RedemptionPointsSpent,
+                        row.InitiativeFollows, row.InitiativeFeedback, row.AverageInitiativeRating, row.TotalEngagementActions,
+                        row.LastActivityAt
+                    }).ToList(),
+                    $"Activity period {period.From:yyyy-MM-dd} to {period.To:yyyy-MM-dd}; {rows.Count} Citizen accounts included (maximum 5,000). Complaint filters apply to complaint-linked engagement.");
                 break;
             }
             default:
-                throw new ArgumentException("Supported reports: complaints, departments, officers, wards, sla.", nameof(report));
+                throw new ArgumentException("Supported reports: overview, complaints, departments, officers, wards, sla, satisfaction, citizen-engagement.", nameof(report));
         }
 
-        var bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true).GetBytes(builder.ToString());
-        return new AnalyticsExportResult(bytes, "text/csv; charset=utf-8", $"civichero-{report}-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv");
+        return ReportDocumentBuilder.Build(table, format, $"civichero-{report}-{generatedAt:yyyyMMdd-HHmm}");
+    }
+
+    private async Task<(AnalyticsPeriod Period, IReadOnlyList<CitizenEngagementRow> Rows)> BuildCitizenEngagementAsync(
+        AnalyticsFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var period = ResolvePeriod(filter);
+        var citizensQuery = _db.Users.AsNoTracking()
+            .Where(user => !user.IsDeleted && user.Role == UserRole.Citizen);
+
+        if (filter.WardId.HasValue)
+            citizensQuery = citizensQuery.Where(user => user.WardId == filter.WardId.Value);
+
+        var citizens = await citizensQuery
+            .OrderBy(user => user.FullName)
+            .ThenBy(user => user.Id)
+            .Select(user => new CitizenAccountRow(
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.Ward != null ? user.Ward.Name : null,
+                user.IsActive,
+                user.LastLoginAt))
+            .Take(5000)
+            .ToListAsync(cancellationToken);
+
+        if (citizens.Count == 0)
+            return (period, Array.Empty<CitizenEngagementRow>());
+
+        var scopedComplaintQuery = _db.Complaints.AsNoTracking().Where(complaint => !complaint.IsDeleted);
+        if (filter.DepartmentId.HasValue)
+            scopedComplaintQuery = scopedComplaintQuery.Where(complaint => complaint.DepartmentId == filter.DepartmentId.Value);
+        if (filter.WardId.HasValue)
+            scopedComplaintQuery = scopedComplaintQuery.Where(complaint => complaint.WardId == filter.WardId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.Category) && !filter.Category.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            var category = filter.Category.Trim();
+            scopedComplaintQuery = scopedComplaintQuery.Where(complaint => complaint.Category == category);
+        }
+        if (!string.IsNullOrWhiteSpace(filter.Status) && !filter.Status.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Enum.TryParse<ComplaintStatus>(filter.Status.Trim(), true, out var status))
+                throw new ArgumentException($"Unknown complaint status '{filter.Status}'.", nameof(filter));
+            scopedComplaintQuery = scopedComplaintQuery.Where(complaint => complaint.Status == status);
+        }
+
+        var scopedComplaintIds = scopedComplaintQuery.Select(complaint => complaint.Id);
+
+        var complaintEvents = await scopedComplaintQuery
+            .Where(complaint => complaint.CreatedAt >= period.From && complaint.CreatedAt <= period.To)
+            .Select(complaint => new { complaint.CitizenId, complaint.Status, complaint.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var voteEvents = await _db.ComplaintVotes.AsNoTracking()
+            .Where(vote => vote.VotedAt >= period.From && vote.VotedAt <= period.To && scopedComplaintIds.Contains(vote.ComplaintId))
+            .Select(vote => new { vote.UserId, vote.VotedAt })
+            .ToListAsync(cancellationToken);
+
+        var commentEvents = await _db.ComplaintComments.AsNoTracking()
+            .Where(comment => !comment.IsDeleted &&
+                              comment.CreatedAt >= period.From && comment.CreatedAt <= period.To &&
+                              comment.Visibility == CommentVisibility.Public &&
+                              comment.ModerationStatus == CommentModerationStatus.Visible &&
+                              scopedComplaintIds.Contains(comment.ComplaintId))
+            .Select(comment => new { comment.UserId, comment.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var verificationEvents = await _db.ComplaintVerifications.AsNoTracking()
+            .Where(verification => verification.CompletedAt.HasValue &&
+                                   verification.CompletedAt.Value >= period.From && verification.CompletedAt.Value <= period.To &&
+                                   verification.Decision != VerificationDecision.Pending &&
+                                   scopedComplaintIds.Contains(verification.ComplaintId))
+            .Select(verification => new
+            {
+                verification.CitizenId,
+                verification.Decision,
+                verification.Rating,
+                CompletedAt = verification.CompletedAt!.Value
+            })
+            .ToListAsync(cancellationToken);
+
+        var rewardEvents = await _db.ReputationLogs.AsNoTracking()
+            .Where(log => log.CreatedAt >= period.From && log.CreatedAt <= period.To)
+            .Select(log => new { log.UserId, log.PointsDelta, log.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var redemptionEvents = await _db.Redemptions.AsNoTracking()
+            .Where(redemption => redemption.CreatedAt >= period.From && redemption.CreatedAt <= period.To)
+            .Select(redemption => new { redemption.UserId, redemption.PointsSpent, redemption.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var initiativeEvents = await _db.AuditLogs.AsNoTracking()
+            .Where(log => log.UserId.HasValue &&
+                          log.EntityName == "CivicInitiative" &&
+                          (log.Action == "InitiativeFollowed" || log.Action == "InitiativeFeedbackSubmitted") &&
+                          log.CreatedAt >= period.From && log.CreatedAt <= period.To)
+            .Select(log => new { UserId = log.UserId!.Value, log.Action, log.NewValuesJson, log.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var complaintStats = complaintEvents.GroupBy(item => item.CitizenId).ToDictionary(
+            group => group.Key,
+            group => new
+            {
+                Submitted = group.Count(),
+                Active = group.Count(item => !TerminalStatuses.Contains(item.Status)),
+                Closed = group.Count(item => ClosedStatuses.Contains(item.Status)),
+                LastActivity = group.Max(item => (DateTimeOffset?)item.CreatedAt)
+            });
+
+        var voteStats = voteEvents.GroupBy(item => item.UserId).ToDictionary(
+            group => group.Key,
+            group => new { Count = group.Count(), LastActivity = group.Max(item => (DateTimeOffset?)item.VotedAt) });
+
+        var commentStats = commentEvents.GroupBy(item => item.UserId).ToDictionary(
+            group => group.Key,
+            group => new { Count = group.Count(), LastActivity = group.Max(item => (DateTimeOffset?)item.CreatedAt) });
+
+        var verificationStats = verificationEvents.GroupBy(item => item.CitizenId).ToDictionary(
+            group => group.Key,
+            group =>
+            {
+                var ratings = group.Where(item => item.Rating is >= 1 and <= 5).Select(item => item.Rating!.Value).ToList();
+                return new
+                {
+                    Count = group.Count(),
+                    Approved = group.Count(item => item.Decision == VerificationDecision.Approved),
+                    AverageRating = Round(ratings.Count == 0 ? 0 : (decimal)ratings.Average()),
+                    LastActivity = group.Max(item => (DateTimeOffset?)item.CompletedAt)
+                };
+            });
+
+        var rewardStats = rewardEvents.GroupBy(item => item.UserId).ToDictionary(
+            group => group.Key,
+            group => new
+            {
+                Count = group.Count(),
+                Earned = group.Where(item => item.PointsDelta > 0).Sum(item => item.PointsDelta),
+                Deducted = group.Where(item => item.PointsDelta < 0).Sum(item => -item.PointsDelta),
+                LastActivity = group.Max(item => (DateTimeOffset?)item.CreatedAt)
+            });
+
+        var redemptionStats = redemptionEvents.GroupBy(item => item.UserId).ToDictionary(
+            group => group.Key,
+            group => new
+            {
+                Count = group.Count(),
+                PointsSpent = group.Sum(item => item.PointsSpent),
+                LastActivity = group.Max(item => (DateTimeOffset?)item.CreatedAt)
+            });
+
+        var initiativeStats = initiativeEvents.GroupBy(item => item.UserId).ToDictionary(
+            group => group.Key,
+            group =>
+            {
+                var ratings = group
+                    .Where(item => item.Action == "InitiativeFeedbackSubmitted")
+                    .Select(item => ReadJsonInt(item.NewValuesJson, "rating"))
+                    .Where(value => value is >= 1 and <= 5)
+                    .Select(value => value!.Value)
+                    .ToList();
+                return new
+                {
+                    Follows = group.Count(item => item.Action == "InitiativeFollowed"),
+                    Feedback = group.Count(item => item.Action == "InitiativeFeedbackSubmitted"),
+                    AverageRating = Round(ratings.Count == 0 ? 0 : (decimal)ratings.Average()),
+                    LastActivity = group.Max(item => (DateTimeOffset?)item.CreatedAt)
+                };
+            });
+
+        var rows = citizens.Select(citizen =>
+        {
+            complaintStats.TryGetValue(citizen.Id, out var complaints);
+            voteStats.TryGetValue(citizen.Id, out var votes);
+            commentStats.TryGetValue(citizen.Id, out var comments);
+            verificationStats.TryGetValue(citizen.Id, out var verifications);
+            rewardStats.TryGetValue(citizen.Id, out var rewards);
+            redemptionStats.TryGetValue(citizen.Id, out var redemptions);
+            initiativeStats.TryGetValue(citizen.Id, out var initiatives);
+
+            var totalActions = (complaints?.Submitted ?? 0) +
+                               (votes?.Count ?? 0) +
+                               (comments?.Count ?? 0) +
+                               (verifications?.Count ?? 0) +
+                               (redemptions?.Count ?? 0) +
+                               (initiatives?.Follows ?? 0) +
+                               (initiatives?.Feedback ?? 0);
+
+            return new CitizenEngagementRow(
+                citizen.Id,
+                citizen.FullName,
+                citizen.Email,
+                citizen.WardName,
+                citizen.IsActive,
+                citizen.LastLoginAt,
+                complaints?.Submitted ?? 0,
+                complaints?.Active ?? 0,
+                complaints?.Closed ?? 0,
+                votes?.Count ?? 0,
+                comments?.Count ?? 0,
+                verifications?.Count ?? 0,
+                verifications?.Approved ?? 0,
+                verifications?.AverageRating ?? 0,
+                rewards?.Count ?? 0,
+                rewards?.Earned ?? 0,
+                rewards?.Deducted ?? 0,
+                redemptions?.Count ?? 0,
+                redemptions?.PointsSpent ?? 0,
+                initiatives?.Follows ?? 0,
+                initiatives?.Feedback ?? 0,
+                initiatives?.AverageRating ?? 0,
+                totalActions,
+                LatestActivity(
+                    complaints?.LastActivity,
+                    votes?.LastActivity,
+                    comments?.LastActivity,
+                    verifications?.LastActivity,
+                    rewards?.LastActivity,
+                    redemptions?.LastActivity,
+                    initiatives?.LastActivity));
+        })
+        .OrderByDescending(row => row.TotalEngagementActions)
+        .ThenByDescending(row => row.LastActivityAt)
+        .ThenBy(row => row.CitizenName)
+        .ToList();
+
+        return (period, rows);
+    }
+
+    private static DateTimeOffset? LatestActivity(params DateTimeOffset?[] values)
+    {
+        var available = values.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
+        return available.Length == 0 ? null : available.Max();
+    }
+
+    private static int? ReadJsonInt(string? json, string propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.TryGetProperty(propertyName, out var value) && value.TryGetInt32(out var result)
+                ? result
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private async Task<(AnalyticsPeriod Period, List<Complaint> Complaints)> LoadComplaintsAsync(AnalyticsFilter filter, CancellationToken cancellationToken)
@@ -445,6 +891,17 @@ public sealed class AnalyticsService : IAnalyticsService
         return new AnalyticsPeriod(from, to, Math.Max(1, (int)Math.Ceiling((to - from).TotalDays)));
     }
 
+    private static AnalyticsPeriod ResolvePublicPeriod(AnalyticsFilter filter)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var to = filter.To?.ToUniversalTime() ?? now;
+        if (to > now.AddMinutes(5)) to = now;
+        var from = filter.From?.ToUniversalTime() ?? to.AddDays(-29);
+        if (from > to) throw new CivicHero.Backend.Core.Exceptions.ValidationException(["The public heatmap From date must be before To date."]);
+        if ((to - from).TotalDays > 365) from = to.AddDays(-365);
+        return new AnalyticsPeriod(from, to, Math.Max(1, (int)Math.Ceiling((to - from).TotalDays)));
+    }
+
     private static IReadOnlyList<TrendPoint> BuildTrend(AnalyticsPeriod period, IReadOnlyCollection<Complaint> complaints)
     {
         var start = new DateTimeOffset(period.From.Year, period.From.Month, 1, 0, 0, 0, TimeSpan.Zero);
@@ -505,6 +962,14 @@ public sealed class AnalyticsService : IAnalyticsService
         };
         return $"\"{text.Replace("\"", "\"\"")}\"";
     }
+
+    private sealed record CitizenAccountRow(
+        long Id,
+        string FullName,
+        string Email,
+        string? WardName,
+        bool IsActive,
+        DateTimeOffset? LastLoginAt);
 
     private sealed record RatingRow(long ComplaintId, int Rating, bool? IsApproved);
 }

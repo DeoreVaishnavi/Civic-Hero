@@ -62,6 +62,13 @@ public sealed class AdminNotificationsController : ControllerBase
     public async Task<IActionResult> DeliverySummary(CancellationToken cancellationToken) =>
         OkEnvelope("Notification delivery summary loaded.", await _service.GetDeliverySummaryAsync(cancellationToken));
 
+    [HttpGet("deliveries/export")]
+    public async Task<IActionResult> ExportDeliveries([FromQuery] NotificationDeliveryQuery query, [FromQuery] string format = "csv", CancellationToken cancellationToken = default)
+    {
+        var file = await _service.ExportDeliveryLogsAsync(query, format, cancellationToken);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
     [HttpPost("deliveries/{id:long}/retry")]
     public async Task<IActionResult> Retry(long id, [FromBody] RetryNotificationDeliveryRequest request, CancellationToken cancellationToken)
     {

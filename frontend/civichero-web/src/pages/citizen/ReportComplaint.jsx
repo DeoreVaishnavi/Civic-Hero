@@ -5,7 +5,6 @@ import ComplaintLocationPicker from '../../components/maps/ComplaintLocationPick
 import { useGeoLocation } from '../../hooks/useGeoLocation.js';
 import { complaintApi } from '../../services/complaintApi.js';
 
-const DRAFT_KEY = 'civichero:citizen-complaint-draft:v2';
 const allowedEvidenceTypes = [
   'image/jpeg', 'image/png', 'image/webp',
   'video/mp4', 'video/webm', 'video/quicktime',
@@ -35,7 +34,7 @@ function validationErrors(form, metadata) {
   const longitude = Number(form.longitude);
   const department = metadata.departments.find((item) => String(item.id) === String(form.departmentId));
   const ward = metadata.wards.find((item) => String(item.id) === String(form.wardId));
-  const totalBytes = form.evidence.reduce((sum, file) => sum + file.size, 0);
+  const totalBytes = form.evidence.reduce((sum, file) => sum + Number(file.fileSize || file.size || 0), 0);
 
   if (form.title.trim().length < 5 || form.title.trim().length > 200) errors.push('Issue title must contain 5 to 200 characters.');
   if (form.description.trim().length < 20 || form.description.trim().length > 5000) errors.push('Description must contain 20 to 5000 characters.');
@@ -52,8 +51,11 @@ function validationErrors(form, metadata) {
   if (totalBytes > 25 * 1024 * 1024) errors.push('Total evidence size cannot exceed 25 MB.');
 
   form.evidence.forEach((file) => {
-    if (!allowedEvidenceTypes.includes(file.type)) errors.push(`${file.name} is not a supported evidence format.`);
-    if (file.size <= 0 || file.size > 15 * 1024 * 1024) errors.push(`${file.name} must be between 1 byte and 15 MB.`);
+    const name = file.fileName || file.name || 'Evidence';
+    const type = file.mimeType || file.type || '';
+    const size = Number(file.fileSize || file.size || 0);
+    if (!allowedEvidenceTypes.includes(type)) errors.push(`${name} is not a supported evidence format.`);
+    if (size <= 0 || size > 15 * 1024 * 1024) errors.push(`${name} must be between 1 byte and 15 MB.`);
   });
   return [...new Set(errors)];
 }
@@ -70,6 +72,50 @@ function formatPercent(value) {
   return Number.isFinite(number) ? `${Math.round(number * 100)}%` : '—';
 }
 
+function draftPayload(form) {
+  return {
+    title: form.title || null,
+    description: form.description || null,
+    category: form.category || null,
+    citizenSeverity: form.citizenSeverity || 'Medium',
+    departmentId: form.departmentId ? Number(form.departmentId) : null,
+    wardId: form.wardId ? Number(form.wardId) : null,
+    latitude: form.latitude === '' ? null : Number(form.latitude),
+    longitude: form.longitude === '' ? null : Number(form.longitude),
+    address: form.address || null,
+    landmark: form.landmark || null,
+    possibleEmergency: Boolean(form.possibleEmergency),
+    emergencyReason: form.possibleEmergency ? (form.emergencyReason || null) : null,
+  };
+}
+
+function hasDraftContent(form) {
+  return Boolean(
+    form.title || form.description || form.category || form.departmentId || form.wardId ||
+    form.latitude !== '' || form.longitude !== '' || form.address || form.landmark ||
+    form.possibleEmergency || form.evidence.length,
+  );
+}
+
+function applyDraft(draft) {
+  return {
+    ...initialForm,
+    title: draft?.title || '',
+    description: draft?.description || '',
+    category: draft?.category || '',
+    citizenSeverity: draft?.citizenSeverity || 'Medium',
+    departmentId: draft?.departmentId ? String(draft.departmentId) : '',
+    wardId: draft?.wardId ? String(draft.wardId) : '',
+    latitude: draft?.latitude == null ? '' : String(draft.latitude),
+    longitude: draft?.longitude == null ? '' : String(draft.longitude),
+    address: draft?.address || '',
+    landmark: draft?.landmark || '',
+    possibleEmergency: Boolean(draft?.possibleEmergency),
+    emergencyReason: draft?.emergencyReason || '',
+    evidence: draft?.evidence || [],
+  };
+}
+
 export default function ReportComplaint() {
   const navigate = useNavigate();
   const geo = useGeoLocation();
@@ -78,8 +124,10 @@ export default function ReportComplaint() {
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [metadataError, setMetadataError] = useState('');
   const [form, setForm] = useState(initialForm);
+  const [draftId, setDraftId] = useState(null);
   const [draftReady, setDraftReady] = useState(false);
   const [draftMessage, setDraftMessage] = useState('');
+  const [evidenceUploading, setEvidenceUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analyzing, setAnalyzing] = useState(false);
@@ -109,41 +157,49 @@ export default function ReportComplaint() {
   useEffect(() => { loadMetadata(); }, []);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-      if (stored?.form) {
-        setForm((current) => ({ ...current, ...stored.form, evidence: [] }));
-        setDraftMessage(`Draft restored${stored.savedAt ? ` from ${new Date(stored.savedAt).toLocaleString()}` : ''}. Evidence files must be selected again for security.`);
+    let active = true;
+    const loadDraft = async () => {
+      try {
+        const stored = await complaintApi.currentDraft();
+        if (!active) return;
+        if (stored) {
+          setDraftId(stored.id);
+          setForm(applyDraft(stored));
+          setDraftMessage(`Account draft restored${stored.savedAt ? ` from ${new Date(stored.savedAt).toLocaleString()}` : ''}.`);
+        }
+      } catch (reason) {
+        if (active) setError(reason.message || 'Unable to load your saved complaint draft.');
+      } finally {
+        if (active) setDraftReady(true);
       }
-    } catch {
-      localStorage.removeItem(DRAFT_KEY);
-    } finally {
-      setDraftReady(true);
-    }
+    };
+    loadDraft();
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
-    if (!draftReady) return undefined;
-    const timer = window.setTimeout(() => {
-      const { evidence, ...draftForm } = form;
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form: draftForm, savedAt: new Date().toISOString() }));
-      setDraftMessage('Draft saved automatically in this browser.');
-    }, 800);
+    if (!draftReady || evidenceUploading || (!draftId && !hasDraftContent(form))) return undefined;
+    const timer = window.setTimeout(async () => {
+      try {
+        const saved = await complaintApi.saveDraft(draftPayload(form));
+        setDraftId(saved.id);
+        setDraftMessage('Draft saved automatically to your CivicHero account.');
+      } catch (reason) {
+        setError(reason.message || 'Automatic draft saving failed. Use Save draft to retry.');
+      }
+    }, 1200);
     return () => window.clearTimeout(timer);
-  }, [form, draftReady]);
+  }, [
+    form.title, form.description, form.category, form.citizenSeverity, form.departmentId,
+    form.wardId, form.latitude, form.longitude, form.address, form.landmark,
+    form.possibleEmergency, form.emergencyReason, draftId, draftReady, evidenceUploading,
+  ]);
 
   const wards = useMemo(
     () => metadata.wards.filter((ward) => String(ward.departmentId) === String(form.departmentId)),
     [metadata.wards, form.departmentId],
   );
 
-  const previews = useMemo(
-    () => form.evidence
-      .filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'))
-      .map((file) => ({ file, url: URL.createObjectURL(file) })),
-    [form.evidence],
-  );
-  useEffect(() => () => previews.forEach((item) => URL.revokeObjectURL(item.url)), [previews]);
 
   const change = (event) => {
     const { name, value, type, checked } = event.target;
@@ -153,30 +209,57 @@ export default function ReportComplaint() {
     setError('');
   };
 
-  const appendEvidence = (selected) => {
+  const appendEvidence = async (selected) => {
     const incoming = Array.from(selected || []);
-    const combined = [...form.evidence, ...incoming];
+    const currentBytes = form.evidence.reduce((sum, file) => sum + Number(file.fileSize || 0), 0);
+    const incomingBytes = incoming.reduce((sum, file) => sum + file.size, 0);
     const invalid = incoming.find((file) => !allowedEvidenceTypes.includes(file.type) || file.size <= 0 || file.size > 15 * 1024 * 1024);
     if (invalid) {
       setError('Evidence must be JPEG, PNG, WebP, MP4, WebM, MOV, PDF, DOC or DOCX, with a maximum size of 15 MB each.');
       return;
     }
-    if (combined.length > 8) {
+    if (form.evidence.length + incoming.length > 8) {
       setError('Select a maximum of eight evidence files.');
       return;
     }
-    if (combined.reduce((sum, file) => sum + file.size, 0) > 25 * 1024 * 1024) {
+    if (currentBytes + incomingBytes > 25 * 1024 * 1024) {
       setError('The total evidence size cannot exceed 25 MB.');
       return;
     }
-    setForm((current) => ({ ...current, evidence: combined }));
+
+    setEvidenceUploading(true);
     setError('');
+    try {
+      const saved = await complaintApi.saveDraft(draftPayload(form));
+      setDraftId(saved.id);
+      for (const file of incoming) {
+        const uploaded = await complaintApi.addDraftEvidence(file);
+        setForm((current) => ({ ...current, evidence: [...current.evidence, uploaded] }));
+      }
+      setDraftMessage('Evidence saved securely with your account draft.');
+    } catch (reason) {
+      setError(reason.message || 'One or more evidence files could not be saved to the draft.');
+    } finally {
+      setEvidenceUploading(false);
+    }
   };
 
-  const removeEvidence = (index) => setForm((current) => ({
-    ...current,
-    evidence: current.evidence.filter((_, currentIndex) => currentIndex !== index),
-  }));
+  const removeEvidence = async (evidenceId) => {
+    setEvidenceUploading(true);
+    setError('');
+    try {
+      await complaintApi.removeDraftEvidence(evidenceId);
+      setForm((current) => ({
+        ...current,
+        evidence: current.evidence.filter((item) => item.id !== evidenceId),
+      }));
+      setDraftMessage('Draft evidence removed.');
+    } catch (reason) {
+      setError(reason.message || 'Draft evidence could not be removed.');
+    } finally {
+      setEvidenceUploading(false);
+    }
+  };
 
   const useLocation = async () => {
     try {
@@ -203,18 +286,29 @@ export default function ReportComplaint() {
     setDuplicateOverride(false);
   };
 
-  const saveDraftNow = () => {
-    const { evidence, ...draftForm } = form;
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ form: draftForm, savedAt: new Date().toISOString() }));
-    setDraftMessage('Draft saved. You can safely leave this page and continue later in this browser.');
+  const saveDraftNow = async () => {
+    setError('');
+    try {
+      const saved = await complaintApi.saveDraft(draftPayload(form));
+      setDraftId(saved.id);
+      setDraftMessage('Draft saved to your CivicHero account. You can continue on another signed-in device.');
+    } catch (reason) {
+      setError(reason.message || 'The complaint draft could not be saved.');
+    }
   };
 
-  const clearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY);
-    setForm(initialForm);
-    setAnalysis(null);
-    setAnalyzedFingerprint('');
-    setDraftMessage('Draft cleared.');
+  const clearDraft = async () => {
+    setError('');
+    try {
+      await complaintApi.clearDraft();
+      setDraftId(null);
+      setForm(initialForm);
+      setAnalysis(null);
+      setAnalyzedFingerprint('');
+      setDraftMessage('Account draft cleared.');
+    } catch (reason) {
+      setError(reason.message || 'The complaint draft could not be cleared.');
+    }
   };
 
   const runAiReview = async () => {
@@ -268,7 +362,7 @@ export default function ReportComplaint() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (submitting || analyzing) return;
+    if (submitting || analyzing || evidenceUploading) return;
     setError('');
     setSuccess('');
     setUploadProgress(0);
@@ -305,6 +399,8 @@ export default function ReportComplaint() {
     try {
       const request = {
         ...form,
+        draftId,
+        evidenceFiles: [],
         title: form.title.trim(),
         description: form.description.trim(),
         address: form.address.trim(),
@@ -320,7 +416,6 @@ export default function ReportComplaint() {
         },
       });
       if (!result?.complaint?.id || !result?.complaint?.referenceNumber) throw new Error('The server did not confirm the new complaint.');
-      localStorage.removeItem(DRAFT_KEY);
       setUploadProgress(100);
       setSuccess(`Complaint ${result.complaint.referenceNumber} was submitted successfully.`);
       globalThis.setTimeout(() => navigate(`/citizen/complaints/${result.complaint.id}`, { replace: true }), 900);
@@ -338,7 +433,9 @@ export default function ReportComplaint() {
   const duplicateMatches = analysis?.duplicate?.matches || [];
   const strongestDuplicate = analysis?.duplicate?.matchingComplaintId || duplicateMatches[0]?.complaintId;
   const lowConfidence = analysis?.classification && Number(analysis.classification.confidence) < 0.7;
-  const submitLabel = submitting
+  const submitLabel = evidenceUploading
+    ? 'Saving evidence…'
+    : submitting
     ? (uploadProgress > 0 && uploadProgress < 100 ? `Uploading evidence ${uploadProgress}%…` : 'Saving complaint…')
     : 'Send complaint';
 
@@ -348,10 +445,10 @@ export default function ReportComplaint() {
         <div>
           <p className="section-kicker">Citizen complaint form</p>
           <h2>Report a civic issue</h2>
-          <p>Save a draft, select the exact map location, add supporting media and review AI suggestions before submission.</p>
+          <p>Save an account-backed draft, continue across signed-in devices, add supporting media and review AI suggestions before submission.</p>
         </div>
         <div className="page-actions">
-          <button type="button" onClick={saveDraftNow} className="button outline">Save draft</button>
+          <button type="button" onClick={saveDraftNow} disabled={evidenceUploading} className="button outline">Save draft</button>
           <Link to="/citizen" className="button outline">← Dashboard</Link>
         </div>
       </div>
@@ -396,16 +493,16 @@ export default function ReportComplaint() {
               <input ref={cameraInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => { appendEvidence(event.target.files); event.target.value = ''; }} hidden />
             </div>
           </div>
+          {evidenceUploading && <div className="alert info" style={{ marginTop: 14 }}>Saving evidence to your account draft…</div>}
           {form.evidence.length > 0 && <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" style={{ marginTop: 16 }}>
-            {form.evidence.map((file, index) => {
-              const preview = previews.find((item) => item.file === file);
-              return <article key={`${file.name}-${file.lastModified}-${index}`} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                {file.type.startsWith('image/') && preview && <img src={preview.url} alt={file.name} className="h-40 w-full rounded-xl object-cover" />}
-                {file.type.startsWith('video/') && preview && <video src={preview.url} controls className="h-40 w-full rounded-xl bg-slate-950 object-cover" />}
-                {!file.type.startsWith('image/') && !file.type.startsWith('video/') && <div className="grid h-40 place-items-center rounded-xl bg-slate-100 text-center"><div><strong>Document</strong><p className="text-xs text-slate-500">{file.type || 'Supporting file'}</p></div></div>}
-                <div className="mt-3 flex items-center justify-between gap-2 text-xs"><span className="truncate">{file.name}</span><button type="button" className="font-bold text-red-700" onClick={() => removeEvidence(index)}>Remove</button></div>
-              </article>;
-            })}
+            {form.evidence.map((file) => <article key={file.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+              <DraftEvidencePreview item={file} />
+              <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                <span className="truncate">{file.fileName}</span>
+                <button type="button" disabled={evidenceUploading} className="font-bold text-red-700" onClick={() => removeEvidence(file.id)}>Remove</button>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{Math.max(1, Math.round(Number(file.fileSize || 0) / 1024))} KB · Saved to account</p>
+            </article>)}
           </div>}
         </section>
 
@@ -442,13 +539,64 @@ export default function ReportComplaint() {
         </section>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginTop: 15 }}>
-          <button type="button" onClick={saveDraftNow} className="button outline large">Save and continue later</button>
+          <button type="button" onClick={saveDraftNow} disabled={evidenceUploading} className="button outline large">Save and continue later</button>
           <Link to="/citizen" className="button outline large">Cancel</Link>
-          <button type="submit" disabled={submitting || analyzing || metadataLoading || Boolean(metadataError)} className="button primary large">{submitLabel}</button>
+          <button type="submit" disabled={submitting || analyzing || evidenceUploading || metadataLoading || Boolean(metadataError)} className="button primary large">{submitLabel}</button>
         </div>
       </form>
     </section>
   );
+}
+
+
+function DraftEvidencePreview({ item }) {
+  const [url, setUrl] = useState('');
+  const [videoRequested, setVideoRequested] = useState(false);
+  const isImage = item?.mimeType?.startsWith('image/');
+  const isVideo = item?.mimeType?.startsWith('video/');
+
+  useEffect(() => {
+    if (!isImage && !(isVideo && videoRequested)) return undefined;
+    let active = true;
+    let objectUrl = '';
+    complaintApi.downloadDraftEvidence(item.id)
+      .then((response) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(response.data);
+        setUrl(objectUrl);
+      })
+      .catch(() => { if (active) setUrl(''); });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [item?.id, isImage, isVideo, videoRequested]);
+
+  const download = async () => {
+    try {
+      const response = await complaintApi.downloadDraftEvidence(item.id);
+      const objectUrl = URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = item.fileName || 'draft-evidence';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      // The parent page keeps the saved evidence visible even when a preview/download temporarily fails.
+    }
+  };
+
+  if (isImage && url)
+    return <img src={url} alt={item.fileName} className="h-40 w-full rounded-xl object-cover" />;
+  if (isVideo && url)
+    return <video src={url} controls className="h-40 w-full rounded-xl bg-slate-950 object-cover" />;
+  if (isVideo)
+    return <div className="grid h-40 place-items-center rounded-xl bg-slate-100 text-center"><div><strong>Video saved</strong><p className="text-xs text-slate-500">Load only when you need to review it.</p><button type="button" className="button ghost small" onClick={() => setVideoRequested(true)}>Load preview</button></div></div>;
+  if (!isImage)
+    return <div className="grid h-40 place-items-center rounded-xl bg-slate-100 text-center"><div><strong>Document saved</strong><p className="text-xs text-slate-500">{item?.mimeType || 'Supporting file'}</p><button type="button" className="button ghost small" onClick={download}>Download</button></div></div>;
+  return <div className="grid h-40 place-items-center rounded-xl bg-slate-100 text-center"><div><strong>Image saved</strong><p className="text-xs text-slate-500">Preview temporarily unavailable.</p><button type="button" className="button ghost small" onClick={download}>Download</button></div></div>;
 }
 
 function Info({ label, value, detail }) {

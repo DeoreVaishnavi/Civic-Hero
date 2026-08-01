@@ -101,6 +101,32 @@ public sealed record SatisfactionAnalyticsResponse(
     decimal DisputeRate,
     IReadOnlyList<MetricSlice> RatingDistribution);
 
+public sealed record CitizenEngagementRow(
+    long CitizenId,
+    string CitizenName,
+    string CitizenEmail,
+    string? WardName,
+    bool AccountActive,
+    DateTimeOffset? LastLoginAt,
+    int ComplaintsSubmitted,
+    int ActiveComplaints,
+    int ClosedComplaints,
+    int SupportsCast,
+    int PublicComments,
+    int VerificationResponses,
+    int ApprovedVerifications,
+    decimal AverageServiceRating,
+    int RewardTransactions,
+    int PointsEarned,
+    int PointsDeducted,
+    int RewardRedemptions,
+    int RedemptionPointsSpent,
+    int InitiativeFollows,
+    int InitiativeFeedback,
+    decimal AverageInitiativeRating,
+    int TotalEngagementActions,
+    DateTimeOffset? LastActivityAt);
+
 public sealed record HeatmapPointResponse(
     decimal Latitude,
     decimal Longitude,
@@ -119,6 +145,25 @@ public sealed record HeatmapPointResponse(
     long LatestComplaintId,
     string LatestComplaintTitle,
     string LatestComplaintStatus,
+    DateTimeOffset LastUpdatedAt,
+    IReadOnlyList<MetricSlice> ByCategory,
+    IReadOnlyList<MetricSlice> ByStatus);
+
+public sealed record PublicHeatmapPointResponse(
+    decimal Latitude,
+    decimal Longitude,
+    int ComplaintCount,
+    int ActiveCount,
+    int ResolutionPendingCount,
+    int SolvedCount,
+    int DisputedCount,
+    decimal ResolutionRate,
+    decimal AverageResolutionHours,
+    decimal HeatScore,
+    string DominantCategory,
+    string RiskLevel,
+    long? WardId,
+    string? WardName,
     DateTimeOffset LastUpdatedAt,
     IReadOnlyList<MetricSlice> ByCategory,
     IReadOnlyList<MetricSlice> ByStatus);

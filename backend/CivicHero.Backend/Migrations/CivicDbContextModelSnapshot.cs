@@ -388,6 +388,123 @@ namespace CivicHero.Backend.Migrations
                     b.ToTable("chat_sessions", (string)null);
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintDraft", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(400)
+                        .HasColumnType("varchar(400)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<long>("CitizenId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CitizenSeverity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long?>("DepartmentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmergencyReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("Landmark")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<bool>("PossibleEmergency")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long?>("WardId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CitizenId")
+                        .IsUnique();
+
+                    b.HasIndex("WardId");
+
+                    b.HasIndex("DepartmentId", "WardId");
+
+                    b.ToTable("complaint_drafts", (string)null);
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintDraftEvidence", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ComplaintDraftId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("S3Key")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintDraftId");
+
+                    b.HasIndex("S3Key")
+                        .IsUnique();
+
+                    b.ToTable("complaint_draft_evidence", (string)null);
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.Complaint", b =>
                 {
                     b.Property<long>("Id")
@@ -1652,6 +1769,77 @@ namespace CivicHero.Backend.Migrations
                     b.ToTable("system_settings", (string)null);
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.UserSession", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AuthorizationVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("DeviceLabel")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "AuthorizationVersion");
+
+                    b.HasIndex("UserId", "RevokedAt", "ExpiresAt");
+
+                    b.ToTable("user_sessions", (string)null);
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.User", b =>
                 {
                     b.Property<long>("Id")
@@ -2094,6 +2282,44 @@ namespace CivicHero.Backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintDraft", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "Citizen")
+                        .WithOne()
+                        .HasForeignKey("CivicHero.Backend.Core.Entities.ComplaintDraft", "CitizenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CivicHero.Backend.Core.Entities.Ward", "Ward")
+                        .WithMany()
+                        .HasForeignKey("WardId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Citizen");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("UserSessions");
+
+                    b.Navigation("Ward");
+                });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintDraftEvidence", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.ComplaintDraft", "ComplaintDraft")
+                        .WithMany("Evidence")
+                        .HasForeignKey("ComplaintDraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ComplaintDraft");
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.Complaint", b =>
                 {
                     b.HasOne("CivicHero.Backend.Core.Entities.User", "AssignedOfficer")
@@ -2399,6 +2625,17 @@ namespace CivicHero.Backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.UserSession", b =>
+                {
+                    b.HasOne("CivicHero.Backend.Core.Entities.User", "User")
+                        .WithMany("UserSessions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.User", b =>
                 {
                     b.HasOne("CivicHero.Backend.Core.Entities.Department", "Department")
@@ -2449,6 +2686,12 @@ namespace CivicHero.Backend.Migrations
                 {
                     b.Navigation("Messages");
                 });
+
+            modelBuilder.Entity("CivicHero.Backend.Core.Entities.ComplaintDraft", b =>
+                {
+                    b.Navigation("Evidence");
+                });
+
 
             modelBuilder.Entity("CivicHero.Backend.Core.Entities.Complaint", b =>
                 {
@@ -2524,6 +2767,8 @@ namespace CivicHero.Backend.Migrations
                     b.Navigation("Redemptions");
 
                     b.Navigation("ReputationLogs");
+
+                    b.Navigation("UserSessions");
 
                     b.Navigation("VerificationOverrides");
                 });

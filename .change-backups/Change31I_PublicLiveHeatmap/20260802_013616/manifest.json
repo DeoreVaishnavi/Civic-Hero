@@ -1,0 +1,102 @@
+{
+  "change": "Change31I_PublicLiveHeatmap",
+  "baselineZip": "CivicHeroSolution(4).zip",
+  "baselineBranch": "Vaishnavi",
+  "baselineCommit": "00f3756d825015d11299f9ce834d7876804e5b43",
+  "prerequisites": [
+    "Change31A_SupervisorAiReview",
+    "Change31B_NotificationAudienceTargeting",
+    "Change31C_CitizenEngagementReport",
+    "Change31D_MediaForensics",
+    "Change31E_AccountComplaintDrafts",
+    "Change31F_MultipleActiveSessions",
+    "Change31G_AdminSelectedSessionManagement",
+    "Change31H_SecureEmailPasswordReset"
+  ],
+  "databaseSchemaChange": false,
+  "migrationChange": false,
+  "automaticMigrationExecution": false,
+  "seedChange": false,
+  "configurationFilesChanged": false,
+  "runtimeDatabaseWrites": false,
+  "publicAnonymousEndpoint": true,
+  "files": [
+    {
+      "path": "backend/CivicHero.Backend/Controllers/AnalyticsController.cs",
+      "baselineSha256": "05cbc9d3442c9cca4e524bc8f307b19923964431dc73039c58a92261fe5d16e9",
+      "payloadSha256": "d00b28a751c9ed852f64fbda9f03181ab4c14aaa359772dddf32a2fd7e98b6ee",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/DTOs/Analytics/AnalyticsDtos.cs",
+      "baselineSha256": "0a3ac16a6c28a8110ee0076cf0909fc6298522e36f2ecd9fa92d9cf57f547637",
+      "payloadSha256": "c2a2f82861bc562b190cf60ebeab2e8c273fabb157134934d110761c77ccb2dd",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/AnalyticsService.cs",
+      "baselineSha256": "c29e15049340ce8d26c47316a268217953683841865352269fc4a441f248ef54",
+      "payloadSha256": "5b63fe9ad63eae0a8586fe85b28e2c96b3fd028c44029bd91562e3d71ea10ebd",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/IAnalyticsService.cs",
+      "baselineSha256": "81661c577e854e851a9601ed6c8872a54637d56dff9ec7967a853478a810c51b",
+      "payloadSha256": "6d6c2becd40c8cea0e08fee3fe94f0ccbe97f1c18174a2a25da490d62f284eda",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Integration/PublicHeatmapEndpointTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "1c03fcc7e29514ab46c9c397ebb13c5bcedd564ff854ce5860dd91f0bc292bb6",
+      "newFile": true,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Unit/Analytics/PublicHeatmapPrivacyContractTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "59707e3ee06a6ada89adfe6dad3eec83bed5184e5f37601847b3359c75bdb22f",
+      "newFile": true,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/components/public/PublicHeatmapPreview.jsx",
+      "baselineSha256": "f4285933d473f057999f497c6d73259b99b9e0b54b871e5802781d2cef5ca8eb",
+      "payloadSha256": "3cbdaacbc0366bafa6d8b507c55081d41fea72ee78d35e47997fd412fbd20f4a",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/public/PublicHeatmapPage.jsx",
+      "baselineSha256": null,
+      "payloadSha256": "09b850696202ed65ac97c206b500675184c24422de8c7cc33b63b4ac26b63830",
+      "newFile": true,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/routes/AppRoutes.jsx",
+      "baselineSha256": "ad01be0462bef3f28932e1f20d60283de909fe8917e85ee3c05efe41a97801a8",
+      "payloadSha256": "8ae0327f8f004be9323dcf48fa1adf1e48d47cf6c56ab63c8836e0376d59379d",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/routes/routePaths.js",
+      "baselineSha256": "a13d540a32fa09f3c33ab390d54bc592f082c2fafc9401952413a4e8e3c3517b",
+      "payloadSha256": "b8af69474d19fad344adba456a47309f84ee4389de752b3f93d69b0a34a3f94b",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/services/analyticsApi.js",
+      "baselineSha256": "8c934980a30358007709e235f34aec6580c39af9c1a36819f1f346ceacb3aee4",
+      "payloadSha256": "1ed5a193a6ad62290c370a7e2b2284bd716723f757b82274bcdf05c4994fdd66",
+      "newFile": false,
+      "expectedState": "Change31H_SecureEmailPasswordReset applied"
+    }
+  ]
+}

@@ -71,5 +71,22 @@ public sealed class SecurityController : ControllerBase
     public async Task<IActionResult> RevokeUserSessions(long id, CancellationToken cancellationToken) =>
         OkEnvelope("User sessions revoked.", await _service.RevokeUserSessionsAsync(id, cancellationToken));
 
+    [HttpGet("admin/sessions")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> ManagedSessions(
+        [FromQuery] string? search,
+        [FromQuery] string? role,
+        [FromQuery] int take = 100,
+        CancellationToken cancellationToken = default) =>
+        OkEnvelope("Eligible active sessions loaded.", await _service.GetManagedSessionsAsync(search, role, take, cancellationToken));
+
+    [HttpDelete("admin/sessions/{sessionId}")]
+    [Authorize(Policy = PermissionConstants.AdminOrAbove)]
+    public async Task<IActionResult> RevokeManagedSession(
+        string sessionId,
+        [FromBody] RevokeManagedSessionRequest request,
+        CancellationToken cancellationToken) =>
+        OkEnvelope("Selected user session revoked.", await _service.RevokeManagedSessionAsync(sessionId, request, cancellationToken));
+
     private IActionResult OkEnvelope<T>(string message, T data) => Ok(new { success = true, message, data });
 }

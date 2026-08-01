@@ -17,13 +17,14 @@ export const analyticsApi = {
   sla: (filters) => get('sla', filters),
   satisfaction: (filters) => get('satisfaction', filters),
   heatmap: (filters) => get('heatmap', filters),
-  async exportReport(report, filters = {}) {
+  publicHeatmap: (filters) => get('public/heatmap', filters),
+  async exportReport(report, format = 'csv', filters = {}) {
     const response = await axiosInstance.get('/analytics/export', {
-      params: { report, ...paramsFor(filters) },
+      params: { report, format, ...paramsFor(filters) },
       responseType: 'blob',
     });
     const disposition = response.headers['content-disposition'] || '';
     const match = disposition.match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i);
-    return { blob: response.data, fileName: decodeURIComponent(match?.[1] || `civichero-${report}.csv`) };
+    return { blob: response.data, fileName: decodeURIComponent(match?.[1] || `civichero-${report}.${format === 'excel' ? 'xlsx' : format}`) };
   },
 };

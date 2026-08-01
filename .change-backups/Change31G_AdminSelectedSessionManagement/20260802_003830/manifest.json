@@ -1,0 +1,66 @@
+{
+  "change": "Change31G_AdminSelectedSessionManagement",
+  "baselineZip": "CivicHeroSolution(4).zip",
+  "baselineBranch": "Vaishnavi",
+  "baselineCommit": "00f3756d825015d11299f9ce834d7876804e5b43",
+  "prerequisites": [
+    "Change31F_MultipleActiveSessions"
+  ],
+  "databaseSchemaChange": false,
+  "migrationChange": false,
+  "automaticMigrationExecution": false,
+  "seedChange": false,
+  "configurationChange": false,
+  "runtimeSessionWrites": true,
+  "files": [
+    {
+      "path": "backend/CivicHero.Backend/Controllers/SecurityController.cs",
+      "baselineSha256": "1cd0167d0bb321ec56db8905e107723e0966122b8bfc10b3d02c6f4be30240b9",
+      "payloadSha256": "7af90d813a359500c5c936b343f86be3743bdf5b2d940f310fdcc7f1b07cb0b8",
+      "newFile": false,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/DTOs/Security/SecurityDtos.cs",
+      "baselineSha256": "d834aad2dad0a07c50c342249f1e976275e60ead0f7bc8a5d7f3e03ceabf7a74",
+      "payloadSha256": "473c60cb7b49a880a48c5405ac5a978eb8aa3c7ba5d6e158c9d8243175085dfb",
+      "newFile": false,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/ISecurityService.cs",
+      "baselineSha256": "6a033bc3af4efeccbe67b679dd87e19664959f5ba5f8714638ddea66710b0d0d",
+      "payloadSha256": "14fead906e815612df21f4b76505957811817e951883164120652c02c8843347",
+      "newFile": false,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/SecurityService.cs",
+      "baselineSha256": "f86bc0b9c20ae9041c8bbb764784c41177ba2454fe87b7d76ab478feb7fe1731",
+      "payloadSha256": "d869d5578a6c05bac6d305585771be23c12f4c195b1b6a3962a5ed110bbefba5",
+      "newFile": false,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Integration/AdminSessionManagementEndpointTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "0cfd769f5c6c2d583bae6c6d0f0280d20a2859fe0292c3127d9c8c739b2d6366",
+      "newFile": true,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/admin/SecurityCenter.jsx",
+      "baselineSha256": "268ef602d03bc489dba92c7d591230c96d08eeadffbf9e079833b303e6597a85",
+      "payloadSha256": "2d78bb1b996e097852c8ad1e6e3175cc6ecc134402e1d6f9125155bcdf576c6b",
+      "newFile": false,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/services/securityApi.js",
+      "baselineSha256": "ba276250dc76ba389754beabae3483351395112470bad58a327ba0c4f2ab6609",
+      "payloadSha256": "a5513ac812ac38911683ae67daf237473482ae9e999a64001dd0798ef3a6e2e2",
+      "newFile": false,
+      "expectedState": "Change31F_MultipleActiveSessions applied"
+    }
+  ]
+}

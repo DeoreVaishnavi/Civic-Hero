@@ -53,7 +53,16 @@ public sealed class ComplaintService : IComplaintService
         var category = NormalizeCategory(request.Category);
         var citizenSeverity = NormalizeCitizenSeverity(request.CitizenSeverity);
         var evidenceFiles = request.Evidence.Concat(request.Images).ToArray();
+        var draft = await LoadDraftForSubmissionAsync(request.DraftId, userId, cancellationToken);
+        var draftEvidence = draft?.Evidence.ToArray() ?? Array.Empty<ComplaintDraftEvidence>();
+        if (draftEvidence.Length + evidenceFiles.Length > 8)
+            throw new ValidationException(["A complaint can contain a maximum of eight evidence files."]);
+        if (draftEvidence.Sum(item => item.FileSize) + evidenceFiles.Sum(item => item.Length) > 25L * 1024 * 1024)
+            throw new ValidationException(["The total complaint evidence size cannot exceed 25 MB."]);
+
         var uploadedKeys = new List<string>();
+        var submittedDraftKeys = new List<string>();
+        var databaseCommitted = false;
 
         try
         {
@@ -102,6 +111,39 @@ public sealed class ComplaintService : IComplaintService
                 Timestamp = DateTimeOffset.UtcNow
             });
 
+            foreach (var evidence in draftEvidence)
+            {
+                var download = await _storage.DownloadAsync(evidence.S3Key, evidence.FileName, cancellationToken)
+                    ?? throw new BusinessRuleViolationException($"Draft evidence '{evidence.FileName}' is unavailable in storage. Remove it from the draft or upload it again.");
+                var extension = StoredEvidenceExtension(evidence.FileName, evidence.MimeType);
+                var objectKey = $"complaints/{userId}/{DateTime.UtcNow:yyyy/MM}/{Guid.NewGuid():N}{extension}";
+                await using var stream = download.Content;
+                await _storage.UploadAsync(
+                    stream,
+                    objectKey,
+                    evidence.MimeType,
+                    new Dictionary<string, string>
+                    {
+                        ["citizen-id"] = userId.ToString(),
+                        ["original-file-name"] = evidence.FileName,
+                        ["evidence-type"] = EvidenceType(evidence.MimeType),
+                        ["source"] = "account-draft"
+                    },
+                    cancellationToken);
+
+                uploadedKeys.Add(objectKey);
+                submittedDraftKeys.Add(evidence.S3Key);
+                complaint.Images.Add(new ComplaintImage
+                {
+                    S3Key = objectKey,
+                    FileName = evidence.FileName,
+                    FileSize = evidence.FileSize,
+                    MimeType = evidence.MimeType,
+                    IsResolutionEvidence = false,
+                    UploadedAt = evidence.UploadedAt
+                });
+            }
+
             foreach (var file in evidenceFiles)
             {
                 var extension = await ValidateCitizenEvidenceAsync(file, cancellationToken);
@@ -132,15 +174,28 @@ public sealed class ComplaintService : IComplaintService
             }
 
             await _complaints.AddAsync(complaint, cancellationToken);
+            if (draft is not null)
+                _unitOfWork.Repository<ComplaintDraft>().Remove(draft);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            databaseCommitted = true;
+
+            foreach (var key in submittedDraftKeys)
+            {
+                try { await _storage.DeleteAsync(key, cancellationToken); }
+                catch { /* Submitted evidence is already stored under the complaint key. */ }
+            }
+
             return await GetByIdAsync(complaint.Id, cancellationToken);
         }
         catch
         {
-            foreach (var key in uploadedKeys)
+            if (!databaseCommitted)
             {
-                try { await _storage.DeleteAsync(key, cancellationToken); }
-                catch { /* Preserve the original exception; orphan cleanup can be retried operationally. */ }
+                foreach (var key in uploadedKeys)
+                {
+                    try { await _storage.DeleteAsync(key, cancellationToken); }
+                    catch { /* Preserve the original exception; orphan cleanup can be retried operationally. */ }
+                }
             }
             throw;
         }
@@ -557,6 +612,40 @@ public sealed class ComplaintService : IComplaintService
         if (RoleIs("Admin") || RoleIs("SuperAdmin")) return;
         if (RoleIs("Citizen") && complaint.CitizenId == RequireUserId() && CanEditStatus(complaint.Status)) return;
         throw new UnauthorizedAccessException("This complaint cannot be edited by the current user.");
+    }
+
+    private async Task<ComplaintDraft?> LoadDraftForSubmissionAsync(
+        long? draftId,
+        long citizenId,
+        CancellationToken cancellationToken)
+    {
+        if (!draftId.HasValue) return null;
+
+        var draft = await _unitOfWork.Repository<ComplaintDraft>().Query(asTracking: true)
+            .Include(entity => entity.Evidence)
+            .SingleOrDefaultAsync(entity => entity.Id == draftId.Value && entity.CitizenId == citizenId, cancellationToken);
+        return draft ?? throw new NotFoundException("The selected complaint draft was not found for this Citizen account.");
+    }
+
+    private static string StoredEvidenceExtension(string fileName, string mimeType)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var allowed = (mimeType ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "image/jpeg" => new[] { ".jpg", ".jpeg" },
+            "image/png" => new[] { ".png" },
+            "image/webp" => new[] { ".webp" },
+            "video/mp4" => new[] { ".mp4" },
+            "video/webm" => new[] { ".webm" },
+            "video/quicktime" => new[] { ".mov" },
+            "application/pdf" => new[] { ".pdf" },
+            "application/msword" => new[] { ".doc" },
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => new[] { ".docx" },
+            _ => Array.Empty<string>()
+        };
+        if (!allowed.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            throw new ValidationException([$"Stored draft evidence '{fileName}' has an invalid type or extension."]);
+        return extension == ".jpeg" ? ".jpg" : extension;
     }
 
     private async Task ValidateScopeAsync(long departmentId, long wardId, CancellationToken cancellationToken)

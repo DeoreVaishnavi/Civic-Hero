@@ -12,7 +12,7 @@ public sealed record AccessTokenResult(string Token, DateTimeOffset ExpiresAtUtc
 
 public interface IJwtTokenService
 {
-    AccessTokenResult GenerateAccessToken(User user);
+    AccessTokenResult GenerateAccessToken(User user, string? sessionId = null);
 }
 
 public sealed class JwtTokenService : IJwtTokenService
@@ -26,7 +26,7 @@ public sealed class JwtTokenService : IJwtTokenService
             throw new InvalidOperationException("Jwt:SecretKey must contain at least 32 bytes. Configure it with .NET user-secrets.");
     }
 
-    public AccessTokenResult GenerateAccessToken(User user)
+    public AccessTokenResult GenerateAccessToken(User user, string? sessionId = null)
     {
         var now = DateTimeOffset.UtcNow;
         var expires = now.AddMinutes(Math.Clamp(_options.ExpiryMinutes, 5, 1440));
@@ -41,6 +41,7 @@ public sealed class JwtTokenService : IJwtTokenService
             new("auth_version", user.AuthorizationVersion.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
+        if (!string.IsNullOrWhiteSpace(sessionId)) claims.Add(new Claim("sid", sessionId));
         if (user.DepartmentId.HasValue) claims.Add(new Claim("DepartmentId", user.DepartmentId.Value.ToString()));
         if (user.WardId.HasValue) claims.Add(new Claim("WardId", user.WardId.Value.ToString()));
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));

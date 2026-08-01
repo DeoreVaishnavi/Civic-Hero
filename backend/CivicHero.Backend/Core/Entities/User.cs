@@ -50,4 +50,5 @@ public sealed class User : SoftDeleteEntity
     public ICollection<ComplaintComment> ComplaintComments { get; set; } = new List<ComplaintComment>();
     public ICollection<ComplaintVerification> ComplaintVerifications { get; set; } = new List<ComplaintVerification>();
     public ICollection<ComplaintVerification> VerificationOverrides { get; set; } = new List<ComplaintVerification>();
+    public ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
 }

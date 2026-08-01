@@ -19,6 +19,18 @@ export const notificationApi = {
   adminBroadcast: async (payload) => unwrap(await axiosInstance.post('/admin/notifications/broadcast', payload)),
   adminDeliveries: async (params = {}) => unwrap(await axiosInstance.get('/admin/notifications/deliveries', { params })),
   adminDeliverySummary: async () => unwrap(await axiosInstance.get('/admin/notifications/deliveries/summary')),
+  exportAdminDeliveries: async (format = 'csv', params = {}) => {
+    const response = await axiosInstance.get('/admin/notifications/deliveries/export', {
+      params: { format, ...params },
+      responseType: 'blob',
+    });
+    const disposition = response.headers['content-disposition'] || '';
+    const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+    return {
+      blob: response.data,
+      fileName: decodeURIComponent(match?.[1] || `civichero-notification-deliveries.${format}`),
+    };
+  },
   retryAdminDelivery: async (id, payload) => unwrap(await axiosInstance.post(`/admin/notifications/deliveries/${id}/retry`, payload)),
   adminSchedules: async () => unwrap(await axiosInstance.get('/admin/notifications/schedules')),
   cancelAdminSchedule: async (id) => unwrap(await axiosInstance.delete(`/admin/notifications/schedules/${encodeURIComponent(id)}`)),

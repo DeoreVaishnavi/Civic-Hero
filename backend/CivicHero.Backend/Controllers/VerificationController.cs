@@ -74,9 +74,9 @@ public sealed class VerificationController : ControllerBase
         Ok(new { success = true, message = "Citizen verification evidence uploaded.", data = await _service.UploadEvidenceAsync(complaintId, request, ct) });
 
     [HttpPost("{complaintId:long}/remind")]
-    [Authorize(Policy = PermissionConstants.SupervisorOrAbove)]
+    [Authorize(Roles = "Officer,Supervisor,Admin,SuperAdmin")]
     public async Task<IActionResult> Remind(long complaintId, CancellationToken ct) =>
-        Ok(new { success = true, message = "Reminder recorded.", data = await _service.RemindAsync(complaintId, ct) });
+        Ok(new { success = true, message = "Verification reminder sent to the Citizen.", data = await _service.RemindAsync(complaintId, ct) });
 
     [HttpPost("{complaintId:long}/supervisor-decision")]
     [Authorize(Policy = PermissionConstants.SupervisorOrAbove)]

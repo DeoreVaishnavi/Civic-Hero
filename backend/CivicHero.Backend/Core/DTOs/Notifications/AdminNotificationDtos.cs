@@ -28,7 +28,15 @@ public sealed class AdminBroadcastNotificationRequest
     public string? TemplateKey { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+
+    // Blank remains backward-compatible with older clients: Role when Role is supplied, otherwise All.
+    public string AudienceType { get; set; } = string.Empty;
     public string? Role { get; set; }
+    public long? DepartmentId { get; set; }
+    public long? WardId { get; set; }
+    public string? GroupIdentifier { get; set; }
+    public List<long> SelectedUserIds { get; set; } = [];
+
     public string? ActionUrl { get; set; }
     public string Type { get; set; } = "General";
     public bool SendInApp { get; set; } = true;
@@ -42,6 +50,8 @@ public sealed class AdminBroadcastResult
 {
     public string BroadcastId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string AudienceType { get; set; } = "All";
+    public string AudienceLabel { get; set; } = "All active users";
     public int TargetUsers { get; set; }
     public int SuccessfulDeliveries { get; set; }
     public int FailedDeliveries { get; set; }
@@ -110,7 +120,13 @@ public sealed class ScheduledBroadcastResponse
     public string Status { get; set; } = string.Empty;
     public string? TemplateKey { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string AudienceType { get; set; } = "All";
+    public string AudienceLabel { get; set; } = "All active users";
     public string? Role { get; set; }
+    public long? DepartmentId { get; set; }
+    public long? WardId { get; set; }
+    public string? GroupIdentifier { get; set; }
+    public int SelectedUserCount { get; set; }
     public DateTimeOffset ScheduledFor { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }

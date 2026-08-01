@@ -1,4 +1,5 @@
 using CivicHero.Backend.Core.DTOs.Administration;
+using CivicHero.Backend.Core.DTOs.Analytics;
 
 namespace CivicHero.Backend.Core.Services;
 
@@ -21,6 +22,7 @@ public interface IAdministrationService
     Task<SystemSettingDto> UpdateSettingAsync(string key, UpdateSystemSettingRequest request, CancellationToken cancellationToken = default);
     Task<AdminPagedResult<AuditLogDto>> GetAuditLogsAsync(AuditLogQuery query, CancellationToken cancellationToken = default);
     Task<byte[]> ExportAuditLogsAsync(AuditLogQuery query, CancellationToken cancellationToken = default);
+    Task<AnalyticsExportResult> ExportAuditLogsAsync(AuditLogQuery query, string format, CancellationToken cancellationToken = default);
     Task<SystemHealthDto> GetSystemHealthAsync(CancellationToken cancellationToken = default);
     Task<MaintenancePreviewDto> CleanupAsync(bool dryRun, int retentionDays, CancellationToken cancellationToken = default);
 }

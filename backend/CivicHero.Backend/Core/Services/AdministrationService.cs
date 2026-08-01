@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using CivicHero.Backend.Core.DTOs.Administration;
+using CivicHero.Backend.Core.DTOs.Analytics;
 using CivicHero.Backend.Core.Entities;
 using ComplaintCategoryEntity = CivicHero.Backend.Core.Entities.ComplaintCategory;
 using CivicHero.Backend.Core.Enums;
@@ -224,7 +225,7 @@ public sealed class AdministrationService : IAdministrationService
     public async Task<AdminPagedResult<AuditLogDto>> GetAuditLogsAsync(AuditLogQuery query, CancellationToken cancellationToken = default)
     {
         query.Page = Math.Max(1, query.Page); query.PageSize = Math.Clamp(query.PageSize, 1, 200);
-        var source = ApplyAuditFilters(_db.AuditLogs.AsNoTracking(), query);
+        var source = AuditLogQueryFilter.Apply(_db.AuditLogs.AsNoTracking(), query);
         var total = await source.CountAsync(cancellationToken);
         var items = await source.OrderByDescending(x => x.CreatedAt)
             .Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
@@ -236,13 +237,32 @@ public sealed class AdministrationService : IAdministrationService
 
     public async Task<byte[]> ExportAuditLogsAsync(AuditLogQuery query, CancellationToken cancellationToken = default)
     {
-        query.Page = 1; query.PageSize = 5000;
-        var data = await GetAuditLogsAsync(query, cancellationToken);
-        var csv = new StringBuilder("CreatedAt,User,Role,Action,Entity,EntityId,Success,HttpStatus,CorrelationId,IP\r\n");
-        foreach (var x in data.Items)
-            csv.AppendLine(string.Join(',', Csv(x.CreatedAt), Csv(x.UserEmail), Csv(x.UserRole), Csv(x.Action),
-                Csv(x.EntityName), Csv(x.EntityId), Csv(x.Success), Csv(x.HttpStatusCode), Csv(x.CorrelationId), Csv(x.IpAddress)));
-        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
+        var file = await ExportAuditLogsAsync(query, "csv", cancellationToken);
+        return file.Content;
+    }
+
+    public async Task<AnalyticsExportResult> ExportAuditLogsAsync(AuditLogQuery query, string format, CancellationToken cancellationToken = default)
+    {
+        var items = await AuditLogQueryFilter.Apply(_db.AuditLogs.AsNoTracking(), query)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(5000)
+            .Select(x => new AuditLogDto(x.Id, x.UserId, x.UserEmail, x.UserRole, x.Action, x.EntityName,
+                x.EntityId, x.IpAddress, x.UserAgent, x.CorrelationId, x.Severity, x.Success,
+                x.HttpStatusCode, x.ErrorMessage, x.NewValuesJson, x.CreatedAt))
+            .ToListAsync(cancellationToken);
+
+        var table = new ReportTable(
+            "CivicHero audit log",
+            ["Time", "User", "Role", "Action", "Entity", "Entity ID", "Success", "HTTP status", "Severity", "Correlation ID", "IP address", "Error"],
+            items.Select(item => (IReadOnlyList<object?>)new object?[]
+            {
+                item.CreatedAt, item.UserEmail ?? "System", item.UserRole ?? "Background", item.Action,
+                item.EntityName, item.EntityId, item.Success, item.HttpStatusCode, item.Severity,
+                item.CorrelationId, item.IpAddress, item.ErrorMessage
+            }).ToList(),
+            $"Generated {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm} UTC. Maximum 5,000 filtered events.");
+
+        return ReportDocumentBuilder.Build(table, format, $"civichero-audit-{DateTime.UtcNow:yyyyMMdd-HHmm}");
     }
 
     public async Task<SystemHealthDto> GetSystemHealthAsync(CancellationToken cancellationToken = default)
@@ -260,19 +280,27 @@ public sealed class AdministrationService : IAdministrationService
     {
         retentionDays = Math.Clamp(retentionDays, 30, 3650);
         var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays);
+        var now = DateTimeOffset.UtcNow;
         var notifications = await _db.Notifications.CountAsync(x => x.IsRead && x.IsArchived && x.CreatedAt < cutoff, cancellationToken);
-        var refreshTokens = await _db.Users.CountAsync(x => x.RefreshTokenExpiresAt != null && x.RefreshTokenExpiresAt < DateTimeOffset.UtcNow && x.RefreshTokenHash != null, cancellationToken);
-        var emailTokens = await _db.Users.CountAsync(x => x.EmailVerificationTokenExpiresAt != null && x.EmailVerificationTokenExpiresAt < DateTimeOffset.UtcNow && x.EmailVerificationTokenHash != null, cancellationToken);
+        var storedSessions = await _db.UserSessions.CountAsync(x =>
+            (x.ExpiresAt < now || x.RevokedAt != null) && x.UpdatedAt < cutoff, cancellationToken);
+        var legacyRefreshTokens = await _db.Users.CountAsync(x =>
+            x.RefreshTokenExpiresAt != null && x.RefreshTokenExpiresAt < now && x.RefreshTokenHash != null, cancellationToken);
+        var refreshTokens = storedSessions + legacyRefreshTokens;
+        var emailTokens = await _db.Users.CountAsync(x => x.EmailVerificationTokenExpiresAt != null && x.EmailVerificationTokenExpiresAt < now && x.EmailVerificationTokenHash != null, cancellationToken);
         if (!dryRun)
         {
             var oldNotifications = await _db.Notifications.Where(x => x.IsRead && x.IsArchived && x.CreatedAt < cutoff).ToListAsync(cancellationToken);
             _db.Notifications.RemoveRange(oldNotifications);
-            var users = await _db.Users.Where(x => (x.RefreshTokenExpiresAt != null && x.RefreshTokenExpiresAt < DateTimeOffset.UtcNow && x.RefreshTokenHash != null) ||
-                (x.EmailVerificationTokenExpiresAt != null && x.EmailVerificationTokenExpiresAt < DateTimeOffset.UtcNow && x.EmailVerificationTokenHash != null)).ToListAsync(cancellationToken);
+            var oldSessions = await _db.UserSessions.Where(x =>
+                (x.ExpiresAt < now || x.RevokedAt != null) && x.UpdatedAt < cutoff).ToListAsync(cancellationToken);
+            _db.UserSessions.RemoveRange(oldSessions);
+            var users = await _db.Users.Where(x => (x.RefreshTokenExpiresAt != null && x.RefreshTokenExpiresAt < now && x.RefreshTokenHash != null) ||
+                (x.EmailVerificationTokenExpiresAt != null && x.EmailVerificationTokenExpiresAt < now && x.EmailVerificationTokenHash != null)).ToListAsync(cancellationToken);
             foreach (var user in users)
             {
-                if (user.RefreshTokenExpiresAt < DateTimeOffset.UtcNow) { user.RefreshTokenHash = null; user.RefreshTokenCreatedAt = null; user.RefreshTokenExpiresAt = null; }
-                if (user.EmailVerificationTokenExpiresAt < DateTimeOffset.UtcNow) { user.EmailVerificationTokenHash = null; user.EmailVerificationTokenExpiresAt = null; }
+                if (user.RefreshTokenExpiresAt < now) { user.RefreshTokenHash = null; user.RefreshTokenCreatedAt = null; user.RefreshTokenExpiresAt = null; }
+                if (user.EmailVerificationTokenExpiresAt < now) { user.EmailVerificationTokenHash = null; user.EmailVerificationTokenExpiresAt = null; }
             }
             await _db.SaveChangesAsync(cancellationToken);
         }
@@ -343,17 +371,6 @@ public sealed class AdministrationService : IAdministrationService
         if (type.Equals("Integer", StringComparison.OrdinalIgnoreCase) && !int.TryParse(value, out _)) throw new BusinessRuleViolationException("Setting requires an integer value.");
         if (type.Equals("Decimal", StringComparison.OrdinalIgnoreCase) && !decimal.TryParse(value, out _)) throw new BusinessRuleViolationException("Setting requires a decimal value.");
         if (type.Equals("Boolean", StringComparison.OrdinalIgnoreCase) && !bool.TryParse(value, out _)) throw new BusinessRuleViolationException("Setting requires true or false.");
-    }
-    private static IQueryable<AuditLog> ApplyAuditFilters(IQueryable<AuditLog> source, AuditLogQuery query)
-    {
-        if (!string.IsNullOrWhiteSpace(query.Search)) { var s = query.Search.Trim(); source = source.Where(x => (x.UserEmail != null && x.UserEmail.Contains(s)) || x.Action.Contains(s) || x.EntityName.Contains(s) || (x.EntityId != null && x.EntityId.Contains(s)) || (x.CorrelationId != null && x.CorrelationId.Contains(s))); }
-        if (!string.IsNullOrWhiteSpace(query.Action)) source = source.Where(x => x.Action == query.Action);
-        if (!string.IsNullOrWhiteSpace(query.EntityName)) source = source.Where(x => x.EntityName == query.EntityName);
-        if (!string.IsNullOrWhiteSpace(query.UserRole)) source = source.Where(x => x.UserRole == query.UserRole);
-        if (query.Success.HasValue) source = source.Where(x => x.Success == query.Success.Value);
-        if (query.From.HasValue) source = source.Where(x => x.CreatedAt >= query.From.Value);
-        if (query.To.HasValue) source = source.Where(x => x.CreatedAt <= query.To.Value);
-        return source;
     }
     private static HashSet<ComplaintStatus> OpenComplaintStatuses() => Enum.GetValues<ComplaintStatus>()
         .Where(x => x is not ComplaintStatus.Closed and not ComplaintStatus.ClosedAuto and not ComplaintStatus.ClosedFraud and not ComplaintStatus.Withdrawn and not ComplaintStatus.Merged).ToHashSet();

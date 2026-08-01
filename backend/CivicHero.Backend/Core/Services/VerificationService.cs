@@ -1,3 +1,5 @@
+using System.Text.Json;
+using CivicHero.Backend.Core.DTOs.Notifications;
 using CivicHero.Backend.Core.DTOs.Verification;
 using CivicHero.Backend.Core.Entities;
 using CivicHero.Backend.Core.Enums;
@@ -16,16 +18,35 @@ public sealed class VerificationService : IVerificationService
     private const long MaximumEvidenceBytes = 5 * 1024 * 1024;
     private const int MaximumEvidenceFilesPerUpload = 5;
     private const int MaximumCitizenEvidenceFiles = 10;
+    private const string OfficerReminderEvent = "OFFICER_VERIFICATION_REMINDER";
+    private const string StaffReminderEvent = "SUPERVISOR_VERIFICATION_REMINDER";
+    private const string LegacyReminderEvent = "VERIFICATION_REMINDER";
+
+    private static readonly string[] ReminderEvents =
+    [
+        OfficerReminderEvent,
+        StaffReminderEvent,
+        LegacyReminderEvent
+    ];
 
     private readonly CivicDbContext _db;
     private readonly ICurrentUserService _current;
     private readonly IStorageService _storage;
+    private readonly INotificationService _notifications;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public VerificationService(CivicDbContext db, ICurrentUserService current, IStorageService storage)
+    public VerificationService(
+        CivicDbContext db,
+        ICurrentUserService current,
+        IStorageService storage,
+        INotificationService notifications,
+        IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
         _current = current;
         _storage = storage;
+        _notifications = notifications;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IReadOnlyList<VerificationQueueItem>> GetPendingAsync(CancellationToken ct = default)
@@ -39,7 +60,7 @@ public sealed class VerificationService : IVerificationService
             .OrderBy(x => x.DueAt)
             .ToListAsync(ct);
 
-        return rows.Select(x => QueueItem(x, false)).ToArray();
+        return rows.Select(x => QueueItem(x, false, null)).ToArray();
     }
 
     public async Task<IReadOnlyList<VerificationQueueItem>> GetSupervisorQueueAsync(bool overdueOnly, CancellationToken ct = default)
@@ -65,9 +86,14 @@ public sealed class VerificationService : IVerificationService
                 .ToListAsync(ct))
                 .ToHashSet();
 
+        var reminderStates = await GetReminderStatesAsync(rows, ct);
+
         return rows
             .Where(x => x.Decision == VerificationDecision.Pending || reviewComplaintIds.Contains(x.ComplaintId))
-            .Select(x => QueueItem(x, reviewComplaintIds.Contains(x.ComplaintId)))
+            .Select(x => QueueItem(
+                x,
+                reviewComplaintIds.Contains(x.ComplaintId),
+                reminderStates.GetValueOrDefault(x.ComplaintId)))
             .ToArray();
     }
 
@@ -140,7 +166,10 @@ public sealed class VerificationService : IVerificationService
         var row = await QueryQueue().SingleOrDefaultAsync(x => x.ComplaintId == id, ct)
             ?? throw new NotFoundException("Verification was not found.");
         EnsureCanView(row);
-        return Map(row);
+        var reminderState = IsReminderRole()
+            ? await GetReminderStateAsync(row, ct)
+            : null;
+        return Map(row, reminderState);
     }
 
     public async Task<object> CheckGeoAsync(long id, GeoVerifyRequest request, CancellationToken ct = default)
@@ -265,19 +294,53 @@ public sealed class VerificationService : IVerificationService
 
     public async Task<VerificationResponse> RemindAsync(long id, CancellationToken ct = default)
     {
-        EnsureSupervisor();
+        EnsureReminderRole();
         await EnsureRowsAsync(ct);
         var row = await QueryQueue(true).SingleOrDefaultAsync(x => x.ComplaintId == id, ct)
             ?? throw new NotFoundException("Verification was not found.");
         EnsureCanView(row);
 
-        if (row.Decision != VerificationDecision.Pending)
-            throw new BusinessRuleViolationException("A reminder can only be sent while the citizen decision is pending.");
+        if (row.Decision != VerificationDecision.Pending || row.Complaint.Status != ComplaintStatus.VerificationPending)
+            throw new BusinessRuleViolationException("A reminder can only be sent while the Citizen verification decision is pending.");
 
-        row.ReminderSentAt = DateTimeOffset.UtcNow;
-        AddTimeline(row.Complaint, "VERIFICATION_REMINDER", "A verification reminder was recorded for the citizen.");
+        if (string.Equals(_current.Role, "Officer", StringComparison.OrdinalIgnoreCase) &&
+            row.Complaint.AssignedOfficerId != RequireUser())
+            throw new NotFoundException("Verification was not found.");
+
+        var before = await GetReminderStateAsync(row, ct);
+        if (!before.Allowed)
+            throw new BusinessRuleViolationException(before.UnavailableReason ?? "A verification reminder cannot be sent right now.");
+
+        var now = DateTimeOffset.UtcNow;
+        var actorRole = _current.Role ?? "Authorized staff";
+        var eventType = string.Equals(actorRole, "Officer", StringComparison.OrdinalIgnoreCase)
+            ? OfficerReminderEvent
+            : StaffReminderEvent;
+
+        row.ReminderSentAt = now;
+        AddTimeline(
+            row.Complaint,
+            eventType,
+            $"{actorRole} sent a controlled verification reminder to the Citizen.");
+        AddReminderAudit(row, before, now);
+
+        await _notifications.SendAsync(new NotificationDispatchRequest(
+            row.CitizenId,
+            "Verification reminder",
+            $"Please review the resolution for {Reference(row.ComplaintId)}: {row.Complaint.Title}. Your verification window ends {row.DueAt.ToUniversalTime():dd MMM yyyy, HH:mm} UTC.",
+            nameof(NotificationType.VerificationRequired),
+            "Complaint",
+            row.ComplaintId,
+            "/citizen/verifications"), ct);
+
         await _db.SaveChangesAsync(ct);
-        return Map(row);
+
+        var after = VerificationReminderPolicy.Evaluate(
+            _current.Role,
+            before.SentCount + 1,
+            now,
+            now);
+        return Map(row, after);
     }
 
     public async Task<object> SupervisorDecisionAsync(long id, SupervisorVerificationDecisionRequest request, CancellationToken ct = default)
@@ -500,13 +563,30 @@ public sealed class VerificationService : IVerificationService
 
     private void EnsureCanView(ComplaintVerification row)
     {
-        if (string.Equals(_current.Role, "Citizen", StringComparison.OrdinalIgnoreCase) && row.CitizenId != RequireUser())
-            throw new NotFoundException("Verification was not found.");
+        if (string.Equals(_current.Role, "Citizen", StringComparison.OrdinalIgnoreCase))
+        {
+            if (row.CitizenId != RequireUser())
+                throw new NotFoundException("Verification was not found.");
+            return;
+        }
 
-        if (string.Equals(_current.Role, "Supervisor", StringComparison.OrdinalIgnoreCase) &&
-            (row.Complaint.DepartmentId != _current.DepartmentId ||
-             (_current.WardId.HasValue && row.Complaint.WardId != _current.WardId)))
-            throw new NotFoundException("Verification was not found.");
+        if (string.Equals(_current.Role, "Officer", StringComparison.OrdinalIgnoreCase))
+        {
+            if (row.Complaint.AssignedOfficerId != RequireUser())
+                throw new NotFoundException("Verification was not found.");
+            return;
+        }
+
+        if (string.Equals(_current.Role, "Supervisor", StringComparison.OrdinalIgnoreCase))
+        {
+            if (row.Complaint.DepartmentId != _current.DepartmentId ||
+                (_current.WardId.HasValue && row.Complaint.WardId != _current.WardId))
+                throw new NotFoundException("Verification was not found.");
+            return;
+        }
+
+        if (!new[] { "Admin", "SuperAdmin" }.Contains(_current.Role, StringComparer.OrdinalIgnoreCase))
+            throw new BusinessRuleViolationException("Verification access is not available for this role.");
     }
 
     private void EnsureHistoryRole()
@@ -519,6 +599,16 @@ public sealed class VerificationService : IVerificationService
     {
         if (!new[] { "Supervisor", "Admin", "SuperAdmin" }.Contains(_current.Role, StringComparer.OrdinalIgnoreCase))
             throw new BusinessRuleViolationException("Supervisor access is required.");
+    }
+
+    private bool IsReminderRole() =>
+        new[] { "Officer", "Supervisor", "Admin", "SuperAdmin" }
+            .Contains(_current.Role, StringComparer.OrdinalIgnoreCase);
+
+    private void EnsureReminderRole()
+    {
+        if (!IsReminderRole())
+            throw new BusinessRuleViolationException("The assigned Officer or authorized supervisory staff is required.");
     }
 
     private void EnsureRole(string role)
@@ -540,7 +630,143 @@ public sealed class VerificationService : IVerificationService
             Timestamp = DateTimeOffset.UtcNow
         });
 
-    private static VerificationQueueItem QueueItem(ComplaintVerification row, bool requiresSupervisorDecision)
+    private async Task<Dictionary<long, VerificationReminderPolicyDecision>> GetReminderStatesAsync(
+        IReadOnlyCollection<ComplaintVerification> rows,
+        CancellationToken ct)
+    {
+        if (rows.Count == 0) return new Dictionary<long, VerificationReminderPolicyDecision>();
+
+        var complaintIds = rows.Select(x => x.ComplaintId).Distinct().ToArray();
+        var events = await _db.ComplaintTimelines.AsNoTracking()
+            .Where(x => complaintIds.Contains(x.ComplaintId) && ReminderEvents.Contains(x.EventType))
+            .Select(x => new ReminderEventSnapshot
+            {
+                ComplaintId = x.ComplaintId,
+                EventType = x.EventType,
+                Timestamp = x.Timestamp
+            })
+            .ToListAsync(ct);
+
+        var grouped = events
+            .GroupBy(x => x.ComplaintId)
+            .ToDictionary(x => x.Key, x => x.ToArray());
+        var result = new Dictionary<long, VerificationReminderPolicyDecision>();
+
+        foreach (var row in rows)
+        {
+            grouped.TryGetValue(row.ComplaintId, out var complaintEvents);
+            complaintEvents ??= [];
+            result[row.ComplaintId] = BuildReminderState(row, complaintEvents);
+        }
+
+        return result;
+    }
+
+    private async Task<VerificationReminderPolicyDecision> GetReminderStateAsync(
+        ComplaintVerification row,
+        CancellationToken ct)
+    {
+        var events = await _db.ComplaintTimelines.AsNoTracking()
+            .Where(x => x.ComplaintId == row.ComplaintId && ReminderEvents.Contains(x.EventType))
+            .Select(x => new ReminderEventSnapshot
+            {
+                ComplaintId = x.ComplaintId,
+                EventType = x.EventType,
+                Timestamp = x.Timestamp
+            })
+            .ToListAsync(ct);
+        return BuildReminderState(row, events);
+    }
+
+    private VerificationReminderPolicyDecision BuildReminderState(
+        ComplaintVerification row,
+        IReadOnlyCollection<ReminderEventSnapshot> events)
+    {
+        var isOfficer = string.Equals(_current.Role, "Officer", StringComparison.OrdinalIgnoreCase);
+        var actorCount = events.Count(x => isOfficer
+            ? string.Equals(x.EventType, OfficerReminderEvent, StringComparison.OrdinalIgnoreCase)
+            : string.Equals(x.EventType, StaffReminderEvent, StringComparison.OrdinalIgnoreCase) ||
+              string.Equals(x.EventType, LegacyReminderEvent, StringComparison.OrdinalIgnoreCase));
+
+        var lastEventAt = events.Count == 0
+            ? (DateTimeOffset?)null
+            : events.Max(x => x.Timestamp);
+        var lastReminderAt = Latest(row.ReminderSentAt, lastEventAt);
+
+        if (row.Decision != VerificationDecision.Pending || row.Complaint.Status != ComplaintStatus.VerificationPending)
+        {
+            var policy = VerificationReminderPolicy.Evaluate(_current.Role, actorCount, lastReminderAt, DateTimeOffset.UtcNow);
+            return policy with
+            {
+                Allowed = false,
+                UnavailableReason = "The Citizen verification decision is no longer pending."
+            };
+        }
+
+        return VerificationReminderPolicy.Evaluate(
+            _current.Role,
+            actorCount,
+            lastReminderAt,
+            DateTimeOffset.UtcNow);
+    }
+
+    private static DateTimeOffset? Latest(DateTimeOffset? left, DateTimeOffset? right)
+    {
+        if (!left.HasValue) return right;
+        if (!right.HasValue) return left;
+        return left.Value >= right.Value ? left : right;
+    }
+
+    private void AddReminderAudit(
+        ComplaintVerification row,
+        VerificationReminderPolicyDecision before,
+        DateTimeOffset now)
+    {
+        var context = _httpContextAccessor.HttpContext;
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = _current.UserId,
+            UserEmail = _current.Email,
+            UserRole = _current.Role,
+            Action = string.Equals(_current.Role, "Officer", StringComparison.OrdinalIgnoreCase)
+                ? "OFFICER_VERIFICATION_REMINDER_SENT"
+                : "VERIFICATION_REMINDER_SENT",
+            EntityName = nameof(ComplaintVerification),
+            EntityId = row.Id.ToString(),
+            OldValuesJson = JsonSerializer.Serialize(new
+            {
+                row.ComplaintId,
+                reminderCount = before.SentCount,
+                before.LastReminderAt
+            }),
+            NewValuesJson = JsonSerializer.Serialize(new
+            {
+                row.ComplaintId,
+                reminderCount = before.SentCount + 1,
+                reminderSentAt = now,
+                dueAt = row.DueAt
+            }),
+            IpAddress = context?.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = context?.Request.Headers.UserAgent.ToString(),
+            CorrelationId = context?.TraceIdentifier,
+            Severity = "Information",
+            Success = true,
+            HttpStatusCode = 200,
+            CreatedAt = now
+        });
+    }
+
+    private sealed class ReminderEventSnapshot
+    {
+        public long ComplaintId { get; init; }
+        public string EventType { get; init; } = string.Empty;
+        public DateTimeOffset Timestamp { get; init; }
+    }
+
+    private static VerificationQueueItem QueueItem(
+        ComplaintVerification row,
+        bool requiresSupervisorDecision,
+        VerificationReminderPolicyDecision? reminderState)
     {
         var remaining = (long)(row.DueAt - DateTimeOffset.UtcNow).TotalMinutes;
         return new VerificationQueueItem(
@@ -554,10 +780,20 @@ public sealed class VerificationService : IVerificationService
             remaining,
             row.Decision == VerificationDecision.Pending && row.DueAt < DateTimeOffset.UtcNow,
             row.Decision.ToString(),
-            requiresSupervisorDecision);
+            requiresSupervisorDecision,
+            reminderState?.Allowed == true && !requiresSupervisorDecision,
+            reminderState?.SentCount ?? 0,
+            reminderState?.MaximumAllowed ?? 0,
+            reminderState?.LastReminderAt,
+            reminderState?.NextAllowedAt,
+            requiresSupervisorDecision
+                ? "A reminder is unavailable while a Supervisor decision is pending."
+                : reminderState?.UnavailableReason);
     }
 
-    private static VerificationResponse Map(ComplaintVerification row)
+    private static VerificationResponse Map(
+        ComplaintVerification row,
+        VerificationReminderPolicyDecision? reminderState = null)
     {
         var pendingSupervisorReview = row.Complaint.Status == ComplaintStatus.Disputed &&
                                       row.Decision is not VerificationDecision.Pending and not VerificationDecision.Approved;
@@ -587,7 +823,12 @@ public sealed class VerificationService : IVerificationService
             row.Decision == VerificationDecision.Pending && row.Complaint.Status == ComplaintStatus.VerificationPending,
             pendingSupervisorReview,
             pendingSupervisorReview,
-            row.Decision == VerificationDecision.Pending,
+            reminderState?.Allowed == true,
+            reminderState?.SentCount ?? 0,
+            reminderState?.MaximumAllowed ?? 0,
+            reminderState?.LastReminderAt,
+            reminderState?.NextAllowedAt,
+            reminderState?.UnavailableReason,
             citizenEvidence);
     }
 

@@ -5,14 +5,29 @@ const unwrap = (response) => response.data?.data;
 function toFormData(request) {
   const formData = new FormData();
   [
-    'title', 'description', 'category', 'citizenSeverity', 'departmentId', 'wardId',
+    'draftId', 'title', 'description', 'category', 'citizenSeverity', 'departmentId', 'wardId',
     'latitude', 'longitude', 'address', 'landmark', 'possibleEmergency', 'emergencyReason',
   ].forEach((key) => formData.append(key, request[key] == null ? '' : String(request[key])));
-  (request.evidence || request.images || []).forEach((file) => formData.append('evidence', file, file.name));
+  const files = request.evidenceFiles || request.evidence || request.images || [];
+  files.filter((file) => typeof File === 'undefined' || file instanceof File)
+    .forEach((file) => formData.append('evidence', file, file.name));
   return formData;
 }
 
 export const complaintApi = {
+  currentDraft: async () => unwrap(await axiosInstance.get('/complaint-drafts/current')),
+  saveDraft: async (request) => unwrap(await axiosInstance.put('/complaint-drafts/current', request)),
+  clearDraft: async () => unwrap(await axiosInstance.delete('/complaint-drafts/current')),
+  addDraftEvidence: async (file, options = {}) => {
+    const formData = new FormData();
+    formData.append('evidence', file, file.name);
+    return unwrap(await axiosInstance.post('/complaint-drafts/current/evidence', formData, {
+      timeout: 120000,
+      onUploadProgress: options.onUploadProgress,
+    }));
+  },
+  removeDraftEvidence: async (evidenceId) => unwrap(await axiosInstance.delete(`/complaint-drafts/current/evidence/${evidenceId}`)),
+  downloadDraftEvidence: async (evidenceId) => axiosInstance.get(`/complaint-drafts/current/evidence/${evidenceId}`, { responseType: 'blob', timeout: 30000 }),
   metadata: async () => unwrap(await axiosInstance.get('/complaints/metadata')),
   dashboard: async () => unwrap(await axiosInstance.get('/complaints/stats/dashboard')),
   list: async (params = {}) => unwrap(await axiosInstance.get('/complaints', { params })),

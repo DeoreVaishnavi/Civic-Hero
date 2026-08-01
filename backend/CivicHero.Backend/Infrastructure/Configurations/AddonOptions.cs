@@ -34,6 +34,24 @@ public sealed class SmsOptions
     public int MaximumRequestsPerHour { get; set; } = 5;
 }
 
+public sealed class EmailOptions
+{
+    public const string SectionName = "Email";
+    public string Provider { get; set; } = "Development";
+    public string FrontendBaseUrl { get; set; } = "http://localhost:5173";
+    public string PasswordResetPath { get; set; } = "/reset-password";
+    public int PasswordResetExpiryMinutes { get; set; } = 30;
+    public int ResendCooldownSeconds { get; set; } = 60;
+    public string FromAddress { get; set; } = "no-reply@civichero.local";
+    public string FromName { get; set; } = "CivicHero";
+    public string? SmtpHost { get; set; }
+    public int SmtpPort { get; set; } = 587;
+    public bool EnableSsl { get; set; } = true;
+    public bool UseDefaultCredentials { get; set; }
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+}
+
 public sealed class VisualVerificationOptions
 {
     public const string SectionName = "VisualVerification";

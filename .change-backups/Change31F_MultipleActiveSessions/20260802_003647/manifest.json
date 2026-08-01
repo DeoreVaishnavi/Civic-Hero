@@ -1,0 +1,152 @@
+{
+  "change": "Change31F_MultipleActiveSessions",
+  "baselineZip": "CivicHeroSolution(4).zip",
+  "baselineBranch": "Vaishnavi",
+  "baselineCommit": "00f3756d825015d11299f9ce834d7876804e5b43",
+  "prerequisites": [
+    "Change31E_AccountComplaintDrafts"
+  ],
+  "databaseSchemaChange": true,
+  "migrationChange": true,
+  "migrationId": "20260801183000_Change31FMultipleActiveSessions",
+  "automaticMigrationExecution": false,
+  "seedChange": false,
+  "configurationChange": false,
+  "runtimeSessionWrites": true,
+  "legacyRefreshColumnsRetained": true,
+  "files": [
+    {
+      "path": "backend/CivicHero.Backend/Controllers/AuthController.cs",
+      "baselineSha256": "bc0808890c8a7ff8230f2e593dc00d55715e8db670726cb09b9cb59c93794cda",
+      "payloadSha256": "7f4cd27f2362687f60174e8ae860e1ab7443d87fb3adaba1412520e1c21d40b6",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/DTOs/Administration/SuperAdminGovernanceDtos.cs",
+      "baselineSha256": "7eac660630ef13c981c4e3fb45c49ac3ce1d510b0530da2ee6d19d4a775628aa",
+      "payloadSha256": "c09ad989297f4892a6f546ddcd74640ee9fd624c257f3f87158f517e90645d28",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/DTOs/Security/SecurityDtos.cs",
+      "baselineSha256": "a969f51951b51fa3cd5f45a22f55a7f1b9a54c5bc66ae0f819d65c1040d41fa6",
+      "payloadSha256": "d834aad2dad0a07c50c342249f1e976275e60ead0f7bc8a5d7f3e03ceabf7a74",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Entities/User.cs",
+      "baselineSha256": "44ec6c18c139d5be479c0cf9bdf98c22729b7d72506a7422419874a862b6610e",
+      "payloadSha256": "7e78c35007b613b9ced4577839865a566ee49ee2e37bd0faaa363da658e98eda",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Entities/UserSession.cs",
+      "baselineSha256": null,
+      "payloadSha256": "d7c52ce2cefa201a368e1c11bb94c2724cd844d1d41e6df04a1572deccef3309",
+      "newFile": true,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/AdministrationService.cs",
+      "baselineSha256": "3c9c142c581c818e7b9342fd7fa0dd5811dfbeeb5674bb5426ca9431ce90fec1",
+      "payloadSha256": "d0fb55b5725cfe09aeae47096b87a4a09426799a886e56bfeb7ee8839cb13b3b",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/AuthService.cs",
+      "baselineSha256": "3ba4eddf86c5efa45af1453fa3445ff585baa72b1456f4ab242210c995948994",
+      "payloadSha256": "8ae77f1fafb514a24215844832a4bbf23179086f17aee0bdc81be0b162ed895e",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/IAuthService.cs",
+      "baselineSha256": "044572b21d09cd5f29d013bbf5e5ee5a968d380df11f88d91abafd7c853f738e",
+      "payloadSha256": "4c49fa0bbf97559f30cdf7b0f9585dacf50131c993131f9038bae4ca213b3fe7",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/SecurityService.cs",
+      "baselineSha256": "21cbce9039cbec31b8e393e38dadbe7c4e8c7695ab80e84bc7bfdb55b7578361",
+      "payloadSha256": "f86bc0b9c20ae9041c8bbb764784c41177ba2454fe87b7d76ab478feb7fe1731",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/SuperAdminGovernanceService.cs",
+      "baselineSha256": "cac8b15a613a41e891033a704b2580ea03cbceab013d11a5c16ca4900999e105",
+      "payloadSha256": "ab361296acdb94a47630b55224284e7bd5f82de8b6a4370df562060d10532594",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Infrastructure/Data/CivicDbContext.DbSets.cs",
+      "baselineSha256": "6ed497a3b9c9ec012d1d8533eab77ca5996cb6a265eb44b7b04f36ea00dd2bbd",
+      "payloadSha256": "1228df9451268565b5c37e7b2d246bccba00961b917fcfabfb6353270ddcd5e3",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Infrastructure/Data/Configurations/UserSessionConfiguration.cs",
+      "baselineSha256": null,
+      "payloadSha256": "c827c8bf3e3557b6a95a915597a942cbb81f6f1f9160c8451f7eeee3f1e29e09",
+      "newFile": true,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Infrastructure/Security/JwtAuthenticationExtensions.cs",
+      "baselineSha256": "c3c47ed0b5e8d367c7e696fdbc17aa075143faf594a0372354ae7e3a8a69bb9e",
+      "payloadSha256": "d8470d7094b0e15095498158f59108b83209b590d2f6adffac88638c87b10fb5",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Infrastructure/Security/JwtTokenService.cs",
+      "baselineSha256": "c0e98513b36834d15b7c01e7795316e431ffbc20d40b128447fe29357d0b6ded",
+      "payloadSha256": "aad11c98b5cd459e2dbf12fc16bd9da6b47890ebeb0143055d34c13e7a4297cd",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Migrations/20260801183000_Change31FMultipleActiveSessions.cs",
+      "baselineSha256": null,
+      "payloadSha256": "789b59eae6452494cf7f9ddd760ee287bac9298ebecc4e8e57134602c00b9c3f",
+      "newFile": true,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Migrations/CivicDbContextModelSnapshot.cs",
+      "baselineSha256": "58b7e1f009764952ff94fd4be3df9530bda7dbd53d6c86abb651c9cb95fa2179",
+      "payloadSha256": "c9f7159bf92740823726c5fd6449a8f26fee2abe52619fa9bfc934b3a2d0a051",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Unit/Security/JwtSessionClaimTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "c1eedbb2cffaca87d3520d3e9acb876fede73ac9423f0851ac34ca0897c27318",
+      "newFile": true,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/admin/SuperAdminGovernance.jsx",
+      "baselineSha256": "1b925f1bc6999d019be0780aba03a1505f61e84d709b808c1909993d27291658",
+      "payloadSha256": "75e144d70665f878aa4a1ca1799a6fce4f31fba1f15d7af73666589b6a390b2a",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/common/AccountSecurity.jsx",
+      "baselineSha256": "40a0a4813c92c59bfb6400e2a11bd588451e7f64f31fd5f04982949f937ce9a4",
+      "payloadSha256": "7f59e577f875d08880e6564ef1c4215e3e36216333a7a59910f90405fb9b88b1",
+      "newFile": false,
+      "expectedState": "Change31E applied; Change31A-31D prerequisites inherited"
+    }
+  ]
+}

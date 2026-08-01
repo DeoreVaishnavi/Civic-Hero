@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { aiApi } from '../../services/aiApi.js';
+import MediaForensicsPanel from '../../components/ai/MediaForensicsPanel.jsx';
 
 const card = 'rounded-2xl border border-white/10 bg-white/5 p-5';
 const input = 'w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-sky-400';
@@ -12,6 +13,9 @@ export default function FraudReviewQueue() {
   const [busy, setBusy] = useState(null);
   const [sample, setSample] = useState({ title: 'Large pothole near school gate', description: 'A deep pothole is causing accidents during school hours.', category: 'Pothole', latitude: 19.076, longitude: 72.8777 });
   const [sandbox, setSandbox] = useState(null);
+  const [forensicsReport, setForensicsReport] = useState(null);
+  const [forensicsComplaintId, setForensicsComplaintId] = useState(null);
+  const [forensicsBusy, setForensicsBusy] = useState(null);
 
   const load = async () => {
     setError('');
@@ -38,6 +42,17 @@ export default function FraudReviewQueue() {
     try { await aiApi.decide(complaintId, { decision, notes, mergeIntoComplaintId }); await load(); }
     catch (reason) { setError(reason.message); }
     finally { setBusy(null); }
+  };
+
+  const runForensics = async (complaintId) => {
+    setForensicsBusy(complaintId);
+    setError('');
+    try {
+      const report = await aiApi.mediaForensics(complaintId);
+      setForensicsReport(report);
+      setForensicsComplaintId(complaintId);
+    } catch (reason) { setError(reason?.errors?.join(' ') || reason?.message || 'Media forensics could not be completed.'); }
+    finally { setForensicsBusy(null); }
   };
 
   const runSandbox = async () => {
@@ -76,7 +91,9 @@ export default function FraudReviewQueue() {
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-mono text-xs text-sky-300">CH-{String(item.complaintId).padStart(6,'0')}</p><h4 className="mt-1 text-lg font-black text-white">{item.title}</h4><p className="text-sm text-slate-400">{item.citizenName} · {item.status}</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${item.fraudScore >= .65 ? 'bg-rose-400/15 text-rose-200' : 'bg-amber-400/15 text-amber-200'}`}>{item.fraudVerdict} {Math.round(item.fraudScore * 100)}%</span></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3"><Mini label="Category" value={item.predictedCategory} /><Mini label="Priority" value={item.predictedPriority} /><Mini label="Duplicate" value={`${item.duplicateStatus} · ${Math.round(item.duplicateScore * 100)}%`} /></div>
             <p className="mt-4 text-sm leading-6 text-slate-300">{item.reasoning}</p>
-            <div className="mt-4 flex flex-wrap gap-2"><Action disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'Clear')}>Clear</Action><Action disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'Merge')}>Merge</Action><Action danger disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'ConfirmFraud')}>Confirm fraud</Action><Action disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'Reanalyze')}>Reanalyse</Action></div>
+            {item.escalatedToAdmin && <div className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100"><span className="font-black">Escalated by Supervisor:</span> {item.escalationNotes || 'Administrator decision required.'}</div>}
+            <div className="mt-4 flex flex-wrap gap-2"><Action disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'Clear')}>Clear</Action><Action disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'Merge')}>Merge</Action><Action danger disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'ConfirmFraud')}>Confirm fraud</Action><Action disabled={forensicsBusy===item.complaintId} onClick={()=>runForensics(item.complaintId)}>{forensicsBusy===item.complaintId?'Analysing media…':'Media forensics'}</Action><Action disabled={busy===item.complaintId} onClick={()=>decide(item.complaintId,'Reanalyze')}>Reanalyse</Action></div>
+            {forensicsComplaintId===item.complaintId&&<MediaForensicsPanel report={forensicsReport} onClose={()=>{setForensicsComplaintId(null);setForensicsReport(null);}} />}
           </article>)}
         </div>
       </div>

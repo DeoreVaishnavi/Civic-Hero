@@ -166,15 +166,25 @@ export default function AccountSecurity() {
     }
   };
 
-  const revokeSelected = async (sessionId) => {
-    if (!window.confirm('Revoke this stored session? You will be signed out.')) return;
-    setBusy(`session-${sessionId}`);
+  const revokeSelected = async (item) => {
+    const warning = item.isCurrentSession
+      ? 'Revoke this current session? This browser will be signed out.'
+      : `Revoke the session for ${item.deviceLabel}? That device will need to sign in again.`;
+    if (!window.confirm(warning)) return;
+    setBusy(`session-${item.sessionId}`);
     setError('');
+    setMessage('');
     try {
-      await securityApi.revokeMySession(sessionId);
-      await finishAndSignOut('Selected session revoked. Signing out…');
+      await securityApi.revokeMySession(item.sessionId);
+      if (item.isCurrentSession) {
+        await finishAndSignOut('Current session revoked. Signing out…');
+        return;
+      }
+      setMessage(`${item.deviceLabel} session revoked.`);
+      await load();
     } catch (reason) {
       setError(reason.message);
+    } finally {
       setBusy('');
     }
   };
@@ -411,7 +421,7 @@ export default function AccountSecurity() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold text-white">Active login sessions</h3>
-            <p className="mt-2 text-sm text-slate-400">Review the refresh session currently stored for your account and revoke it individually.</p>
+            <p className="mt-2 text-sm text-slate-400">Review every browser or device signed in to your account and revoke one without affecting the others.</p>
           </div>
           <button type="button" disabled={Boolean(busy)} onClick={load} className="rounded-xl border border-cyan-400/30 px-4 py-2 text-sm font-bold text-cyan-100 disabled:opacity-50">
             Refresh sessions
@@ -422,18 +432,18 @@ export default function AccountSecurity() {
         )}
         <div className="mt-5 space-y-3">
           {(sessions.sessions || []).length === 0 && (
-            <div className="rounded-xl border border-dashed border-white/10 p-5 text-sm text-slate-500">No active refresh session is stored.</div>
+            <div className="rounded-xl border border-dashed border-white/10 p-5 text-sm text-slate-500">No active login sessions were found.</div>
           )}
           {(sessions.sessions || []).map((item) => (
             <article key={item.sessionId} className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="font-bold text-white">{item.deviceLabel}</p>
+                  <div className="flex flex-wrap items-center gap-2"><p className="font-bold text-white">{item.deviceLabel}</p>{item.isCurrentSession && <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-200">Current device</span>}</div>
                   <p className="mt-1 text-xs text-slate-500">{item.sessionKind} · Session {item.sessionId}</p>
                   <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
                     <p><span className="font-semibold text-slate-300">Created:</span> {formatDate(item.createdAtUtc)}</p>
                     <p><span className="font-semibold text-slate-300">Expires:</span> {formatDate(item.expiresAtUtc)}</p>
-                    <p><span className="font-semibold text-slate-300">Last login:</span> {formatDate(item.lastLoginAtUtc)}</p>
+                    <p><span className="font-semibold text-slate-300">Last refreshed:</span> {formatDate(item.lastSeenAtUtc)}</p>
                     <p><span className="font-semibold text-slate-300">IP:</span> {item.ipAddress || 'Not recorded'}</p>
                   </div>
                   {item.userAgent && <p className="mt-3 break-all text-xs text-slate-500">{item.userAgent}</p>}
@@ -441,7 +451,7 @@ export default function AccountSecurity() {
                 <button
                   type="button"
                   disabled={Boolean(busy)}
-                  onClick={() => revokeSelected(item.sessionId)}
+                  onClick={() => revokeSelected(item)}
                   className="rounded-xl border border-rose-400/30 px-4 py-2 text-sm font-bold text-rose-200 disabled:opacity-50"
                 >
                   {busy === `session-${item.sessionId}` ? 'Revoking…' : 'Revoke this session'}

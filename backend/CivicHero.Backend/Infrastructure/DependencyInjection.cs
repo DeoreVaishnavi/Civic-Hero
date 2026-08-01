@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.Configure<AnonymousReportingOptions>(configuration.GetSection(AnonymousReportingOptions.SectionName));
         services.Configure<CaptchaOptions>(configuration.GetSection(CaptchaOptions.SectionName));
         services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.Configure<VisualVerificationOptions>(configuration.GetSection(VisualVerificationOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection is not configured.");
@@ -82,14 +83,18 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<ITwoFactorService, TwoFactorService>();
         services.AddScoped<IPhoneOtpService, PhoneOtpService>();
+        services.AddSingleton<IPasswordResetTokenService, PasswordResetTokenService>();
         services.AddHttpClient<GoogleRecaptchaVerifier>();
         services.AddScoped<ICaptchaVerifier>(provider => provider.GetRequiredService<GoogleRecaptchaVerifier>());
         services.AddHttpClient<CivicHero.Backend.Infrastructure.Notifications.ConfiguredSmsSender>();
         services.AddScoped<ISmsSender>(provider => provider.GetRequiredService<CivicHero.Backend.Infrastructure.Notifications.ConfiguredSmsSender>());
+        services.AddScoped<CivicHero.Backend.Infrastructure.Notifications.ConfiguredEmailSender>();
+        services.AddScoped<IEmailSender>(provider => provider.GetRequiredService<CivicHero.Backend.Infrastructure.Notifications.ConfiguredEmailSender>());
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IStaffAccountService, StaffAccountService>();
         services.AddScoped<IComplaintService, ComplaintService>();
+        services.AddScoped<IComplaintDraftService, ComplaintDraftService>();
         services.AddScoped<IAdminComplaintService, AdminComplaintService>();
         services.AddScoped<IAdminUserManagementService, AdminUserManagementService>();
         services.AddScoped<ISuperAdminGovernanceService, SuperAdminGovernanceService>();
@@ -115,6 +120,7 @@ public static class DependencyInjection
         services.AddHttpClient<GeminiVisualVerificationProvider>();
         services.AddScoped<RuleBasedVisualVerificationProvider>();
         services.AddScoped<IVisualVerificationService, VisualVerificationService>();
+        services.AddScoped<IMediaForensicsService, MediaForensicsService>();
         services.AddScoped<IAiTriageService, AiTriageService>();
         services.AddScoped<ClassificationService>();
         services.AddScoped<DuplicateDetectionService>();

@@ -151,6 +151,10 @@ public sealed class SaveNotificationTemplateValidator : AbstractValidator<SaveNo
 
 public sealed class AdminBroadcastNotificationValidator : AbstractValidator<AdminBroadcastNotificationRequest>
 {
+    private static readonly string[] Roles = ["Citizen", "Officer", "Supervisor", "Admin", "SuperAdmin"];
+    private static readonly string[] AudienceTypes = ["All", "Role", "Department", "Ward", "Group", "SelectedUsers"];
+    private static readonly string[] GroupIdentifiers = ["AllStaff", "FieldOperations", "Administrators", "CitizensWithActiveComplaints"];
+
     public AdminBroadcastNotificationValidator()
     {
         RuleFor(request => request)
@@ -162,9 +166,22 @@ public sealed class AdminBroadcastNotificationValidator : AbstractValidator<Admi
             .When(request => !string.IsNullOrWhiteSpace(request.TemplateKey));
         RuleFor(request => request.Title).MaximumLength(200);
         RuleFor(request => request.Message).MaximumLength(2000);
+        RuleFor(request => request.AudienceType)
+            .Must(value => string.IsNullOrWhiteSpace(value) || AudienceTypes.Contains(value, StringComparer.OrdinalIgnoreCase))
+            .WithMessage("Audience type must be All, Role, Department, Ward, Group, or SelectedUsers.");
         RuleFor(request => request.Role)
-            .Must(role => string.IsNullOrWhiteSpace(role) || new[] { "Citizen", "Officer", "Supervisor", "Admin", "SuperAdmin" }.Contains(role))
+            .Must(role => string.IsNullOrWhiteSpace(role) || Roles.Contains(role, StringComparer.OrdinalIgnoreCase))
             .WithMessage("Role must be Citizen, Officer, Supervisor, Admin, or SuperAdmin.");
+        RuleFor(request => request.GroupIdentifier)
+            .Must(group => string.IsNullOrWhiteSpace(group) || GroupIdentifiers.Contains(group, StringComparer.OrdinalIgnoreCase))
+            .WithMessage("Group must be AllStaff, FieldOperations, Administrators, or CitizensWithActiveComplaints.");
+        RuleFor(request => request.SelectedUserIds)
+            .Must(ids => ids is not null && ids.Count <= 200)
+            .WithMessage("A broadcast can target at most 200 selected users.");
+        RuleForEach(request => request.SelectedUserIds)
+            .GreaterThan(0);
+        RuleFor(request => request)
+            .Custom(ValidateAudience);
         RuleFor(request => request.ActionUrl).MaximumLength(500);
         RuleFor(request => request.Type)
             .Must(value => string.IsNullOrWhiteSpace(value) || Enum.TryParse<NotificationType>(value, true, out _))
@@ -175,6 +192,54 @@ public sealed class AdminBroadcastNotificationValidator : AbstractValidator<Admi
         RuleFor(request => request.ScheduledFor)
             .Must(value => !value.HasValue || value.Value <= DateTimeOffset.UtcNow.AddYears(1))
             .WithMessage("A broadcast cannot be scheduled more than one year in advance.");
+    }
+
+    private static void ValidateAudience(AdminBroadcastNotificationRequest request, ValidationContext<AdminBroadcastNotificationRequest> context)
+    {
+        var type = string.IsNullOrWhiteSpace(request.AudienceType)
+            ? (string.IsNullOrWhiteSpace(request.Role) ? "All" : "Role")
+            : request.AudienceType.Trim();
+        var selectedIds = request.SelectedUserIds ?? [];
+
+        switch (type.ToLowerInvariant())
+        {
+            case "all":
+                if (!string.IsNullOrWhiteSpace(request.Role) || request.DepartmentId.HasValue || request.WardId.HasValue || !string.IsNullOrWhiteSpace(request.GroupIdentifier) || selectedIds.Count > 0)
+                    context.AddFailure("AudienceType", "All-user broadcasts cannot include role, department, ward, group, or selected-user filters.");
+                break;
+            case "role":
+                if (string.IsNullOrWhiteSpace(request.Role))
+                    context.AddFailure("Role", "Select a role for a role-targeted broadcast.");
+                if (request.DepartmentId.HasValue || request.WardId.HasValue || !string.IsNullOrWhiteSpace(request.GroupIdentifier) || selectedIds.Count > 0)
+                    context.AddFailure("AudienceType", "Role broadcasts cannot include department, ward, group, or selected-user filters.");
+                break;
+            case "department":
+                if (!request.DepartmentId.HasValue)
+                    context.AddFailure("DepartmentId", "Select a department group.");
+                if (!string.IsNullOrWhiteSpace(request.Role) || request.WardId.HasValue || !string.IsNullOrWhiteSpace(request.GroupIdentifier) || selectedIds.Count > 0)
+                    context.AddFailure("AudienceType", "Department broadcasts cannot include role, ward, group, or selected-user filters.");
+                break;
+            case "ward":
+                if (!request.WardId.HasValue)
+                    context.AddFailure("WardId", "Select a ward.");
+                if (!string.IsNullOrWhiteSpace(request.Role) || request.DepartmentId.HasValue || !string.IsNullOrWhiteSpace(request.GroupIdentifier) || selectedIds.Count > 0)
+                    context.AddFailure("AudienceType", "Ward broadcasts cannot include role, department, group, or selected-user filters.");
+                break;
+            case "group":
+                if (string.IsNullOrWhiteSpace(request.GroupIdentifier))
+                    context.AddFailure("GroupIdentifier", "Select a predefined notification group.");
+                if (!string.IsNullOrWhiteSpace(request.Role) || request.DepartmentId.HasValue || request.WardId.HasValue || selectedIds.Count > 0)
+                    context.AddFailure("AudienceType", "Group broadcasts cannot include role, department, ward, or selected-user filters.");
+                break;
+            case "selectedusers":
+                if (selectedIds.Count == 0)
+                    context.AddFailure("SelectedUserIds", "Select at least one recipient.");
+                if (selectedIds.Count != selectedIds.Distinct().Count())
+                    context.AddFailure("SelectedUserIds", "Selected-user IDs must be unique.");
+                if (!string.IsNullOrWhiteSpace(request.Role) || request.DepartmentId.HasValue || request.WardId.HasValue || !string.IsNullOrWhiteSpace(request.GroupIdentifier))
+                    context.AddFailure("AudienceType", "Selected-user broadcasts cannot include role, department, ward, or group filters.");
+                break;
+        }
     }
 }
 

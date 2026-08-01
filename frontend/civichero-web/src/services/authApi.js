@@ -22,6 +22,9 @@ export const authApi = {
   )),
   forgotPassword: async (identifier) => data(await axiosInstance.post('/auth/forgot-password', { identifier })),
   resetPassword: async (request) => axiosInstance.post('/auth/reset-password', request),
+  requestPasswordResetLink: async (email) => data(await axiosInstance.post('/auth/password-reset/request-link', { email })),
+  validatePasswordResetLink: async (token) => data(await axiosInstance.post('/auth/password-reset/validate-link', { token })),
+  completePasswordResetLink: async (request) => axiosInstance.post('/auth/password-reset/complete', request),
   requestPhoneLoginOtp: async (phoneNumber) => data(await axiosInstance.post(
     '/auth/phone/request-login-otp',
     { phoneNumber },

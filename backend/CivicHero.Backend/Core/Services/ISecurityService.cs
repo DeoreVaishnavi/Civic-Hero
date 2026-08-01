@@ -22,4 +22,6 @@ public interface ISecurityService
     Task<IReadOnlyList<LockedAccountDto>> GetLockedAccountsAsync(CancellationToken cancellationToken = default);
     Task<SecurityActionResultDto> UnlockAccountAsync(long userId, CancellationToken cancellationToken = default);
     Task<SecurityActionResultDto> RevokeUserSessionsAsync(long userId, CancellationToken cancellationToken = default);
+    Task<ManagedSessionsResponseDto> GetManagedSessionsAsync(string? search, string? role, int take = 100, CancellationToken cancellationToken = default);
+    Task<ManagedSessionRevocationDto> RevokeManagedSessionAsync(string sessionId, RevokeManagedSessionRequest request, CancellationToken cancellationToken = default);
 }

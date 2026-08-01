@@ -14,6 +14,8 @@ export const securityApi = {
   getLockedAccounts: async () => unwrap(await axiosInstance.get('/security/admin/locked-accounts')),
   unlockAccount: async (id) => unwrap(await axiosInstance.post(`/security/admin/users/${id}/unlock`)),
   revokeUserSessions: async (id) => unwrap(await axiosInstance.post(`/security/admin/users/${id}/revoke-sessions`)),
+  getManagedSessions: async (params = {}) => unwrap(await axiosInstance.get('/security/admin/sessions', { params })),
+  revokeManagedSession: async (sessionId, request) => unwrap(await axiosInstance.delete(`/security/admin/sessions/${encodeURIComponent(sessionId)}`, { data: request })),
   getTwoFactorStatus: async () => unwrap(await axiosInstance.get('/security/two-factor/status')),
   beginTwoFactorSetup: async () => unwrap(await axiosInstance.post('/security/two-factor/setup')),
   enableTwoFactor: async (code) => unwrap(await axiosInstance.post('/security/two-factor/enable', { code })),

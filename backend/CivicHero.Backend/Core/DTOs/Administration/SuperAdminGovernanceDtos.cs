@@ -92,8 +92,12 @@ public sealed record GlobalSessionDto(
     string FullName,
     string Email,
     string Role,
+    string DeviceLabel,
+    string? IpAddress,
+    string? UserAgent,
     DateTimeOffset? CreatedAtUtc,
     DateTimeOffset? ExpiresAtUtc,
+    DateTimeOffset? LastSeenAtUtc,
     DateTimeOffset? LastLoginAtUtc,
     bool TwoFactorEnabled);
 

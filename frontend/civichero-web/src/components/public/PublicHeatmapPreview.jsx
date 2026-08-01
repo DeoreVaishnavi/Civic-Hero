@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { analyticsApi } from '../../services/analyticsApi.js';
 import { ROUTE_PATHS } from '../../routes/routePaths.js';
 import { homeHeatmapPreview } from '../../data/civicInitiatives.js';
-import { dashboardForRole } from '../../utils/roleRouting.js';
 
 const normalise = (point, index) => ({
   id: point.id || `${point.latitude}-${point.longitude}-${index}`,
@@ -35,18 +34,13 @@ export default function PublicHeatmapPreview() {
   const { isAuthenticated, user } = useAuth();
   const [points, setPoints] = useState(publicPreviewPoints);
   const [selectedId, setSelectedId] = useState(publicPreviewPoints[0]?.id);
-  const [mode, setMode] = useState('preview');
+  const [mode, setMode] = useState('loading');
 
   useEffect(() => {
     let active = true;
-    if (!isAuthenticated) {
-      setPoints(publicPreviewPoints);
-      setSelectedId(publicPreviewPoints[0]?.id);
-      setMode('preview');
-      return () => { active = false; };
-    }
+    setMode('loading');
 
-    analyticsApi.heatmap({})
+    analyticsApi.publicHeatmap({})
       .then((response) => {
         if (!active) return;
         const live = (Array.isArray(response) ? response : []).map(normalise).slice(0, 30);
@@ -54,20 +48,26 @@ export default function PublicHeatmapPreview() {
           setPoints(live);
           setSelectedId(live[0].id);
           setMode('live');
+        } else {
+          setPoints([]);
+          setSelectedId(undefined);
+          setMode('live');
         }
       })
       .catch(() => {
-        if (active) setMode('preview');
+        if (!active) return;
+        setPoints(publicPreviewPoints);
+        setSelectedId(publicPreviewPoints[0]?.id);
+        setMode('preview');
       });
+
     return () => { active = false; };
-  }, [isAuthenticated]);
+  }, []);
 
   const selected = points.find((item) => item.id === selectedId) || points[0];
-  const heatmapTarget = !isAuthenticated
-    ? ROUTE_PATHS.login
-    : String(user?.role || '').toLowerCase() === 'citizen'
-      ? ROUTE_PATHS.citizenHeatmap
-      : dashboardForRole(user?.role);
+  const heatmapTarget = isAuthenticated && String(user?.role || '').toLowerCase() === 'citizen'
+    ? ROUTE_PATHS.citizenHeatmap
+    : ROUTE_PATHS.publicHeatmap;
 
   return (
     <section id="heatmap" className="relative overflow-hidden bg-slate-950 py-20 text-white sm:py-24">
@@ -83,7 +83,7 @@ export default function PublicHeatmapPreview() {
           </div>
           <div className="flex flex-wrap gap-3">
             <span className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-black ${mode === 'live' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-amber-400/15 text-amber-200'}`}>
-              {mode === 'live' ? '● Live account data' : '● Public preview data'}
+              {mode === 'loading' ? '● Loading live data' : mode === 'live' ? '● Live public data' : '● Sample fallback data'}
             </span>
             <Link to={heatmapTarget} className="rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-sky-50">
               Open full heatmap →
@@ -124,7 +124,7 @@ export default function PublicHeatmapPreview() {
               <div className="mt-4 grid grid-cols-2 gap-4 text-xs text-slate-400"><span>Verification pending <strong className="block pt-1 text-base text-white">{selected?.resolutionPendingCount}</strong></span><span>Average resolution <strong className="block pt-1 text-base text-white">{Number(selected?.averageResolutionHours || 0).toFixed(1)} hrs</strong></span></div>
             </div>
 
-            {!isAuthenticated && <p className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">The public preview uses sample hotspot counts on a real map. Sign in to view live, filterable complaint data.</p>}
+            {mode === 'preview' && <p className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">Live public data is temporarily unavailable, so CivicHero is showing clearly labelled sample hotspot data.</p>}
           </aside>
         </div>
       </div>

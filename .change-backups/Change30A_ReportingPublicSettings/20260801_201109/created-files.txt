@@ -1,0 +1,5 @@
+﻿backend\CivicHero.Backend\Controllers\PublicSettingsController.cs
+backend\CivicHero.Backend\Core\Services\ReportDocumentBuilder.cs
+backend\CivicHero.Backend.Tests\Integration\ReportingEndpointTests.cs
+backend\CivicHero.Backend.Tests\ReportDocumentBuilderTests.cs
+frontend\civichero-web\src\services\publicSettingsApi.js

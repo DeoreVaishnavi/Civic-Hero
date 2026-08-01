@@ -14,6 +14,11 @@ export const setWardActive = async (id, active) => unwrap(await axiosInstance[ac
 export const getSettings = async () => unwrap(await axiosInstance.get('/admin/settings'));
 export const updateSetting = async (key, payload) => unwrap(await axiosInstance.put(`/admin/settings/${encodeURIComponent(key)}`, payload));
 export const getAuditLogs = async (params) => unwrap(await axiosInstance.get('/admin/audit-logs', { params }));
-export const exportAuditLogs = async (params) => (await axiosInstance.get('/admin/audit-logs/export', { params, responseType: 'blob' })).data;
+export const exportAuditLogs = async (format = 'csv', params = {}) => {
+  const response = await axiosInstance.get('/admin/audit-logs/export', { params: { format, ...params }, responseType: 'blob' });
+  const disposition = response.headers['content-disposition'] || '';
+  const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+  return { blob: response.data, fileName: decodeURIComponent(match?.[1] || `civichero-audit.${format}`) };
+};
 export const getSystemHealth = async () => unwrap(await axiosInstance.get('/admin/system-health'));
 export const runMaintenance = async ({ dryRun = true, retentionDays = 365 } = {}) => unwrap(await axiosInstance.post('/admin/maintenance/cleanup', null, { params: { dryRun, retentionDays } }));

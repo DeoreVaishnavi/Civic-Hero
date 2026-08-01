@@ -70,7 +70,8 @@ public sealed class SuperAdminGovernanceService : ISuperAdminGovernanceService
             .Select(x => new SuperAdminAdminAccountDto(
                 x.Id, x.FullName, x.Email, x.Phone, x.IsActive, x.IsEmailVerified,
                 x.TwoFactorEnabled, x.TwoFactorEnabledAt, x.LastLoginAt,
-                x.RefreshTokenHash != null && x.RefreshTokenExpiresAt > now,
+                _db.UserSessions.Any(session => session.UserId == x.Id && !session.RevokedAt.HasValue &&
+                    session.ExpiresAt > now && session.AuthorizationVersion == x.AuthorizationVersion),
                 x.CreatedAt, x.UpdatedAt))
             .ToListAsync(cancellationToken);
     }
@@ -275,25 +276,42 @@ public sealed class SuperAdminGovernanceService : ISuperAdminGovernanceService
     {
         EnsureSuperAdmin();
         var now = DateTimeOffset.UtcNow;
-        var query = _db.Users.IgnoreQueryFilters().AsNoTracking()
-            .Where(x => x.RefreshTokenHash != null && x.RefreshTokenExpiresAt > now);
+        var query = _db.UserSessions.AsNoTracking()
+            .Where(x => !x.RevokedAt.HasValue && x.ExpiresAt > now &&
+                x.AuthorizationVersion == x.User.AuthorizationVersion && x.User.IsActive && !x.User.IsDeleted);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
-            query = query.Where(x => x.FullName.Contains(term) || x.Email.Contains(term));
+            query = query.Where(x => x.User.FullName.Contains(term) || x.User.Email.Contains(term) ||
+                x.DeviceLabel.Contains(term) || (x.IpAddress != null && x.IpAddress.Contains(term)));
         }
         if (!string.IsNullOrWhiteSpace(role))
         {
             if (!Enum.TryParse<UserRole>(role, true, out var parsedRole))
                 throw new CivicHero.Backend.Core.Exceptions.ValidationException(["The session role filter is invalid."]);
-            query = query.Where(x => x.Role == parsedRole);
+            query = query.Where(x => x.User.Role == parsedRole);
         }
-        var users = await query.OrderByDescending(x => x.RefreshTokenCreatedAt).Take(1000).ToListAsync(cancellationToken);
-        var sessions = users.Select(x => new GlobalSessionDto(
-            CreateSessionId(x), x.Id, x.FullName, x.Email, x.Role.ToString(),
-            x.RefreshTokenCreatedAt, x.RefreshTokenExpiresAt, x.LastLoginAt, x.TwoFactorEnabled)).ToArray();
-        return new GlobalSessionListDto(false,
-            "The current schema stores one refresh token per account, so the global list contains at most one refresh session for each user.",
+
+        var sessions = await query.OrderByDescending(x => x.LastSeenAt).ThenByDescending(x => x.CreatedAt)
+            .Take(1000)
+            .Select(x => new GlobalSessionDto(
+                x.SessionId,
+                x.UserId,
+                x.User.FullName,
+                x.User.Email,
+                x.User.Role.ToString(),
+                x.DeviceLabel,
+                x.IpAddress,
+                x.UserAgent,
+                x.CreatedAt,
+                x.ExpiresAt,
+                x.LastSeenAt,
+                x.User.LastLoginAt,
+                x.User.TwoFactorEnabled))
+            .ToListAsync(cancellationToken);
+
+        return new GlobalSessionListDto(true,
+            "Each active browser or device has an independently revocable refresh session.",
             sessions, now);
     }
 
@@ -306,18 +324,20 @@ public sealed class SuperAdminGovernanceService : ISuperAdminGovernanceService
         ValidateReason(request.Reason);
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new CivicHero.Backend.Core.Exceptions.ValidationException(["Session identifier is required."]);
+
         var now = DateTimeOffset.UtcNow;
-        var users = await _db.Users.IgnoreQueryFilters()
-            .Where(x => x.RefreshTokenHash != null && x.RefreshTokenExpiresAt > now)
-            .ToListAsync(cancellationToken);
-        var user = users.SingleOrDefault(x => string.Equals(CreateSessionId(x), sessionId.Trim(), StringComparison.OrdinalIgnoreCase))
+        var session = await _db.UserSessions.Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.SessionId == sessionId.Trim() && !x.RevokedAt.HasValue &&
+                x.ExpiresAt > now && x.AuthorizationVersion == x.User.AuthorizationVersion, cancellationToken)
             ?? throw new NotFoundException("The selected global session was not found or has expired.");
-        var selectedId = CreateSessionId(user);
-        InvalidateSessions(user);
-        AddAudit("SUPERADMIN_GLOBAL_SESSION_REVOKED", "SecuritySession", selectedId, null,
-            new { userId = user.Id, user.Email, role = user.Role.ToString(), request.Reason });
+
+        session.RevokedAt = now;
+        session.RevokedReason = request.Reason.Trim();
+        AddAudit("SUPERADMIN_GLOBAL_SESSION_REVOKED", "SecuritySession", session.SessionId, null,
+            new { userId = session.UserId, session.User.Email, role = session.User.Role.ToString(), request.Reason });
         await _db.SaveChangesAsync(cancellationToken);
-        return new GlobalSessionRevocationDto(selectedId, user.Id, user.Email, "Selected global session revoked", now);
+        return new GlobalSessionRevocationDto(session.SessionId, session.UserId, session.User.Email,
+            "Selected global session revoked", now);
     }
 
     public async Task<ReleaseGovernanceOverviewDto> GetReleaseDecisionsAsync(
@@ -437,8 +457,19 @@ public sealed class SuperAdminGovernanceService : ISuperAdminGovernanceService
 
     private async Task RevokeAllSessionsAsync(CancellationToken cancellationToken)
     {
+        var now = DateTimeOffset.UtcNow;
+        var sessions = await _db.UserSessions
+            .Where(x => !x.RevokedAt.HasValue && x.ExpiresAt > now)
+            .ToListAsync(cancellationToken);
+        foreach (var session in sessions)
+        {
+            session.RevokedAt = now;
+            session.RevokedReason = "Revoked by global governance policy change";
+        }
+
+        var userIds = sessions.Select(x => x.UserId).Distinct().ToArray();
         var users = await _db.Users
-            .Where(x => x.RefreshTokenHash != null)
+            .Where(x => userIds.Contains(x.Id) || x.RefreshTokenHash != null)
             .ToListAsync(cancellationToken);
         foreach (var user in users) InvalidateSessions(user);
     }
@@ -571,7 +602,7 @@ public sealed class SuperAdminGovernanceService : ISuperAdminGovernanceService
     private static SuperAdminAdminAccountDto MapAdmin(User user) => new(
         user.Id, user.FullName, user.Email, user.Phone, user.IsActive, user.IsEmailVerified,
         user.TwoFactorEnabled, user.TwoFactorEnabledAt, user.LastLoginAt,
-        user.RefreshTokenHash != null && user.RefreshTokenExpiresAt > DateTimeOffset.UtcNow,
+        false,
         user.CreatedAt, user.UpdatedAt);
 
     private static RolePolicyConfigurationDto BuildDefaultRolePolicy() => new()
@@ -654,12 +685,6 @@ public sealed class SuperAdminGovernanceService : ISuperAdminGovernanceService
         if (!value.StartsWith("/api/v1/", StringComparison.OrdinalIgnoreCase) && !value.Equals("/api/v1", StringComparison.OrdinalIgnoreCase))
             throw new BusinessRuleViolationException("Denied route prefixes must begin with /api/v1/.");
         return value.TrimEnd('/').ToLowerInvariant();
-    }
-
-    private static string CreateSessionId(User user)
-    {
-        var material = $"{user.Id}|{user.RefreshTokenHash}|{user.RefreshTokenCreatedAt:O}|{user.AuthorizationVersion}";
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(material)))[..24].ToLowerInvariant();
     }
 
     private static void InvalidateSessions(User user)

@@ -39,7 +39,13 @@ public sealed class AdminController : ControllerBase
     public async Task<IActionResult> UpdateSetting(string key, [FromBody] UpdateSystemSettingRequest request, CancellationToken ct) => OkEnvelope("System setting updated.", await _service.UpdateSettingAsync(key, request, ct));
 
     [HttpGet("audit-logs")] public async Task<IActionResult> AuditLogs([FromQuery] AuditLogQuery query, CancellationToken ct) => OkEnvelope("Audit logs loaded.", await _service.GetAuditLogsAsync(query, ct));
-    [HttpGet("audit-logs/export")] public async Task<IActionResult> ExportAuditLogs([FromQuery] AuditLogQuery query, CancellationToken ct) => File(await _service.ExportAuditLogsAsync(query, ct), "text/csv", $"civichero-audit-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv");
+    [HttpGet("audit-logs/export")]
+    public async Task<IActionResult> ExportAuditLogs([FromQuery] AuditLogQuery query, [FromQuery] string format = "csv", CancellationToken ct = default)
+    {
+        var file = await _service.ExportAuditLogsAsync(query, format, ct);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
     [HttpGet("system-health")] public async Task<IActionResult> SystemHealth(CancellationToken ct) => OkEnvelope("System health loaded.", await _service.GetSystemHealthAsync(ct));
     [HttpPost("maintenance/cleanup")][Authorize(Policy = PermissionConstants.SuperAdminOnly)]
     public async Task<IActionResult> Cleanup([FromQuery] bool dryRun = true, [FromQuery] int retentionDays = 365, CancellationToken ct = default) => OkEnvelope(dryRun ? "Maintenance preview completed." : "Maintenance cleanup completed.", await _service.CleanupAsync(dryRun, retentionDays, ct));

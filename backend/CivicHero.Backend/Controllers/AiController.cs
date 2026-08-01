@@ -40,12 +40,12 @@ public sealed class AiController : ControllerBase
         OkEnvelope("Complaint AI triage completed.", await _service.AnalyzeComplaintAsync(complaintId, force, cancellationToken));
 
     [HttpGet("review-queue")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Supervisor,Admin,SuperAdmin")]
     public async Task<IActionResult> ReviewQueue(CancellationToken cancellationToken) =>
         OkEnvelope("AI review queue loaded.", await _service.GetReviewQueueAsync(cancellationToken));
 
     [HttpPost("review-queue/{complaintId:long}/decision")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Supervisor,Admin,SuperAdmin")]
     public async Task<IActionResult> Decide(long complaintId, [FromBody] AiReviewDecisionRequest request, CancellationToken cancellationToken) =>
         OkEnvelope("AI review decision recorded.", await _service.DecideAsync(complaintId, request, cancellationToken));
 

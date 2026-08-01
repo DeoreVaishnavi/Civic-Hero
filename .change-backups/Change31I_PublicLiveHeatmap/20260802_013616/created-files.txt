@@ -1,0 +1,3 @@
+﻿backend/CivicHero.Backend.Tests/Integration/PublicHeatmapEndpointTests.cs
+backend/CivicHero.Backend.Tests/Unit/Analytics/PublicHeatmapPrivacyContractTests.cs
+frontend/civichero-web/src/pages/public/PublicHeatmapPage.jsx

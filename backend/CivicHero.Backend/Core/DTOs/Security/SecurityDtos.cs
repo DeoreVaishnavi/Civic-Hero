@@ -20,6 +20,7 @@ public sealed record SecuritySessionDto(
     DateTimeOffset? LastLoginAtUtc,
     DateTimeOffset? AccessTokenExpiresAtUtc,
     string? TokenId,
+    string? SessionId,
     int AuthorizationVersion,
     DateTimeOffset GeneratedAtUtc);
 
@@ -92,7 +93,8 @@ public sealed record ActiveSessionDto(
     string? UserAgent,
     DateTimeOffset? CreatedAtUtc,
     DateTimeOffset? ExpiresAtUtc,
-    DateTimeOffset? LastLoginAtUtc,
+    DateTimeOffset? LastSeenAtUtc,
+    bool IsCurrentSession,
     bool IsOnlyStoredSession);
 
 public sealed record ActiveSessionsResponseDto(
@@ -100,3 +102,35 @@ public sealed record ActiveSessionsResponseDto(
     string ArchitectureNote,
     IReadOnlyList<ActiveSessionDto> Sessions,
     DateTimeOffset GeneratedAtUtc);
+
+public sealed record ManagedSessionDto(
+    string SessionId,
+    long UserId,
+    string FullName,
+    string Email,
+    string Role,
+    string DeviceLabel,
+    string? IpAddress,
+    string? UserAgent,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset ExpiresAtUtc,
+    DateTimeOffset LastSeenAtUtc,
+    bool IsCurrentActorSession);
+
+public sealed record ManagedSessionsResponseDto(
+    int Total,
+    IReadOnlyList<ManagedSessionDto> Sessions,
+    DateTimeOffset GeneratedAtUtc);
+
+public sealed class RevokeManagedSessionRequest
+{
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed record ManagedSessionRevocationDto(
+    string SessionId,
+    long UserId,
+    string Email,
+    string DeviceLabel,
+    string Reason,
+    DateTimeOffset RevokedAtUtc);

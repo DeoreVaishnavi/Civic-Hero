@@ -1,0 +1,82 @@
+{
+  "change": "Change31J_OfficerVerificationReminder",
+  "baselineZip": "CivicHeroSolution(4).zip",
+  "baselineBranch": "Vaishnavi",
+  "baselineCommit": "00f3756d825015d11299f9ce834d7876804e5b43",
+  "prerequisites": [
+    "Change31A_SupervisorAiReview",
+    "Change31B_NotificationAudienceTargeting",
+    "Change31C_CitizenEngagementReport",
+    "Change31D_MediaForensics",
+    "Change31E_AccountComplaintDrafts",
+    "Change31F_MultipleActiveSessions",
+    "Change31G_AdminSelectedSessionManagement",
+    "Change31H_SecureEmailPasswordReset",
+    "Change31I_PublicLiveHeatmap"
+  ],
+  "databaseSchemaChange": false,
+  "migrationChange": false,
+  "automaticMigrationExecution": false,
+  "seedChange": false,
+  "configurationFilesChanged": false,
+  "runtimeDatabaseWrites": true,
+  "runtimeWritesDescription": "A successful reminder updates ComplaintVerification.ReminderSentAt and creates existing notification, complaint timeline, and audit-log records.",
+  "files": [
+    {
+      "path": "backend/CivicHero.Backend/Controllers/VerificationController.cs",
+      "baselineSha256": "40df53ac3481497994ffac6a8efeac6a1b5c099fba97593c3115626c7057cbc6",
+      "payloadSha256": "13d0302b8a7b52aafee010e7c2fa33177862196853c1d370cbf04efed2cd13da",
+      "newFile": false,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/DTOs/Verification/VerificationDtos.cs",
+      "baselineSha256": "2b1ef5aebc17eca1723a4bde4db0ee9f37608136020f400d5c8725146ec26d6c",
+      "payloadSha256": "0fdc6e160d47e682bd153bc3c5af1b1a1f2d0b966f772c1def14633fca46019f",
+      "newFile": false,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/VerificationService.cs",
+      "baselineSha256": "3c8012d7a100ffe414d380437e40c2c1d2c33bb48c0a3ea7408469f20afea167",
+      "payloadSha256": "7bb48c1dbe056dafd559fede3027fc1159fa7cbe6f34b9ae1795d4eaf576bc32",
+      "newFile": false,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend/Core/Services/VerificationReminderPolicy.cs",
+      "baselineSha256": null,
+      "payloadSha256": "f0fd2282289feb640fd38e4995f5b692219aae4f1ff6cbfc83df6da0e8d99c48",
+      "newFile": true,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Unit/Verification/VerificationReminderPolicyTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "43a03dd313fdcdd1e05c8dc00cacbea0b4547182ada633b6535eb6f8aefdd346",
+      "newFile": true,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "backend/CivicHero.Backend.Tests/Unit/Verification/VerificationReminderAuthorizationContractTests.cs",
+      "baselineSha256": null,
+      "payloadSha256": "4380e506dc1f7f76f07772a97472892ce848f742f2482343d8ca756dc1996b98",
+      "newFile": true,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/officer/AssignmentDetails.jsx",
+      "baselineSha256": "6033d6f04c76f54735dcadd370e84b869059a0b2aee6c08460ee1295fd39f076",
+      "payloadSha256": "504a30ee634780bd2242579458e8928bf22e52d3b37bbfc47523ab220d2f9336",
+      "newFile": false,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    },
+    {
+      "path": "frontend/civichero-web/src/pages/supervisor/VerificationQueue.jsx",
+      "baselineSha256": "ee2046005992c60012ce6ed7a585aa633a10780718b777352d32cd5bf07389f7",
+      "payloadSha256": "d8e0c0abdb55c28db1231c1b58c616311d1ba2af15832f7cbe9ec1ee78e7606d",
+      "newFile": false,
+      "expectedState": "Change31I_PublicLiveHeatmap applied"
+    }
+  ]
+}

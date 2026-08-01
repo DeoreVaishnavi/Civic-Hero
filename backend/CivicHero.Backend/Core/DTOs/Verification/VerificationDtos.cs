@@ -44,6 +44,11 @@ public sealed record VerificationResponse(
     bool CanAmend,
     bool CanWithdraw,
     bool CanRemind,
+    int ReminderCount,
+    int ReminderLimit,
+    DateTimeOffset? LastReminderSentAt,
+    DateTimeOffset? NextReminderAllowedAt,
+    string? ReminderUnavailableReason,
     IReadOnlyList<VerificationEvidenceItem> CitizenEvidence);
 
 public sealed record VerificationQueueItem(
@@ -57,7 +62,13 @@ public sealed record VerificationQueueItem(
     long RemainingMinutes,
     bool IsOverdue,
     string Decision,
-    bool RequiresSupervisorDecision);
+    bool RequiresSupervisorDecision,
+    bool CanRemind,
+    int ReminderCount,
+    int ReminderLimit,
+    DateTimeOffset? LastReminderSentAt,
+    DateTimeOffset? NextReminderAllowedAt,
+    string? ReminderUnavailableReason);
 
 
 public sealed record VerificationDecisionCycleItem(

@@ -47,7 +47,39 @@ public static class JwtAuthenticationExtensions
                         context.Fail("Required authorization claims are missing.");
                         return;
                     }
+
                     var db = context.HttpContext.RequestServices.GetRequiredService<CivicDbContext>();
+                    var sessionId = principal?.FindFirstValue("sid");
+                    if (!string.IsNullOrWhiteSpace(sessionId))
+                    {
+                        var now = DateTimeOffset.UtcNow;
+                        var session = await db.UserSessions.AsNoTracking()
+                            .Where(x => x.SessionId == sessionId && x.UserId == userId)
+                            .Select(x => new
+                            {
+                                x.AuthorizationVersion,
+                                x.ExpiresAt,
+                                x.RevokedAt,
+                                UserActive = x.User.IsActive,
+                                UserVerified = x.User.IsEmailVerified,
+                                UserAuthorizationVersion = x.User.AuthorizationVersion,
+                                UserRole = x.User.Role
+                            })
+                            .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                        if (session is null || session.RevokedAt.HasValue || session.ExpiresAt <= now ||
+                            session.AuthorizationVersion != authVersion || session.UserAuthorizationVersion != authVersion ||
+                            !session.UserActive || !session.UserVerified ||
+                            !string.Equals(session.UserRole.ToString(), principal?.FindFirstValue(ClaimTypes.Role), StringComparison.Ordinal))
+                        {
+                            context.Fail("This session is no longer valid.");
+                        }
+
+                        return;
+                    }
+
+                    // Transitional support for access tokens issued before Change31F. They remain
+                    // subject to the account authorization version and expire normally.
                     var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, context.HttpContext.RequestAborted);
                     if (user is null || !user.IsActive || !user.IsEmailVerified || user.AuthorizationVersion != authVersion ||
                         !string.Equals(user.Role.ToString(), principal?.FindFirstValue(ClaimTypes.Role), StringComparison.Ordinal))

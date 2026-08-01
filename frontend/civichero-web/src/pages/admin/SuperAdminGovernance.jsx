@@ -177,7 +177,37 @@ function PoliciesTab({ policies, rows, setPolicies, updateRoleEntry, saveRolePol
 }
 
 function SessionsTab({ data, search, setSearch, role, setRole, load, reason, setReason, revoke, busy }) {
-  return <div className="space-y-5"><div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">{data.schemaNote || 'The current schema stores at most one refresh session per user.'}</div><form onSubmit={(e) => { e.preventDefault(); load(); }} className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1fr_220px_auto]"><input value={search} onChange={(e) => setSearch(e.target.value)} className="input mt-0" placeholder="Search user or email" /><select value={role} onChange={(e) => setRole(e.target.value)} className="input mt-0"><option value="">All roles</option>{roles.map((item) => <option key={item}>{item}</option>)}</select><button className="rounded-xl bg-sky-500 px-5 font-bold text-white">Search</button></form><label className="block text-sm text-slate-300">Audited revocation reason<textarea value={reason} onChange={(e) => setReason(e.target.value)} rows="3" className="input resize-y" /></label><div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/5"><table className="min-w-full text-left text-sm"><thead className="text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">User</th><th className="p-3">Role</th><th className="p-3">Created</th><th className="p-3">Expires</th><th className="p-3">2FA</th><th className="p-3">Action</th></tr></thead><tbody className="divide-y divide-white/10">{(data.sessions || []).length === 0 ? <tr><td colSpan="6" className="p-6 text-center text-slate-400">No active sessions found.</td></tr> : data.sessions.map((session) => <tr key={session.sessionId}><td className="p-3"><p className="font-bold text-white">{session.fullName}</p><p className="text-xs text-slate-500">{session.email}</p><p className="text-[10px] text-slate-600">{session.sessionId}</p></td><td className="p-3 text-slate-300">{session.role}</td><td className="p-3 text-slate-300">{fmt(session.createdAtUtc)}</td><td className="p-3 text-slate-300">{fmt(session.expiresAtUtc)}</td><td className="p-3 text-slate-300">{session.twoFactorEnabled ? 'Enabled' : 'No'}</td><td className="p-3"><button disabled={busy === `session-${session.sessionId}`} onClick={() => revoke(session)} className="rounded-lg bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200">Revoke selected</button></td></tr>)}</tbody></table></div></div>;
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+        {data.schemaNote || 'Each browser or device has an independently revocable session.'}
+      </div>
+      <form onSubmit={(e) => { e.preventDefault(); load(); }} className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1fr_220px_auto]">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} className="input mt-0" placeholder="Search user, email, device, or IP" />
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="input mt-0"><option value="">All roles</option>{roles.map((item) => <option key={item}>{item}</option>)}</select>
+        <button className="rounded-xl bg-sky-500 px-5 font-bold text-white">Search</button>
+      </form>
+      <label className="block text-sm text-slate-300">Audited revocation reason<textarea value={reason} onChange={(e) => setReason(e.target.value)} rows="3" className="input resize-y" /></label>
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/5">
+        <table className="min-w-full text-left text-sm">
+          <thead className="text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">User</th><th className="p-3">Device</th><th className="p-3">Role</th><th className="p-3">Last refreshed</th><th className="p-3">Expires</th><th className="p-3">2FA</th><th className="p-3">Action</th></tr></thead>
+          <tbody className="divide-y divide-white/10">
+            {(data.sessions || []).length === 0 ? <tr><td colSpan="7" className="p-6 text-center text-slate-400">No active sessions found.</td></tr> : data.sessions.map((session) => (
+              <tr key={session.sessionId}>
+                <td className="p-3"><p className="font-bold text-white">{session.fullName}</p><p className="text-xs text-slate-500">{session.email}</p><p className="text-[10px] text-slate-600">{session.sessionId}</p></td>
+                <td className="p-3"><p className="font-semibold text-slate-200">{session.deviceLabel}</p><p className="text-xs text-slate-500">{session.ipAddress || 'IP not recorded'}</p>{session.userAgent && <p className="mt-1 max-w-xs truncate text-[10px] text-slate-600" title={session.userAgent}>{session.userAgent}</p>}</td>
+                <td className="p-3 text-slate-300">{session.role}</td>
+                <td className="p-3 text-slate-300">{fmt(session.lastSeenAtUtc)}</td>
+                <td className="p-3 text-slate-300">{fmt(session.expiresAtUtc)}</td>
+                <td className="p-3 text-slate-300">{session.twoFactorEnabled ? 'Enabled' : 'No'}</td>
+                <td className="p-3"><button disabled={busy === `session-${session.sessionId}`} onClick={() => revoke(session)} className="rounded-lg bg-rose-500/15 px-3 py-2 text-xs font-bold text-rose-200">Revoke selected</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function ReleaseTab({ data, form, setForm, submit, busy }) {

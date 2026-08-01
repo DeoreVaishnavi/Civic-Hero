@@ -1,7 +1,16 @@
 import PortalLayout from './PortalLayout.jsx';
-export default function AdminLayout() { return <PortalLayout basePath="/admin" title="Administration" subtitle="Users, governance, evidence and system controls" navItems={[
-  { to: '/admin', label: 'Admin dashboard', end: true }, { to: '/admin/users', label: 'User management' }, { to: '/admin/staff-accounts', label: 'Staff accounts' }, { to: '/admin/emergency-reviews', label: 'Emergency review' }, { to: '/admin/comment-moderation', label: 'Comment moderation' }, { to: '/admin/visual-verification', label: 'AI visual review' },
-  { to: '/admin/governance', label: 'Governance' }, { to: '/admin/audit-logs', label: 'Audit logs' }, { to: '/admin/system-health', label: 'System health' }, { to: '/admin/security-center', label: 'Security centre' },
-  { to: '/admin/quality-center', label: 'Quality centre' }, { to: '/admin/release-center', label: 'Release centre' }, { to: '/admin/launch-center', label: 'Launch & handover' }, { to: '/admin/integration-center', label: 'Integration centre' }, { to: '/admin/final-release', label: 'Final release' },
-  { to: '/admin/appeals', label: 'Appeals' }, { to: '/admin/verifications', label: 'Verification audit' }, { to: '/admin/broadcast', label: 'Broadcast alerts' }, { to: '/admin/ai-review', label: 'AI triage' }, { to: '/admin/analytics', label: 'Analytics' }, { to: '/admin/reports', label: 'Reports' }, { to: '/admin/notifications', label: 'Notifications' }, { to: '/admin/profile', label: 'My profile' }, { to: '/admin/security', label: 'My security' },
-]} />; }
+import { useAuth } from '../contexts/AuthContext.jsx';
+
+export default function AdminLayout() {
+  const { user } = useAuth();
+  const isSuperAdmin = String(user?.role || '').toLowerCase() === 'superadmin';
+  const navItems = [
+    { to: '/admin', label: 'Admin dashboard', end: true }, { to: '/admin/complaints', label: 'Complaint administration' }, { to: '/admin/users', label: 'User management' }, { to: '/admin/master-data', label: 'Master data' }, { to: '/admin/staff-accounts', label: 'Staff accounts' },
+    ...(isSuperAdmin ? [{ to: '/admin/superadmin-governance', label: 'SuperAdmin governance' }] : []),
+    { to: '/admin/emergency-reviews', label: 'Emergency review' }, { to: '/admin/comment-moderation', label: 'Comment moderation' }, { to: '/admin/visual-verification', label: 'AI visual review' },
+    { to: '/admin/governance', label: 'Governance' }, { to: '/admin/audit-logs', label: 'Audit logs' }, { to: '/admin/system-health', label: 'System health' }, { to: '/admin/security-center', label: 'Security centre' },
+    { to: '/admin/quality-center', label: 'Quality centre' }, { to: '/admin/release-center', label: 'Release centre' }, { to: '/admin/launch-center', label: 'Launch & handover' }, { to: '/admin/integration-center', label: 'Integration centre' }, { to: '/admin/final-release', label: 'Final release' },
+    { to: '/admin/appeals', label: 'Appeals' }, { to: '/admin/verifications', label: 'Verification audit' }, { to: '/admin/rewards', label: 'Rewards management' }, { to: '/admin/broadcast', label: 'Notification admin' }, { to: '/admin/ai-review', label: 'AI triage' }, { to: '/admin/analytics', label: 'Analytics' }, { to: '/admin/reports', label: 'Reports' }, { to: '/admin/notifications', label: 'Notifications' }, { to: '/admin/profile', label: 'My profile' }, { to: '/admin/security', label: 'My security' },
+  ];
+  return <PortalLayout basePath="/admin" title="Administration" subtitle="Users, governance, evidence and system controls" navItems={navItems} />;
+}

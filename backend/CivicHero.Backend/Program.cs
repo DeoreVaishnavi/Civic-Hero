@@ -54,6 +54,7 @@ else
 
 app.UseCors(CivicHero.Backend.Infrastructure.Extensions.ServiceCollectionExtensions.FrontendCorsPolicy);
 app.UseAuthentication();
+app.UseMiddleware<GovernanceRolePolicyMiddleware>();
 app.UseMiddleware<RateLimitingMiddleware>();
 app.UseAuthorization();
 

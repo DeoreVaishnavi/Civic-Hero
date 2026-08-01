@@ -1,0 +1,8 @@
+﻿backend\CivicHero.Backend\Controllers\SuperAdminGovernanceController.cs
+backend\CivicHero.Backend\Core\DTOs\Administration\SuperAdminGovernanceDtos.cs
+backend\CivicHero.Backend\Core\Services\ISuperAdminGovernanceService.cs
+backend\CivicHero.Backend\Core\Services\SuperAdminGovernanceService.cs
+backend\CivicHero.Backend\Middleware\GovernanceRolePolicyMiddleware.cs
+backend\CivicHero.Backend.Tests\Integration\SuperAdminGovernanceEndpointTests.cs
+frontend\civichero-web\src\pages\admin\SuperAdminGovernance.jsx
+frontend\civichero-web\src\services\superAdminGovernanceApi.js

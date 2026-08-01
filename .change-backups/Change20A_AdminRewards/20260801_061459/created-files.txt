@@ -1,0 +1,8 @@
+﻿backend\CivicHero.Backend.Tests\Integration\AdminRewardEndpointTests.cs
+backend\CivicHero.Backend\Controllers\AdminRewardsController.cs
+backend\CivicHero.Backend\Core\DTOs\Assignments\SupervisorActionDtos.cs
+backend\CivicHero.Backend\Core\DTOs\Rewards\AdminRewardDtos.cs
+backend\CivicHero.Backend\Core\DTOs\Users\AccountProfileDtos.cs
+backend\CivicHero.Backend\Core\Validators\AccountProfileValidators.cs
+frontend\civichero-web\src\pages\admin\RewardManagement.jsx
+frontend\civichero-web\src\pages\supervisor\EscalationHistory.jsx

@@ -1,0 +1,37 @@
+import axiosInstance from '../api/axiosInstance.js';
+
+const unwrap = (response) => response.data?.data;
+
+function toFormData(request) {
+  const formData = new FormData();
+  ['title', 'description', 'category', 'departmentId', 'wardId', 'latitude', 'longitude', 'address', 'possibleEmergency', 'emergencyReason']
+    .forEach((key) => formData.append(key, request[key] == null ? '' : String(request[key])));
+  (request.images || []).forEach((image) => formData.append('images', image, image.name));
+  return formData;
+}
+
+export const complaintApi = {
+  metadata: async () => unwrap(await axiosInstance.get('/complaints/metadata')),
+  dashboard: async () => unwrap(await axiosInstance.get('/complaints/stats/dashboard')),
+  list: async (params = {}) => unwrap(await axiosInstance.get('/complaints', { params })),
+  publicFeed: async (params = {}) => unwrap(await axiosInstance.get('/complaints/public', { params })),
+  mine: async (params = {}) => unwrap(await axiosInstance.get('/complaints/mine', { params })),
+  nearby: async (params) => unwrap(await axiosInstance.get('/complaints/nearby', { params })),
+  getById: async (id) => unwrap(await axiosInstance.get(`/complaints/${id}`)),
+  create: async (request, options = {}) => unwrap(await axiosInstance.post(
+    '/complaints',
+    toFormData(request),
+    {
+      // Do not set Content-Type manually; axios/browser supplies the multipart boundary.
+      timeout: 120000,
+      onUploadProgress: options.onUploadProgress,
+    },
+  )),
+  update: async (id, request) => unwrap(await axiosInstance.put(`/complaints/${id}`, request)),
+  deleteBeforeAssignment: async (id) => unwrap(await axiosInstance.delete(`/complaints/${id}`)),
+  // Backward-compatible alias for any older component still using the original name.
+  withdraw: async (id) => unwrap(await axiosInstance.delete(`/complaints/${id}`)),
+  upvote: async (id) => unwrap(await axiosInstance.post(`/complaints/${id}/upvote`)),
+  removeUpvote: async (id) => unwrap(await axiosInstance.delete(`/complaints/${id}/upvote`)),
+  downloadImage: async (complaintId, imageId) => axiosInstance.get(`/complaints/${complaintId}/images/${imageId}`, { responseType: 'blob', timeout: 30000 }),
+};

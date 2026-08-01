@@ -1,0 +1,2 @@
+﻿backend\CivicHero.Backend\Core\DTOs\Users\AccountProfileDtos.cs
+backend\CivicHero.Backend\Core\Validators\AccountProfileValidators.cs

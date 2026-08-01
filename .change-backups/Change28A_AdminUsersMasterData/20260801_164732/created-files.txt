@@ -1,0 +1,7 @@
+﻿backend\CivicHero.Backend\Controllers\AdminUserManagementController.cs
+backend\CivicHero.Backend\Core\DTOs\Administration\AdminUserManagementDtos.cs
+backend\CivicHero.Backend\Core\Services\AdminUserManagementService.cs
+backend\CivicHero.Backend\Core\Services\IAdminUserManagementService.cs
+backend\CivicHero.Backend.Tests\Integration\AdminUserManagementEndpointTests.cs
+frontend\civichero-web\src\pages\admin\MasterDataManagement.jsx
+frontend\civichero-web\src\services\adminUserManagementApi.js

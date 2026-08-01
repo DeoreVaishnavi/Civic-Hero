@@ -28,7 +28,15 @@ export default function LoginPage() {
   const { login, phoneLogin, requestPhoneLoginOtp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const finish = (session) => navigate(location.state?.from || dashboardForRole(session.user?.role), { replace: true });
+  const finish = (session) => {
+    if (session.requiresTwoFactorSetup) {
+      const role = String(session.user?.role || 'Citizen').toLowerCase();
+      const base = role === 'superadmin' || role === 'admin' ? '/admin' : role === 'supervisor' ? '/supervisor' : role === 'officer' ? '/officer' : '/citizen';
+      navigate(`${base}/security`, { replace: true, state: { twoFactorSetupRequired: true, twoFactorSetupDeadlineUtc: session.twoFactorSetupDeadlineUtc } });
+      return;
+    }
+    navigate(location.state?.from || dashboardForRole(session.user?.role), { replace: true });
+  };
 
   const startProgressHint = (initialMessage) => {
     setProgressMessage(initialMessage);

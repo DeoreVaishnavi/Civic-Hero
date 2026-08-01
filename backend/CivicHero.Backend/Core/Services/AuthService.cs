@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
+using CivicHero.Backend.Core.DTOs.Administration;
 using CivicHero.Backend.Core.DTOs.Auth;
 using CivicHero.Backend.Core.DTOs.Users;
 using CivicHero.Backend.Core.Entities;
@@ -9,7 +10,9 @@ using CivicHero.Backend.Core.Exceptions;
 using CivicHero.Backend.Core.Interfaces;
 using CivicHero.Backend.Core.Validation;
 using CivicHero.Backend.Infrastructure.Configurations;
+using CivicHero.Backend.Infrastructure.Data;
 using CivicHero.Backend.Infrastructure.Security;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace CivicHero.Backend.Core.Services;
@@ -29,6 +32,7 @@ public sealed class AuthService : IAuthService
     private readonly ITwoFactorService _twoFactorService;
     private readonly IPhoneOtpService _phoneOtpService;
     private readonly SmsOptions _smsOptions;
+    private readonly CivicDbContext _db;
 
     public AuthService(
         IUserRepository userRepository,
@@ -40,7 +44,8 @@ public sealed class AuthService : IAuthService
         IHostEnvironment environment,
         ITwoFactorService twoFactorService,
         IPhoneOtpService phoneOtpService,
-        IOptions<SmsOptions> smsOptions)
+        IOptions<SmsOptions> smsOptions,
+        CivicDbContext db)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
@@ -52,6 +57,7 @@ public sealed class AuthService : IAuthService
         _twoFactorService = twoFactorService;
         _phoneOtpService = phoneOtpService;
         _smsOptions = smsOptions.Value;
+        _db = db;
     }
 
     public async Task<RegistrationResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
@@ -113,19 +119,21 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthSessionResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
         var identifier = request.EffectiveIdentifier.Trim();
         var user = await FindByIdentifierAsync(identifier, cancellationToken);
         if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
-            if (user is not null) await RecordFailedLoginAsync(user, cancellationToken);
+            if (user is not null) await RecordFailedLoginAsync(user, policy, cancellationToken);
             throw new UnauthorizedAccessException("Invalid email/phone or password.");
         }
 
-        EnsureLoginAllowed(user);
+        EnsureLoginAllowed(user, policy);
         if (!identifier.Contains('@') && !user.IsPhoneVerified)
             throw new BusinessRuleViolationException("Verify this phone number before using phone login.");
+        var requirement = await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
         _twoFactorService.VerifyForLogin(user, request.TwoFactorCode);
-        return await CreateSessionAsync(user, cancellationToken, recordSuccessfulLogin: true);
+        return await CreateSessionAsync(user, cancellationToken, recordSuccessfulLogin: true, requirement: requirement);
     }
 
     public async Task<PhoneOtpRequestResponse> RequestPasswordResetAsync(
@@ -199,7 +207,10 @@ public sealed class AuthService : IAuthService
     {
         var phone = PhoneNumberNormalizer.Normalize(request.PhoneNumber);
         var user = await _userRepository.GetByPhoneAsync(phone, cancellationToken);
-        if (user is null || !user.IsPhoneVerified || !user.IsActive || !user.IsEmailVerified || user.IsSystemAccount)
+        var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
+        var roleEnabled = user is not null && await IsRoleEnabledAsync(user.Role, cancellationToken);
+        if (user is null || !roleEnabled || !user.IsPhoneVerified || !user.IsActive ||
+            (policy.RequireVerifiedEmail && !user.IsEmailVerified) || user.IsSystemAccount)
         {
             // Return the same shape as a real request so the endpoint does not reveal account existence.
             return new PhoneOtpRequestResponse
@@ -217,11 +228,13 @@ public sealed class AuthService : IAuthService
         var phone = PhoneNumberNormalizer.Normalize(request.PhoneNumber);
         var user = await _userRepository.GetByPhoneAsync(phone, cancellationToken)
                    ?? throw new UnauthorizedAccessException("The phone verification code is invalid.");
-        EnsureLoginAllowed(user);
+        var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
+        EnsureLoginAllowed(user, policy);
         if (!user.IsPhoneVerified) throw new BusinessRuleViolationException("This phone number is not verified.");
         await _phoneOtpService.VerifyAsync(user, phone, request.Code, OtpPurpose.PhoneLogin, cancellationToken);
+        var requirement = await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
         _twoFactorService.VerifyForLogin(user, request.TwoFactorCode);
-        return await CreateSessionAsync(user, cancellationToken, recordSuccessfulLogin: true);
+        return await CreateSessionAsync(user, cancellationToken, recordSuccessfulLogin: true, requirement: requirement);
     }
 
     public async Task<PhoneOtpRequestResponse> RequestPhoneVerificationOtpAsync(long userId, RequestPhoneVerificationOtpRequest request, string? remoteIp, CancellationToken cancellationToken = default)
@@ -257,10 +270,11 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthSessionResult> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
+        var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
         var tokenHash = HashToken(refreshToken);
         var user = await _userRepository.GetByRefreshTokenHashAsync(tokenHash, cancellationToken)
                    ?? throw new UnauthorizedAccessException("Refresh token is invalid.");
-        if (!user.IsActive || !user.IsEmailVerified || user.IsSystemAccount ||
+        if (!user.IsActive || (policy.RequireVerifiedEmail && !user.IsEmailVerified) || user.IsSystemAccount ||
             user.RefreshTokenExpiresAt <= DateTimeOffset.UtcNow || !FixedTimeEquals(user.RefreshTokenHash!, tokenHash))
         {
             ClearRefreshToken(user);
@@ -268,7 +282,8 @@ public sealed class AuthService : IAuthService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
         }
-        return await CreateSessionAsync(user, cancellationToken);
+        var requirement = await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
+        return await CreateSessionAsync(user, cancellationToken, requirement: requirement);
     }
 
     public async Task LogoutAsync(long userId, CancellationToken cancellationToken = default)
@@ -294,20 +309,21 @@ public sealed class AuthService : IAuthService
         catch (ValidationException) { return null; }
     }
 
-    private static void EnsureLoginAllowed(User user)
+    private static void EnsureLoginAllowed(User user, AuthenticationPolicyDto policy)
     {
         if (!user.IsActive || user.IsSystemAccount) throw new UnauthorizedAccessException("This account is inactive.");
         if (user.LockoutEnd > DateTimeOffset.UtcNow)
             throw new UnauthorizedAccessException($"Account is temporarily locked until {user.LockoutEnd:O}.");
-        if (!user.IsEmailVerified) throw new BusinessRuleViolationException("Verify your email before logging in.");
+        if (policy.RequireVerifiedEmail && !user.IsEmailVerified)
+            throw new BusinessRuleViolationException("Verify your email before logging in.");
     }
 
-    private async Task RecordFailedLoginAsync(User user, CancellationToken cancellationToken)
+    private async Task RecordFailedLoginAsync(User user, AuthenticationPolicyDto policy, CancellationToken cancellationToken)
     {
         user.FailedLoginAttempts++;
-        if (user.FailedLoginAttempts >= MaximumFailedLoginAttempts)
+        if (user.FailedLoginAttempts >= policy.MaximumFailedLoginAttempts)
         {
-            user.LockoutEnd = DateTimeOffset.UtcNow.Add(LockoutDuration);
+            user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(policy.LockoutMinutes);
             user.FailedLoginAttempts = 0;
         }
         _userRepository.Update(user);
@@ -317,8 +333,12 @@ public sealed class AuthService : IAuthService
     private async Task<AuthSessionResult> CreateSessionAsync(
         User user,
         CancellationToken cancellationToken,
-        bool recordSuccessfulLogin = false)
+        bool recordSuccessfulLogin = false,
+        TwoFactorRequirement? requirement = null)
     {
+        await EnsureRoleEnabledAsync(user.Role, cancellationToken);
+        var policy = await ReadAuthenticationPolicyAsync(cancellationToken);
+        requirement ??= await EvaluateTwoFactorRequirementAsync(user, policy, cancellationToken);
         if (recordSuccessfulLogin)
         {
             // Persist login metadata and the new refresh token in one database write.
@@ -340,7 +360,9 @@ public sealed class AuthService : IAuthService
         {
             AccessToken = accessToken.Token,
             ExpiresAtUtc = accessToken.ExpiresAtUtc,
-            User = _mapper.Map<UserDto>(user)
+            User = _mapper.Map<UserDto>(user),
+            RequiresTwoFactorSetup = requirement.SetupRequired,
+            TwoFactorSetupDeadlineUtc = requirement.DeadlineUtc
         }, refreshToken, refreshExpiry);
     }
 
@@ -383,5 +405,79 @@ public sealed class AuthService : IAuthService
     private static string GenerateSecureToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     private static bool FixedTimeEquals(string first, string second) => CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(first), Encoding.UTF8.GetBytes(second));
+    private async Task EnsureRoleEnabledAsync(UserRole role, CancellationToken cancellationToken)
+    {
+        if (!await IsRoleEnabledAsync(role, cancellationToken))
+            throw new UnauthorizedAccessException("This role is temporarily disabled by the active global role policy.");
+    }
+
+    private async Task<bool> IsRoleEnabledAsync(UserRole role, CancellationToken cancellationToken)
+    {
+        var setting = await _db.SystemSettings.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Key == SuperAdminGovernanceService.RolePolicyKey, cancellationToken);
+        if (setting is null) return true;
+        try
+        {
+            var policy = System.Text.Json.JsonSerializer.Deserialize<RolePolicyConfigurationDto>(setting.Value,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { PropertyNameCaseInsensitive = true });
+            var entry = policy?.Roles?.FirstOrDefault(x => string.Equals(x.Role, role.ToString(), StringComparison.OrdinalIgnoreCase));
+            return entry?.Enabled ?? true;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return true;
+        }
+    }
+
+    private async Task<AuthenticationPolicyDto> ReadAuthenticationPolicyAsync(CancellationToken cancellationToken)
+    {
+        var setting = await _db.SystemSettings.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Key == SuperAdminGovernanceService.AuthenticationPolicyKey, cancellationToken);
+        if (setting is null) return new AuthenticationPolicyDto();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<AuthenticationPolicyDto>(setting.Value,
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { PropertyNameCaseInsensitive = true })
+                ?? new AuthenticationPolicyDto();
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new AuthenticationPolicyDto();
+        }
+    }
+
+    private async Task<TwoFactorRequirement> EvaluateTwoFactorRequirementAsync(
+        User user,
+        AuthenticationPolicyDto policy,
+        CancellationToken cancellationToken)
+    {
+        var requiredRoles = policy.TwoFactorRequiredRoles ?? Array.Empty<string>();
+        var required = requiredRoles.Contains(user.Role.ToString(), StringComparer.OrdinalIgnoreCase);
+        if (!required || user.TwoFactorEnabled) return new TwoFactorRequirement(required, false, null);
+
+        var setting = await _db.SystemSettings.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Key == SuperAdminGovernanceService.TwoFactorExemptionsKey, cancellationToken);
+        DateTimeOffset? deadline = null;
+        if (setting is not null)
+        {
+            try
+            {
+                var exemptions = System.Text.Json.JsonSerializer.Deserialize<List<TwoFactorEnrollmentExemptionDto>>(setting.Value,
+                    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { PropertyNameCaseInsensitive = true }) ?? [];
+                deadline = exemptions.LastOrDefault(x => x.UserId == user.Id && x.ExpiresAtUtc > DateTimeOffset.UtcNow)?.ExpiresAtUtc;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                deadline = null;
+            }
+        }
+
+        if (!deadline.HasValue)
+            throw new BusinessRuleViolationException("Two-factor authentication is required for this role. Contact a SuperAdmin if the enrollment grace period has expired.");
+        return new TwoFactorRequirement(true, true, deadline);
+    }
+
+    private sealed record TwoFactorRequirement(bool Required, bool SetupRequired, DateTimeOffset? DeadlineUtc);
+
     private static void ClearRefreshToken(User user) { user.RefreshTokenHash = null; user.RefreshTokenCreatedAt = null; user.RefreshTokenExpiresAt = null; }
 }

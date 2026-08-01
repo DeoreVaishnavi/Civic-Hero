@@ -1,0 +1,4 @@
+﻿backend\CivicHero.Backend\Core\DTOs\Users\AccountProfileDtos.cs
+backend\CivicHero.Backend\Core\Validators\AccountProfileValidators.cs
+backend\CivicHero.Backend\Core\DTOs\Assignments\SupervisorActionDtos.cs
+frontend\civichero-web\src\pages\supervisor\EscalationHistory.jsx

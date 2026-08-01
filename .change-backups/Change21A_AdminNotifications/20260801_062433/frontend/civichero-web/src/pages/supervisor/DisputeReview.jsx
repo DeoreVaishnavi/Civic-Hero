@@ -1,0 +1,19 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { disputeApi } from '../../services/disputeApi.js';
+
+const actions = [
+  ['CitizenCorrect', 'Citizen correct — request rework', 'bg-amber-500'],
+  ['OfficerEvidenceSufficient', 'Officer evidence sufficient', 'bg-emerald-500'],
+  ['Reopen', 'Explicitly reopen complaint', 'bg-sky-500'],
+  ['AdditionalInvestigation', 'Return for investigation', 'bg-violet-500'],
+  ['EscalateToSuperAdmin', 'Escalate to SuperAdmin', 'bg-rose-500'],
+];
+
+export default function DisputeReview() {
+  const { id } = useParams(); const navigate = useNavigate();
+  const [item, setItem] = useState(null); const [history, setHistory] = useState([]); const [remarks, setRemarks] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState('');
+  useEffect(() => { Promise.all([disputeApi.get(id), disputeApi.history(id)]).then(([detail, records]) => { setItem(detail); setHistory(records); }).catch((e) => setError(e.message || 'Unable to load dispute.')); }, [id]);
+  const decide = async (decision) => { if (remarks.trim().length < 10) { setError('Enter decision remarks of at least 10 characters.'); return; } setBusy(decision); setError(''); try { await disputeApi.supervisorDecision(id, { decision, remarks }); navigate('/supervisor/disputes'); } catch (e) { setError(e.errors?.join(' ') || e.message || 'Decision failed.'); } finally { setBusy(''); } };
+  return <section className="mx-auto max-w-5xl space-y-6 p-6 lg:p-10"><button onClick={() => navigate(-1)} className="text-sm font-bold text-sky-300">← Back to dispute queue</button><div><p className="text-sm font-semibold uppercase tracking-[.18em] text-sky-400">Supervisor decision</p><h2 className="mt-2 text-3xl font-black text-white">Dispute review #{id}</h2></div>{error && <p className="rounded-xl bg-rose-500/10 p-4 text-rose-200">{error}</p>}{item && <div className="rounded-2xl border border-white/10 bg-white/5 p-6"><div className="flex flex-wrap justify-between gap-3"><div><p className="font-mono text-xs text-sky-300">{item.referenceNumber}</p><h3 className="mt-2 text-xl font-bold text-white">{item.title}</h3></div><span className="h-fit rounded-full bg-amber-400/10 px-3 py-1 text-sm text-amber-200">{item.status}</span></div><p className="mt-4 rounded-xl bg-slate-950/50 p-4 text-slate-300">{item.citizenRemarks}</p><textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} className="input mt-5 min-h-32" placeholder="Record evidence considered, findings, instructions and decision reason"/><div className="mt-4 flex flex-wrap gap-3">{actions.map(([value, label, style]) => <button key={value} disabled={!!busy} onClick={() => decide(value)} className={`rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-40 ${style}`}>{busy === value ? 'Saving…' : label}</button>)}</div></div>}<div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"><h3 className="text-xl font-black text-white">Decision history</h3><div className="mt-4 space-y-3">{history.map((record) => <article key={record.id} className="rounded-xl border border-white/10 p-4"><div className="flex flex-wrap justify-between gap-2"><b className="text-white">Cycle {record.cycleNumber} · {record.status}</b><span className="text-xs text-slate-500">{new Date(record.raisedAt).toLocaleString()}</span></div><p className="mt-2 text-sm text-slate-400">Citizen: {record.citizenRemarks}</p>{record.supervisorDecision && <p className="mt-2 text-sm text-sky-200">Supervisor: {record.supervisorDecision} — {record.supervisorRemarks}</p>}{record.adminDecision && <p className="mt-2 text-sm text-violet-200">Admin: {record.adminDecision} — {record.adminRemarks}</p>}</article>)}{!history.length && <p className="text-slate-500">No prior decision records.</p>}</div></div></section>;
+}

@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<ReputationLogRepository>();
         services.AddScoped<RedemptionRepository>();
 
+        services.AddMemoryCache();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -89,13 +90,18 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IStaffAccountService, StaffAccountService>();
         services.AddScoped<IComplaintService, ComplaintService>();
+        services.AddScoped<IAdminComplaintService, AdminComplaintService>();
+        services.AddScoped<IAdminUserManagementService, AdminUserManagementService>();
+        services.AddScoped<ISuperAdminGovernanceService, SuperAdminGovernanceService>();
         services.AddScoped<IAnonymousComplaintService, AnonymousComplaintService>();
+        services.AddScoped<IComplaintCommunityService, ComplaintCommunityService>();
         services.AddScoped<IComplaintCommentService, ComplaintCommentService>();
         services.AddScoped<IEmergencyReviewService, EmergencyReviewService>();
         services.AddScoped<IAssignmentService, AssignmentService>();
         services.AddScoped<IVerificationService, VerificationService>();
         services.AddScoped<IDisputeService, DisputeService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IAdminNotificationService, AdminNotificationService>();
         services.AddScoped<IRewardService, RewardService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<IChatbotService, CivicHero.Backend.Core.Services.ChatbotService>();
@@ -127,6 +133,7 @@ public static class DependencyInjection
             services.AddHostedService<ComplaintEscalationBackgroundService>();
             services.AddHostedService<AutoCloseBackgroundService>();
             services.AddHostedService<VisualVerificationWorker>();
+            services.AddHostedService<NotificationBackgroundService>();
         }
 
         services.AddValidatorsFromAssemblyContaining<RegisterValidator>();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import CivicIcon from '../../components/ui/CivicIcon.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { complaintApi } from '../../services/complaintApi.js';
 import { rewardApi } from '../../services/rewardApi.js';
@@ -32,29 +33,29 @@ export default function CitizenDashboard() {
       {error && <div className="alert error section-gap">{error}</div>}
 
       <div className="quick-actions section-gap">
-        <Quick to="/citizen/report" icon="＋" title="Report complaint" text="Add issue, photos and GPS" />
-        <Quick to="/citizen/nearby" icon="⌕" title="Nearby issues" text="Support existing complaints" />
-        <Quick to="/citizen/heatmap" icon="⌖" title="City heatmap" text="Explore ward hotspots" />
-        <Quick to="/citizen/leaderboard" icon="★" title="Leaderboard" text="See top civic contributors" />
+        <Quick to="/citizen/report" icon="plus" title="Report complaint" text="Add issue, photos and GPS" />
+        <Quick to="/citizen/nearby" icon="search" title="Nearby issues" text="Support existing complaints" />
+        <Quick to="/citizen/heatmap" icon="map" title="City heatmap" text="Explore ward hotspots" />
+        <Quick to="/citizen/leaderboard" icon="rewards" title="Leaderboard" text="See top civic contributors" />
       </div>
 
       <div className="stat-grid six section-gap">
-        <Stat icon="▤" label="Total complaints" value={dashboard?.total ?? '—'} hint="All reports" />
-        <Stat icon="◌" label="Open" value={dashboard?.open ?? '—'} hint="Awaiting action" tone="amber" />
-        <Stat icon="↻" label="In progress" value={dashboard?.inProgress ?? '—'} hint="Work underway" />
-        <Stat icon="✓" label="Resolved" value={dashboard?.resolved ?? '—'} hint="Ready or closed" tone="green" />
-        <Stat icon="👍" label="Community support" value={dashboard?.totalUpvotes ?? '—'} hint="Total upvotes" tone="violet" />
-        <Stat icon="★" label="CivicHero points" value={points?.balance ?? '—'} hint="Rewards balance" tone="amber" />
+        <Stat icon="complaints" label="Total complaints" value={dashboard?.total ?? '—'} hint="All reports" />
+        <Stat icon="clock" label="Open" value={dashboard?.open ?? '—'} hint="Awaiting action" tone="amber" />
+        <Stat icon="progress" label="In progress" value={dashboard?.inProgress ?? '—'} hint="Work underway" />
+        <Stat icon="verify" label="Resolved" value={dashboard?.resolved ?? '—'} hint="Ready or closed" tone="green" />
+        <Stat icon="support" label="Community support" value={dashboard?.totalUpvotes ?? '—'} hint="Total upvotes" tone="violet" />
+        <Stat icon="rewards" label="CivicHero points" value={points?.balance ?? '—'} hint="Rewards balance" tone="amber" />
       </div>
 
       <div className="surface section-gap">
-        <div className="surface-header"><h3>My complaints</h3><Link to="/citizen/complaints" className="button ghost small">View all complaints →</Link></div>
+        <div className="surface-header"><h3>My complaints</h3><Link to="/citizen/complaints" className="button ghost small">View all complaints <CivicIcon name="arrow" size={15} /></Link></div>
         <div className="surface-body complaint-list">
           {recent.length ? recent.slice(0,4).map((item) => (
             <div key={item.id} className="complaint-list-row">
-              <div className="issue-thumbnail">{categoryIcon(item.category)}</div>
+              <div className="issue-thumbnail"><CivicIcon name={categoryIcon(item.category)} size={20} /></div>
               <div><h4>{item.title}</h4><p>{item.referenceNumber} · {item.category} · {item.wardName || 'Ward'} · {new Date(item.createdAt).toLocaleDateString()}</p></div>
-              <div className="row-actions"><span className={`status-pill ${statusTone(item.status)}`}>{readable(item.status)}</span><Link to={`/citizen/complaints/${item.id}`} className="button outline small">View</Link></div>
+              <div className="row-actions"><span className={`status-pill ${statusTone(item.status)}`}><span className="status-dot" aria-hidden="true" />{readable(item.status)}</span><Link to={`/citizen/complaints/${item.id}`} className="button outline small">View</Link></div>
             </div>
           )) : <div style={{ padding: 20, textAlign: 'center' }}><strong>No complaints yet.</strong><p className="muted" style={{ fontSize: 10 }}>Your reported civic issues will appear here.</p><Link to="/citizen/report" className="button primary small">Report your first issue</Link></div>}
         </div>
@@ -84,9 +85,9 @@ export default function CitizenDashboard() {
           <section className="surface">
             <div className="surface-header"><h3>Notifications</h3><Link to="/citizen/notifications" className="button ghost small">See all</Link></div>
             <div className="surface-body notification-list">
-              <Notice icon="↻" title="Status updates" text="See assignment and work progress in real time." />
-              <Notice icon="!" title="Dispute alerts" text="Respond when a resolution needs your review." />
-              <Notice icon="★" title="Reward alerts" text="Points and badges appear after valid closure." />
+              <Notice icon="progress" title="Status updates" text="See assignment and work progress in real time." />
+              <Notice icon="alert" title="Dispute alerts" text="Respond when a resolution needs your review." />
+              <Notice icon="rewards" title="Reward alerts" text="Points and badges appear after valid closure." />
             </div>
           </section>
           <section className="surface">
@@ -103,10 +104,10 @@ export default function CitizenDashboard() {
   );
 }
 
-function Quick({ to, icon, title, text }) { return <Link to={to} className="quick-action"><span>{icon}</span><div><strong>{title}</strong><small>{text}</small></div></Link>; }
-function Stat({ icon, label, value, hint, tone='' }) { return <article className={`stat-card ${tone}`}><span className="stat-icon">{icon}</span><small>{label}</small><strong>{value}</strong><p>{hint}</p></article>; }
+function Quick({ to, icon, title, text }) { return <Link to={to} className="quick-action"><span><CivicIcon name={icon} size={21} /></span><div><strong>{title}</strong><small>{text}</small></div></Link>; }
+function Stat({ icon, label, value, hint, tone='' }) { return <article className={`stat-card ${tone}`}><span className="stat-icon"><CivicIcon name={icon} size={20} /></span><small>{label}</small><strong>{value}</strong><p>{hint}</p></article>; }
 function Timeline({ title, text, complete=false }) { return <div className={`timeline-item ${complete ? 'complete' : ''}`}><span className="timeline-dot" /><h4>{title}</h4><p>{text}</p></div>; }
-function Notice({ icon, title, text }) { return <div className="notification-item"><span>{icon}</span><div><strong>{title}</strong><small>{text}</small></div></div>; }
+function Notice({ icon, title, text }) { return <div className="notification-item"><span><CivicIcon name={icon} size={19} /></span><div><strong>{title}</strong><small>{text}</small></div></div>; }
 function readable(value='') { return String(value).replace(/([a-z])([A-Z])/g, '$1 $2'); }
 function statusTone(status='') { if (['Closed','ClosedAuto','Resolved'].includes(status)) return 'green'; if (['InProgress','VerificationPending'].includes(status)) return 'amber'; if (['Disputed','Escalated'].includes(status)) return 'red'; return ''; }
-function categoryIcon(category='') { const value=String(category).toLowerCase(); if (value.includes('garbage')) return '♻'; if (value.includes('road')||value.includes('pothole')) return '▱'; if (value.includes('light')) return '☼'; if (value.includes('water')) return '◒'; return '◎'; }
+function categoryIcon(category='') { const value=String(category).toLowerCase(); if (value.includes('garbage')) return 'recycle'; if (value.includes('road')||value.includes('pothole')) return 'road'; if (value.includes('light')) return 'light'; if (value.includes('water')) return 'water'; return 'complaints'; }

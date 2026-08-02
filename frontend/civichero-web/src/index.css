@@ -248,6 +248,11 @@ button:disabled { cursor: not-allowed; }
 .civic-portal [class*="bg-slate-950"], .civic-portal [class*="bg-slate-900"] { background-color: transparent !important; }
 .civic-portal [class*="bg-white/"], .civic-portal [class*="bg-white["] { background-color: white !important; }
 .civic-portal [class*="border-white/"] { border-color: var(--civic-line) !important; }
+.civic-portal [class*="text-slate-400"] { color: #475569 !important; }
+.civic-portal [class*="text-slate-500"] { color: #334155 !important; }
+.civic-portal [class*="text-slate-300"] { color: #475569 !important; }
+.civic-portal [class*="text-slate-200"] { color: #0f172a !important; }
+.civic-portal [class*="text-slate-100"] { color: #0f172a !important; }
 .civic-portal .text-white { color: var(--civic-ink) !important; }
 .civic-portal .text-slate-100, .civic-portal .text-slate-200, .civic-portal .text-slate-300 { color: #44536a !important; }
 .civic-portal .text-slate-400 { color: #68758a !important; }

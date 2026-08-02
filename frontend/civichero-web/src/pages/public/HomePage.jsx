@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import CivicIcon from '../../components/ui/CivicIcon.jsx';
 import GovernmentShowcase from '../../components/public/GovernmentShowcase.jsx';
 import PublicHeatmapPreview from '../../components/public/PublicHeatmapPreview.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
@@ -7,10 +8,10 @@ import { ROUTE_PATHS } from '../../routes/routePaths.js';
 import { complaintApi } from '../../services/complaintApi.js';
 
 const features = [
-  { icon: '◎', title: 'Evidence-based reporting', text: 'Submit GPS-tagged complaints with clear images, ward, category and a useful description.', tone: 'from-blue-600 to-cyan-500' },
-  { icon: '✓', title: 'Citizen verification', text: 'Compare before-and-after evidence, accept completed work or raise a transparent dispute.', tone: 'from-emerald-600 to-teal-500' },
-  { icon: '⌖', title: 'Live city intelligence', text: 'Explore nearby issues, ward-level heatmaps and resolution performance without creating duplicates.', tone: 'from-violet-600 to-fuchsia-500' },
-  { icon: '★', title: 'Rewards and recognition', text: 'Earn points, badges and community rank for honest reporting and helpful participation.', tone: 'from-amber-500 to-orange-500' },
+  { icon: 'complaints', title: 'Evidence-based reporting', text: 'Submit GPS-tagged complaints with clear images, ward, category and a useful description.', tone: 'from-blue-600 to-cyan-500' },
+  { icon: 'verify', title: 'Citizen verification', text: 'Compare before-and-after evidence, accept completed work or raise a transparent dispute.', tone: 'from-emerald-600 to-teal-500' },
+  { icon: 'map', title: 'Live city intelligence', text: 'Explore nearby issues, ward-level heatmaps and resolution performance without creating duplicates.', tone: 'from-violet-600 to-fuchsia-500' },
+  { icon: 'rewards', title: 'Rewards and recognition', text: 'Earn points, badges and community rank for honest reporting and helpful participation.', tone: 'from-amber-500 to-orange-500' },
 ];
 
 const steps = [
@@ -22,9 +23,9 @@ const steps = [
 ];
 
 const fallbackTrendingIssues = [
-  { title: 'Garbage near Park Lane', ward: 'Ward 3', status: 'In progress', supports: 120, icon: '♻️' },
-  { title: 'Pothole on Market Road', ward: 'Ward 5', status: 'Assigned', supports: 86, icon: '🛣️' },
-  { title: 'Streetlight outage', ward: 'Ward 1', status: 'Resolved', supports: 54, icon: '💡' },
+  { title: 'Garbage near Park Lane', ward: 'Ward 3', status: 'In progress', supports: 120, icon: 'recycle' },
+  { title: 'Pothole on Market Road', ward: 'Ward 5', status: 'Assigned', supports: 86, icon: 'road' },
+  { title: 'Streetlight outage', ward: 'Ward 1', status: 'Resolved', supports: 54, icon: 'light' },
 ];
 
 export default function HomePage() {
@@ -89,10 +90,10 @@ export default function HomePage() {
             <h1 className="mt-7 max-w-3xl text-5xl font-black leading-[1.02] tracking-[-.04em] sm:text-6xl lg:text-7xl">Report. Verify. <span className="bg-gradient-to-r from-cyan-300 to-emerald-300 bg-clip-text text-transparent">Improve your city.</span></h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-blue-100/80">CivicHero connects citizens, field officers and municipal teams through evidence-based reporting, live heatmaps, accountable resolution and citizen verification.</p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link to={ROUTE_PATHS.anonymousReport} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 text-sm font-black text-blue-800 shadow-2xl shadow-black/20 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50">＋ Report complaint</Link>
-              <Link to={ROUTE_PATHS.anonymousTrack} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-black text-white backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/15">⌕ Track an issue</Link>
+              <Link to={ROUTE_PATHS.anonymousReport} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 text-sm font-black text-blue-800 shadow-2xl shadow-black/20 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50"><CivicIcon name="plus" size={19} /> Report complaint</Link>
+              <Link to={ROUTE_PATHS.anonymousTrack} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-black text-white backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/15"><CivicIcon name="track" size={19} /> Track an issue</Link>
             </div>
-            <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold text-blue-100/75">{['GPS and photo evidence', 'Live status updates', 'Citizen verification', 'Rewards and leaderboard'].map((item) => <span key={item} className="inline-flex items-center gap-2"><i className="grid h-5 w-5 place-items-center rounded-full bg-emerald-400/15 text-[10px] text-emerald-200">✓</i>{item}</span>)}</div>
+            <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold text-blue-100/75">{['GPS and photo evidence', 'Live status updates', 'Citizen verification', 'Rewards and leaderboard'].map((item) => <span key={item} className="inline-flex items-center gap-2"><i className="grid h-5 w-5 place-items-center rounded-full bg-emerald-400/15 text-emerald-200"><CivicIcon name="verify" size={13} /></i>{item}</span>)}</div>
           </div>
 
           <HeroPortalPreview />
@@ -101,17 +102,17 @@ export default function HomePage() {
 
       <section id="city-impact" className="relative z-10 -mt-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-4">
-          <Impact value="1,240+" label="Complaints reported" icon="▤" />
-          <Impact value="900" label="Issues resolved" icon="✓" />
-          <Impact value="36 hrs" label="Average response" icon="◷" />
-          <Impact value="8,000+" label="Active citizens" icon="◎" />
+          <Impact value="1,240+" label="Complaints reported" icon="complaints" />
+          <Impact value="900" label="Issues resolved" icon="verify" />
+          <Impact value="36 hrs" label="Average response" icon="clock" />
+          <Impact value="8,000+" label="Active citizens" icon="users" />
         </div>
       </section>
 
       <section className="bg-white py-20 sm:py-24">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center"><p className="text-xs font-black uppercase tracking-[.22em] text-blue-600">One platform, complete visibility</p><h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">Everything needed for accountable civic service.</h2><p className="mt-5 text-base leading-7 text-slate-600">Every page is organised around the citizen, officer, supervisor and administrator actions shown in your wireframes.</p></div>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{features.map((feature) => <article key={feature.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-950/10"><div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${feature.tone} text-2xl font-black text-white shadow-lg transition group-hover:rotate-6 group-hover:scale-110`}>{feature.icon}</div><h3 className="mt-6 text-lg font-black text-slate-900">{feature.title}</h3><p className="mt-3 text-sm leading-6 text-slate-500">{feature.text}</p></article>)}</div>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{features.map((feature) => <article key={feature.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-950/10"><div className={`grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br ${feature.tone} text-2xl font-black text-white shadow-lg transition group-hover:rotate-6 group-hover:scale-110`}><CivicIcon name={feature.icon} size={27} /></div><h3 className="mt-6 text-lg font-black text-slate-900">{feature.title}</h3><p className="mt-3 text-sm leading-6 text-slate-500">{feature.text}</p></article>)}</div>
         </div>
       </section>
 
@@ -130,9 +131,9 @@ export default function HomePage() {
       <section className="bg-white py-20">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-blue-600">Trending complaints</p><h2 className="mt-2 text-2xl font-black text-slate-950">Issues receiving community attention</h2></div><Link to={ROUTE_PATHS.publicIssues} className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100">View issues →</Link></div>
+            <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-blue-600">Trending complaints</p><h2 className="mt-2 text-2xl font-black text-slate-950">Issues receiving community attention</h2></div><Link to={ROUTE_PATHS.publicIssues} className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100">View issues <CivicIcon name="arrow" size={15} /></Link></div>
             {supportMessage && <p className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800">{supportMessage}</p>}
-            <div className="mt-6 grid gap-3 lg:grid-cols-3">{trendingIssues.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50/40 hover:shadow-lg"><div className="flex items-center gap-4"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-slate-100 text-2xl">{item.icon || (item.category === 'Garbage' ? '♻️' : item.category === 'Streetlight' ? '💡' : '📍')}</div><div className="min-w-0 flex-1"><h3 className="truncate font-black text-slate-900">{item.title}</h3><p className="mt-1 text-xs text-slate-500">{item.wardName || item.ward} · {String(item.status || '').replace(/([a-z])([A-Z])/g, '$1 $2')}</p></div><div className="text-right"><strong className="block text-lg text-slate-900">{item.upvoteCount ?? item.supports ?? 0}</strong><span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Supports</span></div></div><button type="button" onClick={() => toggleSupport(item)} disabled={supportingId === item.id} className={`mt-4 w-full rounded-xl px-4 py-2.5 text-xs font-black transition disabled:opacity-60 ${item.hasUpvoted ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>{supportingId === item.id ? 'Updating…' : item.hasUpvoted ? '✓ Supported' : '♥ Support issue'}</button></article>)}</div>
+            <div className="mt-6 grid gap-3 lg:grid-cols-3">{trendingIssues.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50/40 hover:shadow-lg"><div className="flex items-center gap-4"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-slate-100 text-blue-700"><CivicIcon name={item.icon || publicIssueIcon(item.category)} size={25} /></div><div className="min-w-0 flex-1"><h3 className="truncate font-black text-slate-900">{item.title}</h3><p className="mt-1 text-xs text-slate-500">{item.wardName || item.ward} · {String(item.status || '').replace(/([a-z])([A-Z])/g, '$1 $2')}</p></div><div className="text-right"><strong className="block text-lg text-slate-900">{item.upvoteCount ?? item.supports ?? 0}</strong><span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Supports</span></div></div><button type="button" onClick={() => toggleSupport(item)} disabled={supportingId === item.id} className={`mt-4 w-full rounded-xl px-4 py-2.5 text-xs font-black transition disabled:opacity-60 ${item.hasUpvoted ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>{supportingId === item.id ? <><span className="loading-spinner" /> Updating…</> : item.hasUpvoted ? <><CivicIcon name="verify" size={16} /> Supported</> : <><CivicIcon name="support" size={16} /> Support issue</>}</button></article>)}</div>
           </section>
         </div>
       </section>
@@ -144,7 +145,7 @@ function HeroPortalPreview() {
   return (
     <div className="relative min-h-[530px] [perspective:1400px]">
       <div className="absolute inset-x-0 top-7 overflow-hidden rounded-[2rem] border border-white/15 bg-white/95 text-slate-900 shadow-2xl shadow-black/35 [transform:rotateY(-5deg)_rotateX(2deg)] transition duration-700 hover:[transform:rotateY(-1deg)_rotateX(0deg)]">
-        <div className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-5"><div className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-rose-400" /><i className="h-3 w-3 rounded-full bg-amber-400" /><i className="h-3 w-3 rounded-full bg-emerald-400" /></div><strong className="text-sm">Citizen Dashboard</strong><span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">● Live</span></div>
+        <div className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-5"><div className="flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-rose-400" /><i className="h-3 w-3 rounded-full bg-amber-400" /><i className="h-3 w-3 rounded-full bg-emerald-400" /></div><strong className="text-sm">Citizen Dashboard</strong><span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700"><span className="status-dot" aria-hidden="true" /> Live</span></div>
         <div className="grid min-h-[430px] grid-cols-[105px_1fr]">
           <aside className="bg-slate-950 p-4 text-white"><strong className="text-sm">Civic<span className="text-cyan-300">Hero</span></strong><div className="mt-7 space-y-2 text-[10px] font-bold text-slate-400">{['Dashboard', 'Report issue', 'Complaints', 'Heatmap', 'Rewards'].map((item, index) => <span key={item} className={`block rounded-lg px-3 py-2 ${index === 0 ? 'bg-blue-600 text-white' : ''}`}>{item}</span>)}</div></aside>
           <div className="bg-slate-50 p-5"><div className="grid grid-cols-3 gap-3"><PreviewStat label="Open issues" value="18" tone="bg-amber-100 text-amber-700" /><PreviewStat label="Resolved" value="92" tone="bg-emerald-100 text-emerald-700" /><PreviewStat label="Your points" value="1,250" tone="bg-blue-100 text-blue-700" /></div><div className="mt-4 grid gap-4 sm:grid-cols-[1.2fr_.8fr]"><div className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-center justify-between"><strong className="text-xs">Complaint activity</strong><span className="text-[9px] text-slate-400">Past 30 days</span></div><svg className="mt-5 h-28 w-full" viewBox="0 0 500 150" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="heroChart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2563eb" stopOpacity=".28" /><stop offset="1" stopColor="#2563eb" stopOpacity="0" /></linearGradient></defs><path d="M0 130 L70 110 L130 118 L200 78 L270 90 L340 54 L410 66 L500 25 L500 150 L0 150Z" fill="url(#heroChart)" /><polyline points="0,130 70,110 130,118 200,78 270,90 340,54 410,66 500,25" fill="none" stroke="#2563eb" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" /></svg></div><div className="relative overflow-hidden rounded-2xl bg-slate-200 p-4"><div className="absolute inset-0 bg-[linear-gradient(29deg,transparent_46%,white_47%,white_50%,transparent_51%),linear-gradient(-36deg,transparent_46%,white_47%,white_50%,transparent_51%)] bg-[length:100px_80px,130px_100px]" />{[{l:'24%',t:'30%',c:'bg-rose-500'},{l:'56%',t:'53%',c:'bg-amber-400'},{l:'72%',t:'25%',c:'bg-emerald-500'}].map((pin,index)=><i key={index} className={`absolute h-7 w-7 rounded-full border-4 border-white shadow ${pin.c}`} style={{left:pin.l,top:pin.t}} />)}<span className="absolute bottom-3 left-3 rounded-lg bg-white/90 px-3 py-2 text-[9px] font-black shadow">Heatmap preview</span></div></div><div className="mt-4 space-y-2">{[['Pothole on Main Street','In progress'],['Garbage near city park','Assigned'],['Streetlight not working','Resolved']].map(([title,state]) => <div key={title} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-[10px]"><strong>{title}</strong><span className="rounded-full bg-blue-50 px-2 py-1 font-black text-blue-700">{state}</span></div>)}</div></div>
@@ -156,4 +157,5 @@ function HeroPortalPreview() {
 }
 
 function PreviewStat({ label, value, tone }) { return <div className="rounded-xl border border-slate-200 bg-white p-3"><span className={`inline-flex rounded-lg px-2 py-1 text-[9px] font-black ${tone}`}>{label}</span><strong className="mt-3 block text-xl">{value}</strong></div>; }
-function Impact({ value, label, icon }) { return <div className="flex items-center gap-4 border-b border-slate-200 p-6 last:border-0 sm:border-b-0 sm:border-r"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-xl font-black text-blue-700">{icon}</div><div><strong className="block text-2xl font-black text-slate-950">{value}</strong><span className="mt-1 block text-xs font-bold text-slate-500">{label}</span></div></div>; }
+function Impact({ value, label, icon }) { return <div className="flex items-center gap-4 border-b border-slate-200 p-6 last:border-0 sm:border-b-0 sm:border-r"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700"><CivicIcon name={icon} size={24} /></div><div><strong className="block text-2xl font-black text-slate-950">{value}</strong><span className="mt-1 block text-xs font-bold text-slate-500">{label}</span></div></div>; }
+function publicIssueIcon(category = '') { const value = String(category).toLowerCase(); if (value.includes('garbage') || value.includes('waste')) return 'recycle'; if (value.includes('road') || value.includes('pothole')) return 'road'; if (value.includes('light')) return 'light'; if (value.includes('water')) return 'water'; return 'location'; }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { assignmentApi } from '../../services/assignmentApi.js';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
+import CivicIcon from '../../components/ui/CivicIcon.jsx';
 
 export default function SupervisorDashboard() {
   const [data, setData] = useState(null);
@@ -19,18 +20,18 @@ export default function SupervisorDashboard() {
       {error && <div className="alert error section-gap">{error}</div>}
 
       <div className="quick-actions section-gap">
-        <Quick to="/supervisor/assignments" icon="≡" title="Assignment queue" text="Assign or reassign officers" />
-        <Quick to="/supervisor/overdue" icon="!" title="Overdue work" text="Intervene in SLA breaches" />
-        <Quick to="/supervisor/disputes" icon="⚖" title="Dispute review" text="Review citizen disputes" />
-        <Quick to="/supervisor/analytics" icon="↗" title="Team analytics" text="Measure workload and performance" />
-        <Quick to="/supervisor/initiative-engagement" icon="★" title="Initiative feedback" text="Review follows and citizen feedback" />
+        <Quick to="/supervisor/assignments" icon="assignment" title="Assignment queue" text="Assign or reassign officers" />
+        <Quick to="/supervisor/overdue" icon="alert" title="Overdue work" text="Intervene in SLA breaches" />
+        <Quick to="/supervisor/disputes" icon="dispute" title="Dispute review" text="Review citizen disputes" />
+        <Quick to="/supervisor/analytics" icon="analytics" title="Team analytics" text="Measure workload and performance" />
+        <Quick to="/supervisor/initiative-engagement" icon="rewards" title="Initiative feedback" text="Review follows and citizen feedback" />
       </div>
 
       <div className="stat-grid section-gap">
-        <Stat icon="○" label="Unassigned" value={data?.unassigned ?? '—'} hint={`${data?.reassignmentPending ?? '—'} need reassignment`} tone="amber" />
-        <Stat icon="↻" label="In progress" value={data?.inProgress ?? '—'} hint={`${data?.pending ?? '—'} awaiting acceptance`} />
-        <Stat icon="✓" label="Completed this week" value={data?.completedThisWeek ?? '—'} hint="Submitted for citizen verification" tone="green" />
-        <Stat icon="!" label="Overdue" value={data?.overdue ?? '—'} hint="Requires supervisor intervention" tone="red" />
+        <Stat icon="queue" label="Unassigned" value={data?.unassigned ?? '—'} hint={`${data?.reassignmentPending ?? '—'} need reassignment`} tone="amber" />
+        <Stat icon="progress" label="In progress" value={data?.inProgress ?? '—'} hint={`${data?.pending ?? '—'} awaiting acceptance`} />
+        <Stat icon="verify" label="Completed this week" value={data?.completedThisWeek ?? '—'} hint="Submitted for citizen verification" tone="green" />
+        <Stat icon="alert" label="Overdue" value={data?.overdue ?? '—'} hint="Requires supervisor intervention" tone="red" />
       </div>
 
       <section className="surface section-gap">
@@ -44,13 +45,13 @@ export default function SupervisorDashboard() {
       </div>}
 
       <div className="dashboard-grid equal section-gap">
-        <section className="surface"><div className="surface-header"><h3>AI verification queue</h3><Link to="/supervisor/visual-verification" className="button ghost small">Review queue →</Link></div><div className="surface-body"><div className="notification-list"><Notice icon="◎" title="Before vs after comparison" text="Review suspicious or low-confidence visual evidence." /><Notice icon="!" title="Emergency review" text="Confirm urgent reports before priority escalation." /></div></div></section>
-        <section className="surface"><div className="surface-header"><h3>Dispute decisions</h3><Link to="/supervisor/disputes" className="button ghost small">Open cases →</Link></div><div className="surface-body"><div className="notification-list"><Notice icon="⚖" title="Citizen dispute queue" text="Compare before, after and proof images before deciding." /><Notice icon="↻" title="Rework requests" text="Send incomplete work back to the field officer." /></div></div></section>
+        <section className="surface"><div className="surface-header"><h3>AI verification queue</h3><Link to="/supervisor/visual-verification" className="button ghost small">Review queue <CivicIcon name="arrow" size={15} /></Link></div><div className="surface-body"><div className="notification-list"><Notice icon="track" title="Before vs after comparison" text="Review suspicious or low-confidence visual evidence." /><Notice icon="alert" title="Emergency review" text="Confirm urgent reports before priority escalation." /></div></div></section>
+        <section className="surface"><div className="surface-header"><h3>Dispute decisions</h3><Link to="/supervisor/disputes" className="button ghost small">Open cases <CivicIcon name="arrow" size={15} /></Link></div><div className="surface-body"><div className="notification-list"><Notice icon="dispute" title="Citizen dispute queue" text="Compare before, after and proof images before deciding." /><Notice icon="progress" title="Rework requests" text="Send incomplete work back to the field officer." /></div></div></section>
       </div>
     </section>
   );
 }
 
-function Quick({ to, icon, title, text }) { return <Link to={to} className="quick-action"><span>{icon}</span><div><strong>{title}</strong><small>{text}</small></div></Link>; }
-function Stat({ icon, label, value, hint, tone='' }) { return <article className={`stat-card ${tone}`}><span className="stat-icon">{icon}</span><small>{label}</small><strong>{value}</strong><p>{hint}</p></article>; }
-function Notice({ icon, title, text }) { return <div className="notification-item"><span>{icon}</span><div><strong>{title}</strong><small>{text}</small></div></div>; }
+function Quick({ to, icon, title, text }) { return <Link to={to} className="quick-action"><span><CivicIcon name={icon} size={21} /></span><div><strong>{title}</strong><small>{text}</small></div></Link>; }
+function Stat({ icon, label, value, hint, tone='' }) { return <article className={`stat-card ${tone}`}><span className="stat-icon"><CivicIcon name={icon} size={20} /></span><small>{label}</small><strong>{value}</strong><p>{hint}</p></article>; }
+function Notice({ icon, title, text }) { return <div className="notification-item"><span><CivicIcon name={icon} size={19} /></span><div><strong>{title}</strong><small>{text}</small></div></div>; }

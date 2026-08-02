@@ -1,0 +1,699 @@
+/* CivicHero presentation UI polish
+   Scope: frontend visuals and messages only. No API, role, database or workflow changes. */
+:root {
+  --civic-navy: #1e3a5f;
+  --civic-navy-strong: #102a46;
+  --civic-blue: #2563eb;
+  --civic-blue-dark: #1d4ed8;
+  --civic-blue-soft: #eaf1ff;
+  --civic-teal: #059669;
+  --civic-green: #16a34a;
+  --civic-green-soft: #eaf8ef;
+  --civic-amber: #f59e0b;
+  --civic-amber-soft: #fff6dc;
+  --civic-orange: #f97316;
+  --civic-red: #dc2626;
+  --civic-red-soft: #fff0f0;
+  --civic-violet: #8b5cf6;
+  --civic-violet-soft: #f2edff;
+  --civic-ink: #111827;
+  --civic-muted: #5b6677;
+  --civic-subtle: #6b7280;
+  --civic-line: #e5e7eb;
+  --civic-line-strong: #cbd5e1;
+  --civic-canvas: #f5f7fa;
+  --civic-surface: #ffffff;
+  --civic-surface-soft: #f8fafc;
+  --civic-shadow: 0 18px 48px rgba(30, 58, 95, .10);
+  --civic-shadow-sm: 0 8px 24px rgba(30, 58, 95, .08);
+}
+
+html { background: var(--civic-canvas); }
+body { color: var(--civic-ink); line-height: 1.55; }
+button, input, select, textarea { color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .28);
+  outline-offset: 2px;
+}
+.civic-icon { display: block; flex: 0 0 auto; }
+
+/* Contrast guardrails: white on dark, dark on light. */
+.civic-public section[class*="from-slate-950"],
+.civic-public section[class*="from-blue-950"],
+.civic-public [class*="bg-slate-950"] {
+  color: #ffffff !important;
+}
+.civic-public section[class*="from-slate-950"] .text-white,
+.civic-public section[class*="from-slate-950"] [class*="text-blue-100"],
+.civic-public section[class*="from-slate-950"] [class*="text-cyan-100"],
+.civic-public [class*="bg-slate-950"] .text-white {
+  color: #ffffff !important;
+}
+.civic-public section[class*="from-slate-950"] [class*="text-blue-100"] { color: #dbeafe !important; }
+.civic-public section[class*="from-slate-950"] [class*="text-cyan-100"] { color: #cffafe !important; }
+.civic-public section[class*="from-slate-950"] [class*="text-transparent"] { color: transparent !important; }
+.civic-public [class*="bg-white"],
+.civic-public [class*="bg-slate-50"],
+.civic-portal .surface,
+.civic-portal .auth-card { color: var(--civic-ink); }
+
+/* Brand and navigation */
+.civic-logo-mark { background: linear-gradient(145deg, var(--civic-blue), var(--civic-navy)); }
+.civic-logo-copy strong { color: var(--civic-navy); }
+.civic-logo-copy strong span { color: var(--civic-blue); }
+.site-header, .portal-topbar { box-shadow: 0 2px 16px rgba(30, 58, 95, .05); }
+.portal-sidebar {
+  background: linear-gradient(180deg, var(--civic-navy) 0%, var(--civic-navy-strong) 100%);
+  border-right-color: rgba(255,255,255,.08);
+}
+.portal-sidebar .civic-logo-copy small { color: #b8c8db; }
+.portal-user-card { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.14); }
+.portal-user-card span:not(.avatar):not([class*="rounded-full"]) { color: #c6d3e2; font-size: 11px; }
+.portal-user-card strong { font-size: 13px; }
+.nav-label { color: #a9bfd7; font-size: 10px; }
+.portal-nav-link { min-height: 44px; font-size: 13px; color: #d3deea; border: 1px solid transparent; }
+.portal-nav-link:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.09); }
+.portal-nav-link.active { background: var(--civic-blue); box-shadow: 0 8px 22px rgba(0,0,0,.22); }
+.nav-icon { width: 28px; height: 28px; color: #bcd6f5; }
+.portal-nav-link.active .nav-icon { color: #fff; }
+.sidebar-support-card { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.13); }
+.sidebar-support-card small { color: #c2cfdd; font-size: 10px; }
+.sidebar-logout { min-height: 44px; color: #eef4fb; font-size: 12px; }
+.sidebar-logout:hover { background: rgba(220,38,38,.18); border-color: rgba(248,113,113,.38); }
+.topbar-left h1 { color: var(--civic-navy); font-size: 19px; }
+.topbar-left p { color: var(--civic-muted); font-size: 11px; }
+.portal-search { background: #fff; border-color: var(--civic-line-strong); }
+.portal-search input { font-size: 12px; }
+.topbar-profile-copy strong { color: var(--civic-ink); font-size: 12px; }
+.topbar-profile-copy small { color: var(--civic-muted); font-size: 10px; }
+
+/* Buttons */
+.button, .btn {
+  border-radius: 11px;
+  min-height: 42px;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+.button.primary, .btn.primary { background: var(--civic-blue); color: #fff; }
+.button.primary:hover, .btn.primary:hover { background: var(--civic-blue-dark); }
+.button.secondary, .btn.secondary { background: var(--civic-navy); color: #fff; }
+.button.success, .btn.success { background: var(--civic-green); color: #fff; }
+.button.warning, .btn.warning { background: var(--civic-orange); color: #fff; }
+.button.danger, .btn.danger { background: var(--civic-red); color: #fff; }
+.button.outline, .btn.outline { background: #fff; color: #334155; border-color: var(--civic-line-strong); }
+.button.outline:hover, .btn.outline:hover { color: var(--civic-blue-dark); border-color: var(--civic-blue); background: #f8fbff; }
+.button.ghost, .btn.ghost { color: #334155; }
+.button.ghost:hover, .btn.ghost:hover { background: #eef3f8; color: var(--civic-navy); }
+.icon-button { color: #334155; border-color: var(--civic-line-strong); }
+.icon-button:hover { background: var(--civic-blue-soft); color: var(--civic-blue-dark); border-color: #b7ccfa; }
+
+/* Page typography and surfaces */
+.page-wrap { padding: 28px; }
+.page-title-row h2 { color: var(--civic-navy); font-size: clamp(24px, 2vw, 31px); }
+.page-title-row p { font-size: 13px; color: var(--civic-muted); }
+.section-kicker { color: var(--civic-blue-dark); font-size: 11px; }
+.surface { border-radius: 14px; border-color: var(--civic-line); box-shadow: var(--civic-shadow-sm); }
+.surface-header { padding: 15px 18px; background: #fff; }
+.surface-header h2, .surface-header h3 { color: var(--civic-navy); font-size: 16px; }
+.surface-header p { font-size: 12px; }
+.surface-body { padding: 20px; }
+.summary-banner { background: linear-gradient(120deg, #ffffff, #eef5ff); border-left: 4px solid var(--civic-blue); }
+.summary-user h2 { color: var(--civic-navy); font-size: 23px; }
+.summary-user p { font-size: 12px; color: var(--civic-muted); }
+.summary-meta { font-size: 12px; }
+
+/* Metric cards */
+.stat-grid { gap: 16px; }
+.stat-card {
+  min-height: 132px;
+  padding: 19px;
+  border-radius: 14px;
+  border-top: 3px solid var(--stat-color, var(--civic-blue));
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--civic-shadow-sm); }
+.stat-card .stat-icon { width: 40px; height: 40px; border-radius: 11px; }
+.stat-card small { margin-top: 14px; color: #4b5563; font-size: 10px; }
+.stat-card strong { margin-top: 5px; color: var(--civic-navy); font-size: 30px; }
+.stat-card p { color: var(--civic-muted); font-size: 11px; }
+
+/* Quick actions */
+.quick-actions { gap: 14px; }
+.quick-action { min-height: 82px; padding: 15px; }
+.quick-action > span { width: 44px; height: 44px; }
+.quick-action strong { color: var(--civic-navy); font-size: 13px; }
+.quick-action small { color: var(--civic-muted); font-size: 10px; line-height: 1.45; }
+
+/* Tables */
+.civic-table-wrap { border-radius: 0 0 14px 14px; }
+.civic-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 13px 14px;
+  background: #eef3f8;
+  color: #334155;
+  font-size: 10px;
+}
+.civic-table td { padding: 14px; color: #374151; font-size: 12px; }
+.civic-table tbody tr:nth-child(even) { background: #fafbfd; }
+.civic-table tbody tr:hover { background: #eef5ff; }
+.civic-table td strong { color: var(--civic-navy); }
+.civic-table td[colspan] { padding: 28px; color: var(--civic-muted); text-align: center; }
+
+/* Status badges */
+.status-pill {
+  gap: 6px;
+  min-height: 28px;
+  padding: 5px 10px;
+  font-size: 10px;
+  color: #1d4ed8;
+  background: #eaf1ff;
+  border-color: #bfd0fa;
+}
+.status-pill .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status-pill.neutral { color: #4b5563; background: #f1f3f5; border-color: #d7dce2; }
+.status-pill.blue { color: #1d4ed8; background: #eaf1ff; border-color: #bfd0fa; }
+.status-pill.green { color: #08783f; background: #eaf8ef; border-color: #bde4ca; }
+.status-pill.amber { color: #8a5200; background: #fff3cf; border-color: #f3d289; }
+.status-pill.orange { color: #9a3f00; background: #fff0e5; border-color: #fdc79f; }
+.status-pill.red { color: #b42318; background: #fff0f0; border-color: #f3b8b8; }
+.status-pill.violet { color: #6d28d9; background: #f2edff; border-color: #d8c7ff; }
+.status-pill.darkred { color: #8b1e1e; background: #fee2e2; border-color: #f3a7a7; }
+.sla-badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 850; }
+.sla-badge.on-track { color: #08783f; background: #eaf8ef; border-color: #bde4ca; }
+.sla-badge.at-risk { color: #8a5200; background: #fff3cf; border-color: #f3d289; }
+.sla-badge.breached { color: #b42318; background: #fff0f0; border-color: #f3b8b8; }
+.sla-badge.unassigned { color: #4b5563; background: #f1f3f5; border-color: #d7dce2; }
+
+/* Forms */
+.input { min-height: 44px; border-radius: 10px; font-size: 13px; }
+.form-label, .form-field { color: #334155; font-size: 12px; }
+.form-section h3 { color: var(--civic-navy); font-size: 17px; }
+.form-helper { margin-top: 6px; color: var(--civic-muted); font-size: 11px; }
+.field-error { margin-top: 6px; color: #b42318; font-size: 11px; font-weight: 700; }
+.input:disabled { background: #f1f5f9 !important; color: #64748b !important; }
+
+/* Alerts, API states and empty/loading states */
+.alert { padding: 14px 16px; font-size: 13px; }
+.alert.error { color: #9f1d24; background: #fff1f2; border-color: #fecdd3; }
+.alert.success { color: #076c44; background: #ecfdf5; border-color: #a7f3d0; }
+.alert.warning { color: #854d0e; background: #fffbeb; border-color: #fde68a; }
+.api-status { display: inline-flex; align-items: center; gap: 9px; border: 1px solid; border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 800; }
+.api-status .api-dot { width: 9px; height: 9px; border-radius: 50%; }
+.api-status.checking { color: #854d0e; background: #fffbeb; border-color: #fde68a; }
+.api-status.checking .api-dot { background: #f59e0b; }
+.api-status.connected { color: #076c44; background: #ecfdf5; border-color: #a7f3d0; }
+.api-status.connected .api-dot { background: #16a34a; }
+.api-status.unavailable { color: #9f1d24; background: #fff1f2; border-color: #fecdd3; }
+.api-status.unavailable .api-dot { background: #dc2626; }
+.empty-state { padding: 40px 24px; text-align: center; border: 1px dashed #b8c4d1; border-radius: 16px; background: #f8fafc; }
+.empty-state-icon { width: 54px; height: 54px; display: grid; place-items: center; margin: 0 auto; border-radius: 15px; color: var(--civic-blue); background: var(--civic-blue-soft); }
+.empty-state h3 { margin: 16px 0 0; color: var(--civic-navy); font-size: 20px; }
+.empty-state p { max-width: 560px; margin: 8px auto 0; color: var(--civic-muted); font-size: 13px; }
+.loading-state { display: flex; align-items: center; gap: 10px; color: var(--civic-muted); font-size: 13px; }
+.loading-spinner { width: 18px; height: 18px; border: 2px solid #d7e0eb; border-top-color: var(--civic-blue); border-radius: 50%; animation: civic-spin .8s linear infinite; }
+.skeleton { position: relative; overflow: hidden; border-radius: 8px; background: #e9eef4; }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent); animation: civic-shimmer 1.3s infinite; }
+@keyframes civic-spin { to { transform: rotate(360deg); } }
+@keyframes civic-shimmer { 100% { transform: translateX(100%); } }
+
+/* Complaint cards and timelines */
+.complaint-list-row { padding: 14px; }
+.complaint-list-row h4 { color: var(--civic-navy); font-size: 13px; }
+.complaint-list-row p { color: var(--civic-muted); font-size: 10px; }
+.timeline-item { min-height: 70px; padding-left: 39px; }
+.timeline-item h4 { color: var(--civic-navy); font-size: 13px; }
+.timeline-item p { color: var(--civic-muted); font-size: 11px; }
+.timeline-dot { width: 16px; height: 16px; left: 4px; }
+.evidence-grid, .before-after-grid { gap: 16px; }
+.evidence-photo, .evidence-media { border-radius: 13px; }
+
+/* Notification cards */
+.notification-item { grid-template-columns: 36px 1fr; gap: 11px; padding: 13px 0; }
+.notification-item > span { width: 36px; height: 36px; }
+.notification-item strong { color: var(--civic-navy); font-size: 12px; }
+.notification-item small { color: var(--civic-muted); font-size: 10px; line-height: 1.45; }
+
+/* Login */
+.auth-shell { background: var(--civic-canvas); }
+.auth-visual { background: linear-gradient(145deg, var(--civic-navy-strong), var(--civic-navy)); }
+.auth-visual h1 { color: #fff; }
+.auth-visual p { color: #d8e4f1; }
+.auth-benefits { color: #d5e1ee; font-size: 13px; }
+.auth-card { padding: 38px; }
+.auth-card h1 { color: var(--civic-navy); font-size: 31px; }
+.auth-card > p { font-size: 13px; }
+.auth-tab { font-size: 13px; }
+.auth-tab.active { color: var(--civic-blue-dark); }
+.form-icon-field > span { color: var(--civic-navy); }
+.auth-note { font-size: 12px; }
+
+/* Landing page contrast and polish */
+.civic-public section[class*="from-slate-950"] h1,
+.civic-public section[class*="from-slate-950"] p,
+.civic-public section[class*="from-slate-950"] strong { color: inherit; }
+.civic-public section[class*="from-slate-950"] a[class*="bg-white"] { color: #1e40af !important; }
+.civic-public section[class*="from-slate-950"] a[class*="bg-white/10"] { color: #fff !important; }
+.civic-public article { border-color: var(--civic-line); }
+
+/* Ensure utility-heavy portal pages remain readable after light conversion. */
+.civic-portal .text-slate-500, .civic-portal .text-slate-600 { color: var(--civic-muted) !important; }
+.civic-portal .text-slate-400 { color: #667085 !important; }
+.civic-portal [class*="bg-white/"] .text-white,
+.civic-portal [class*="bg-white["] .text-white { color: var(--civic-ink) !important; }
+.civic-portal [class*="bg-sky-500"].text-white,
+.civic-portal [class*="bg-blue-600"].text-white,
+.civic-portal [class*="bg-emerald-500"].text-white,
+.civic-portal [class*="bg-rose-500"].text-white,
+.civic-portal [class*="bg-red-600"].text-white,
+.civic-portal [class*="bg-violet-500"].text-white,
+.civic-portal [class*="bg-amber-500"].text-white,
+.civic-portal [class*="bg-sky-500"] .text-white,
+.civic-portal [class*="bg-blue-600"] .text-white,
+.civic-portal [class*="bg-emerald-500"] .text-white,
+.civic-portal [class*="bg-rose-500"] .text-white,
+.civic-portal [class*="bg-red-600"] .text-white { color: #fff !important; }
+
+@media (max-width: 1180px) {
+  .stat-grid.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .page-wrap { padding: 18px 13px; }
+  .summary-banner { align-items: flex-start; flex-direction: column; }
+  .summary-meta { gap: 8px 12px; }
+  .summary-meta span { border-right: 0; padding-right: 0; }
+  .stat-grid, .stat-grid.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-actions { grid-template-columns: 1fr; }
+  .portal-topbar { padding-inline: 14px; }
+  .topbar-profile-copy, .portal-search { display: none; }
+  .auth-card { padding: 25px 20px; }
+}
+@media (max-width: 460px) {
+  .stat-grid, .stat-grid.six { grid-template-columns: 1fr; }
+}
+.sidebar-logout { display: flex; align-items: center; justify-content: center; gap: 9px; }
+.notification-count-badge { position: absolute; right: -6px; top: -6px; min-width: 20px; height: 20px; padding: 0 4px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 999px; background: var(--civic-red); color: #fff; font-size: 9px; font-weight: 900; }
+.civic-public button:has(.loading-spinner) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* --------------------------------------------------------------------------
+   Change32A: project-wide contrast safety layer
+   The legacy light-compatibility rules intentionally convert older pages to
+   light surfaces. This final layer preserves that behaviour while restoring
+   correct light text on genuinely dark, saturated and gradient surfaces.
+   -------------------------------------------------------------------------- */
+
+/* Public dark surfaces: footer, heatmap, dark cards, overlays and map panels. */
+.civic-public [class*="bg-slate-950"] {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+.civic-public [class*="bg-slate-900"] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* Keep low-opacity glass panels translucent when they live inside dark areas. */
+.civic-public [class*="bg-slate-950"] [class~="bg-white/5"],
+.civic-public [class*="bg-slate-950"] [class~="bg-white/10"],
+.civic-public [class*="bg-slate-950"] [class~="bg-white/15"],
+.civic-public [class*="bg-slate-950"] [class~="bg-white/[0.04]"],
+.civic-public [class*="bg-slate-900"] [class~="bg-white/5"],
+.civic-public [class*="bg-slate-900"] [class~="bg-white/10"],
+.civic-public [class*="bg-slate-900"] [class~="bg-white/15"],
+.civic-public [class*="bg-slate-900"] [class~="bg-white/[0.04]"] {
+  background-color: rgba(255, 255, 255, .08) !important;
+}
+.civic-public [class*="bg-slate-950"] [class~="border-white/10"],
+.civic-public [class*="bg-slate-950"] [class~="border-white/15"],
+.civic-public [class*="bg-slate-900"] [class~="border-white/10"],
+.civic-public [class*="bg-slate-900"] [class~="border-white/15"] {
+  border-color: rgba(255, 255, 255, .16) !important;
+}
+
+/* Readable secondary text on dark public surfaces. */
+.civic-public [class*="bg-slate-950"].text-slate-400,
+.civic-public [class*="bg-slate-900"].text-slate-400,
+.civic-public [class*="bg-slate-950"] .text-slate-400,
+.civic-public [class*="bg-slate-900"] .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+.civic-public [class*="bg-slate-950"].text-slate-500,
+.civic-public [class*="bg-slate-900"].text-slate-500,
+.civic-public [class*="bg-slate-950"] .text-slate-500,
+.civic-public [class*="bg-slate-900"] .text-slate-500,
+.civic-public [class*="bg-slate-950"] .text-slate-600,
+.civic-public [class*="bg-slate-900"] .text-slate-600 {
+  color: #aebdd0 !important;
+}
+.civic-public [class*="bg-slate-950"].text-white,
+.civic-public [class*="bg-slate-900"].text-white,
+.civic-public [class*="bg-slate-950"] .text-white,
+.civic-public [class*="bg-slate-900"] .text-white {
+  color: #ffffff !important;
+}
+.civic-public [class*="bg-slate-950"] .text-slate-100,
+.civic-public [class*="bg-slate-950"] .text-slate-200,
+.civic-public [class*="bg-slate-950"] .text-slate-300,
+.civic-public [class*="bg-slate-900"] .text-slate-100,
+.civic-public [class*="bg-slate-900"] .text-slate-200,
+.civic-public [class*="bg-slate-900"] .text-slate-300 {
+  color: #e2e8f0 !important;
+}
+
+/* Dark and saturated gradients always use light foreground text. */
+.civic-public [class*="bg-gradient-to-"].text-white,
+.civic-public [class*="bg-gradient-to-"] .text-white,
+.civic-portal [class*="bg-gradient-to-"].text-white,
+.civic-portal [class*="bg-gradient-to-"] .text-white {
+  color: #ffffff !important;
+}
+.civic-public [class*="bg-gradient-to-"].text-slate-400,
+.civic-public [class*="bg-gradient-to-"] .text-slate-400,
+.civic-portal [class*="bg-gradient-to-"].text-slate-400,
+.civic-portal [class*="bg-gradient-to-"] .text-slate-400 {
+  color: #d5deea !important;
+}
+
+/* Coloured actions, metric icons and notification controls keep white labels. */
+.civic-public [class*="bg-blue-600"].text-white,
+.civic-public [class*="bg-blue-700"].text-white,
+.civic-public [class*="bg-sky-500"].text-white,
+.civic-public [class*="bg-cyan-500"].text-white,
+.civic-public [class*="bg-emerald-500"].text-white,
+.civic-public [class*="bg-emerald-600"].text-white,
+.civic-public [class*="bg-green-600"].text-white,
+.civic-public [class*="bg-violet-500"].text-white,
+.civic-public [class*="bg-violet-600"].text-white,
+.civic-public [class*="bg-amber-500"].text-white,
+.civic-public [class*="bg-orange-500"].text-white,
+.civic-public [class*="bg-rose-500"].text-white,
+.civic-public [class*="bg-red-600"].text-white,
+.civic-public [class*="bg-slate-900"].text-white,
+.civic-portal [class*="bg-blue-600"].text-white,
+.civic-portal [class*="bg-blue-700"].text-white,
+.civic-portal [class*="bg-sky-500"].text-white,
+.civic-portal [class*="bg-cyan-500"].text-white,
+.civic-portal [class*="bg-emerald-500"].text-white,
+.civic-portal [class*="bg-emerald-600"].text-white,
+.civic-portal [class*="bg-green-600"].text-white,
+.civic-portal [class*="bg-violet-500"].text-white,
+.civic-portal [class*="bg-violet-600"].text-white,
+.civic-portal [class*="bg-amber-500"].text-white,
+.civic-portal [class*="bg-orange-500"].text-white,
+.civic-portal [class*="bg-rose-500"].text-white,
+.civic-portal [class*="bg-red-600"].text-white,
+.civic-portal [class*="bg-slate-900"].text-white {
+  color: #ffffff !important;
+}
+
+/* Also protect labels nested inside saturated controls/cards. */
+.civic-public [class*="bg-blue-600"] .text-white,
+.civic-public [class*="bg-blue-700"] .text-white,
+.civic-public [class*="bg-emerald-500"] .text-white,
+.civic-public [class*="bg-emerald-600"] .text-white,
+.civic-public [class*="bg-rose-500"] .text-white,
+.civic-public [class*="bg-red-600"] .text-white,
+.civic-portal [class*="bg-blue-600"] .text-white,
+.civic-portal [class*="bg-blue-700"] .text-white,
+.civic-portal [class*="bg-emerald-500"] .text-white,
+.civic-portal [class*="bg-emerald-600"] .text-white,
+.civic-portal [class*="bg-rose-500"] .text-white,
+.civic-portal [class*="bg-red-600"] .text-white {
+  color: #ffffff !important;
+}
+
+/* Light surfaces use dark readable copy. Dark-surface rules above are more specific. */
+.civic-public .text-slate-400 { color: #526174 !important; }
+.civic-public .text-slate-500 { color: #4b5563 !important; }
+.civic-public .text-slate-600 { color: #374151 !important; }
+.civic-public [class*="bg-slate-950"] .text-slate-400,
+.civic-public [class*="bg-slate-900"] .text-slate-400 { color: #cbd5e1 !important; }
+.civic-public [class*="bg-slate-950"] .text-slate-500,
+.civic-public [class*="bg-slate-900"] .text-slate-500,
+.civic-public [class*="bg-slate-950"] .text-slate-600,
+.civic-public [class*="bg-slate-900"] .text-slate-600 { color: #aebdd0 !important; }
+
+/* Keep pale cards readable even when placed inside a dark section. */
+.civic-public [class*="bg-slate-950"] [class~="bg-white"],
+.civic-public [class*="bg-slate-900"] [class~="bg-white"],
+.civic-public [class*="bg-slate-950"] [class~="bg-slate-50"],
+.civic-public [class*="bg-slate-900"] [class~="bg-slate-50"] {
+  color: var(--civic-ink) !important;
+}
+
+
+
+/* --------------------------------------------------------------------------
+   Change32B: readable controls, shared avatar and functional portal search
+   -------------------------------------------------------------------------- */
+
+/* Uploaded avatar is shown consistently in sidebar, top bar and account drawer. */
+.user-avatar-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.user-avatar-initials { display: grid; width: 100%; height: 100%; place-items: center; }
+.portal-user-card > .avatar,
+.topbar-profile > .avatar { overflow: hidden; padding: 0; }
+.account-drawer-layer { position: fixed; inset: 0; z-index: 1200; }
+.account-drawer-scrim { position: absolute; inset: 0; border: 0; background: rgba(15, 23, 42, .48); }
+.portal-account-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(390px, 94vw);
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: -18px 0 48px rgba(15, 23, 42, .22);
+}
+.account-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.account-drawer-eyebrow { color: #1d4ed8; font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.account-drawer-header h2 { margin: 4px 0 0; color: #1e3a5f; font-size: 27px; }
+.account-drawer-close { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #334155; }
+.account-drawer-profile-card { margin-top: 24px; padding: 18px; display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 14px; border: 1px solid #dbe3ed; border-radius: 16px; background: #f8fafc; }
+.account-drawer-avatar { width: 64px; height: 64px; display: grid; place-items: center; overflow: hidden; border: 3px solid #bfdbfe; border-radius: 50%; background: #2563eb; color: #fff; font-weight: 900; }
+.account-drawer-identity { min-width: 0; }
+.account-drawer-identity > strong { display: block; color: #111827; font-size: 16px; }
+.account-drawer-identity > span { display: block; overflow: hidden; margin: 3px 0 9px; color: #526174; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.account-drawer-actions { margin-top: 18px; display: grid; gap: 10px; }
+.account-drawer-action { width: 100%; padding: 14px; display: grid; grid-template-columns: 38px 1fr 22px; align-items: center; gap: 12px; border: 1px solid #dbe3ed; border-radius: 13px; background: #fff; color: #172033; text-align: left; text-decoration: none; }
+.account-drawer-action:hover { border-color: #93c5fd; background: #eff6ff; }
+.account-drawer-action-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: #eaf1ff; color: #1d4ed8; }
+.account-drawer-action strong { display: block; color: #172033; font-size: 13px; }
+.account-drawer-action small { display: block; margin-top: 2px; color: #5b6677; font-size: 11px; }
+.account-drawer-arrow { color: #64748b; }
+.account-drawer-logout { color: #991b1b; }
+.account-drawer-logout .account-drawer-action-icon { background: #fee2e2; color: #b91c1c; }
+.account-drawer-note { margin-top: 18px; color: #64748b; font-size: 11px; line-height: 1.55; }
+
+/* Search is a real form and the submit control remains visible to normal eyesight. */
+.portal-search { min-width: min(360px, 31vw); padding-right: 5px; }
+.portal-search input { min-width: 0; color: #172033 !important; }
+.portal-search input::placeholder { color: #667085 !important; opacity: 1; }
+.portal-search-submit {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: #ffffff !important;
+  cursor: pointer;
+}
+.portal-search-submit:hover { background: #1e3a8a; }
+
+/* Staff account lifecycle badges: pale surface + deliberately dark foreground. */
+.staff-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+.staff-status-pending { color: #7c4200 !important; background: #fff3c4 !important; border-color: #e7bc55 !important; }
+.staff-status-approved { color: #05603a !important; background: #dcfce7 !important; border-color: #86d5a6 !important; }
+.staff-status-rejected { color: #9f1239 !important; background: #ffe4e6 !important; border-color: #f7a7b4 !important; }
+.staff-status-active { color: #075985 !important; background: #e0f2fe !important; border-color: #7dd3fc !important; }
+.staff-status-inactive { color: #374151 !important; background: #e5e7eb !important; border-color: #b8bec8 !important; }
+
+/* Role badges must stay readable in both the dark sidebar and light top bar. */
+.civic-portal .status-pill { font-size: 11px !important; font-weight: 850 !important; }
+.civic-portal .status-pill.blue { color: #1e40af !important; background: #dbeafe !important; border-color: #93c5fd !important; }
+.civic-portal .status-pill.green { color: #065f46 !important; background: #d1fae5 !important; border-color: #6ee7b7 !important; }
+.civic-portal .status-pill.amber { color: #78350f !important; background: #fef3c7 !important; border-color: #f6c453 !important; }
+.civic-portal .status-pill.violet { color: #5b21b6 !important; background: #ede9fe !important; border-color: #c4b5fd !important; }
+.civic-portal .status-pill.red { color: #991b1b !important; background: #fee2e2 !important; border-color: #fca5a5 !important; }
+
+/* Solid buttons use a dark saturated shade and white text. */
+.civic-portal button[class~="bg-sky-500"], .civic-portal a[class~="bg-sky-500"] { background-color: #0369a1 !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-blue-600"], .civic-portal a[class~="bg-blue-600"] { background-color: #1d4ed8 !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-cyan-500"], .civic-portal a[class~="bg-cyan-500"] { background-color: #0e7490 !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-emerald-500"], .civic-portal a[class~="bg-emerald-500"] { background-color: #047857 !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-green-600"], .civic-portal a[class~="bg-green-600"] { background-color: #15803d !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-amber-500"], .civic-portal a[class~="bg-amber-500"] { background-color: #b45309 !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-orange-500"], .civic-portal a[class~="bg-orange-500"] { background-color: #c2410c !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-violet-500"], .civic-portal a[class~="bg-violet-500"] { background-color: #6d28d9 !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-rose-500"], .civic-portal a[class~="bg-rose-500"] { background-color: #be123c !important; color: #ffffff !important; }
+.civic-portal button[class~="bg-red-600"], .civic-portal a[class~="bg-red-600"] { background-color: #b91c1c !important; color: #ffffff !important; }
+
+/* Transparent/pastel actions use a pale background with a dark matching label. */
+.civic-portal [class~="bg-sky-500/10"], .civic-portal [class~="bg-sky-500/20"] { background-color: #e0f2fe !important; color: #075985 !important; border-color: #7dd3fc !important; }
+.civic-portal [class~="bg-blue-500/10"], .civic-portal [class~="bg-blue-500/20"] { background-color: #dbeafe !important; color: #1e40af !important; border-color: #93c5fd !important; }
+.civic-portal [class~="bg-emerald-500/10"], .civic-portal [class~="bg-emerald-500/20"] { background-color: #dcfce7 !important; color: #065f46 !important; border-color: #86d5a6 !important; }
+.civic-portal [class~="bg-amber-400/5"], .civic-portal [class~="bg-amber-500/10"], .civic-portal [class~="bg-amber-500/20"] { background-color: #fef3c7 !important; color: #78350f !important; border-color: #f6c453 !important; }
+.civic-portal [class~="bg-violet-500/10"], .civic-portal [class~="bg-violet-500/20"] { background-color: #ede9fe !important; color: #5b21b6 !important; border-color: #c4b5fd !important; }
+.civic-portal [class~="bg-rose-400/10"], .civic-portal [class~="bg-rose-500/10"], .civic-portal [class~="bg-rose-500/20"] { background-color: #ffe4e6 !important; color: #9f1239 !important; border-color: #f7a7b4 !important; }
+
+/* Matching light text utility classes are darkened when used on light/pastel surfaces. */
+.civic-portal [class~="bg-sky-500/10"] [class*="text-sky-"], .civic-portal [class~="bg-sky-500/20"] [class*="text-sky-"],
+.civic-portal [class~="bg-sky-500/10"][class*="text-sky-"], .civic-portal [class~="bg-sky-500/20"][class*="text-sky-"] { color: #075985 !important; }
+.civic-portal [class~="bg-emerald-500/10"] [class*="text-emerald-"], .civic-portal [class~="bg-emerald-500/20"] [class*="text-emerald-"],
+.civic-portal [class~="bg-emerald-500/10"][class*="text-emerald-"], .civic-portal [class~="bg-emerald-500/20"][class*="text-emerald-"] { color: #065f46 !important; }
+.civic-portal [class~="bg-amber-500/10"] [class*="text-amber-"], .civic-portal [class~="bg-amber-500/20"] [class*="text-amber-"],
+.civic-portal [class~="bg-amber-500/10"][class*="text-amber-"], .civic-portal [class~="bg-amber-500/20"][class*="text-amber-"] { color: #78350f !important; }
+.civic-portal [class~="bg-violet-500/10"] [class*="text-violet-"], .civic-portal [class~="bg-violet-500/20"] [class*="text-violet-"],
+.civic-portal [class~="bg-violet-500/10"][class*="text-violet-"], .civic-portal [class~="bg-violet-500/20"][class*="text-violet-"] { color: #5b21b6 !important; }
+.civic-portal [class~="bg-rose-500/10"] [class*="text-rose-"], .civic-portal [class~="bg-rose-500/20"] [class*="text-rose-"],
+.civic-portal [class~="bg-rose-500/10"][class*="text-rose-"], .civic-portal [class~="bg-rose-500/20"][class*="text-rose-"] { color: #9f1239 !important; }
+
+/* Profile avatar actions are explicit, projector-safe controls. */
+.profile-avatar-upload { background: #0369a1 !important; color: #ffffff !important; border: 1px solid #075985 !important; }
+.profile-avatar-remove { background: #ffffff !important; color: #b42318 !important; border-color: #e58a94 !important; }
+.profile-avatar-remove:hover { background: #fff1f2 !important; }
+
+/* Text within light content cards must never inherit white/pastel foreground. */
+.civic-portal .portal-main [class~="bg-white"],
+.civic-portal .portal-main [class~="bg-slate-50"],
+.civic-portal .portal-main [class~="bg-white/5"],
+.civic-portal .portal-main [class~="bg-white/[0.04]"] { color: #172033; }
+.civic-portal .portal-main [class~="bg-white"] .text-white,
+.civic-portal .portal-main [class~="bg-slate-50"] .text-white,
+.civic-portal .portal-main [class~="bg-white/5"] .text-white,
+.civic-portal .portal-main [class~="bg-white/[0.04]"] .text-white { color: #111827 !important; }
+
+@media (max-width: 980px) {
+  .portal-search { min-width: 220px; }
+}
+
+/* Explicit dark overlays and modal panels remain dark with light foregrounds. */
+.civic-portal .portal-main [class*="bg-slate-900"],
+.civic-portal .portal-main [class*="bg-slate-950"] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+.civic-portal .portal-main [class*="bg-slate-900"] [class~="bg-white/5"],
+.civic-portal .portal-main [class*="bg-slate-900"] [class~="bg-white/[0.04]"],
+.civic-portal .portal-main [class*="bg-slate-950"] [class~="bg-white/5"],
+.civic-portal .portal-main [class*="bg-slate-950"] [class~="bg-white/[0.04]"] {
+  background-color: rgba(255, 255, 255, .08) !important;
+  color: #f8fafc !important;
+}
+.civic-portal .portal-main [class*="bg-slate-900"] .text-white,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-white { color: #ffffff !important; }
+.civic-portal .portal-main [class*="bg-slate-900"] .text-slate-300,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-slate-300 { color: #e2e8f0 !important; }
+.civic-portal .portal-main [class*="bg-slate-900"] .text-slate-400,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-slate-400 { color: #cbd5e1 !important; }
+.civic-portal .portal-main [class*="bg-slate-900"] .text-slate-500,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-slate-500 { color: #aebdd0 !important; }
+
+
+/* --------------------------------------------------------------------------
+   Change32B final accessibility guardrails
+   -------------------------------------------------------------------------- */
+
+/* High-specificity status badges remain readable even when utility CSS is rebuilt. */
+.civic-portal .portal-main .staff-status.staff-status-pending {
+  color: #713f12 !important; background: #fef3c7 !important; border-color: #d97706 !important;
+}
+.civic-portal .portal-main .staff-status.staff-status-approved {
+  color: #064e3b !important; background: #d1fae5 !important; border-color: #059669 !important;
+}
+.civic-portal .portal-main .staff-status.staff-status-rejected {
+  color: #881337 !important; background: #ffe4e6 !important; border-color: #e11d48 !important;
+}
+.civic-portal .portal-main .staff-status.staff-status-active {
+  color: #0c4a6e !important; background: #bae6fd !important; border-color: #0284c7 !important;
+}
+.civic-portal .portal-main .staff-status.staff-status-inactive {
+  color: #1f2937 !important; background: #e5e7eb !important; border-color: #6b7280 !important;
+}
+
+/* Disabled controls are visibly disabled but their labels remain readable. */
+.civic-portal button:disabled,
+.civic-portal input:disabled,
+.civic-portal select:disabled,
+.civic-portal textarea:disabled { opacity: 1 !important; }
+.civic-portal button:disabled {
+  cursor: not-allowed !important;
+  filter: none !important;
+}
+.civic-portal button[class*="bg-sky-500"]:disabled,
+.civic-portal button[class*="bg-blue-600"]:disabled,
+.profile-avatar-upload:disabled {
+  background: #64748b !important;
+  border-color: #475569 !important;
+  color: #ffffff !important;
+}
+.profile-avatar-remove:disabled {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #475569 !important;
+}
+
+/* Outline controls on light pages use dark matching labels. */
+.civic-portal .portal-main button[class*="border-sky-"][class*="text-sky-"],
+.civic-portal .portal-main a[class*="border-sky-"][class*="text-sky-"] {
+  background: #ffffff !important; color: #075985 !important; border-color: #0284c7 !important;
+}
+.civic-portal .portal-main button[class*="border-rose-"][class*="text-rose-"],
+.civic-portal .portal-main a[class*="border-rose-"][class*="text-rose-"] {
+  background: #ffffff !important; color: #9f1239 !important; border-color: #e11d48 !important;
+}
+.civic-portal .portal-main button[class*="border-amber-"][class*="text-amber-"],
+.civic-portal .portal-main a[class*="border-amber-"][class*="text-amber-"] {
+  background: #ffffff !important; color: #78350f !important; border-color: #d97706 !important;
+}
+.civic-portal .portal-main button[class*="border-violet-"][class*="text-violet-"],
+.civic-portal .portal-main a[class*="border-violet-"][class*="text-violet-"] {
+  background: #ffffff !important; color: #5b21b6 !important; border-color: #7c3aed !important;
+}
+
+/* Utility-based light cards receive dark body copy, not washed-out pastel text. */
+.civic-portal .portal-main [class~="bg-white/5"] .text-slate-300,
+.civic-portal .portal-main [class~="bg-white/[0.04]"] .text-slate-300 { color: #334155 !important; }
+.civic-portal .portal-main [class~="bg-white/5"] .text-slate-400,
+.civic-portal .portal-main [class~="bg-white/[0.04]"] .text-slate-400 { color: #475569 !important; }
+.civic-portal .portal-main [class~="bg-white/5"] .text-slate-500,
+.civic-portal .portal-main [class~="bg-white/[0.04]"] .text-slate-500 { color: #64748b !important; }
+.civic-portal .portal-main [class~="bg-white/5"] [class*="text-sky-2"],
+.civic-portal .portal-main [class~="bg-white/5"] [class*="text-sky-3"],
+.civic-portal .portal-main [class~="bg-white/[0.04]"] [class*="text-sky-2"],
+.civic-portal .portal-main [class~="bg-white/[0.04]"] [class*="text-sky-3"] { color: #075985 !important; }
+
+/* Shared avatars fill every circular portal slot and never inherit text-span spacing. */
+.portal-user-card .user-avatar-image,
+.topbar-profile .user-avatar-image,
+.portal-account-drawer .user-avatar-image { width: 100% !important; height: 100% !important; margin: 0 !important; object-fit: cover !important; }
+.portal-user-card .user-avatar-initials,
+.topbar-profile .user-avatar-initials,
+.portal-account-drawer .user-avatar-initials { margin: 0 !important; color: #ffffff !important; line-height: 1 !important; }
+.icon-back { transform: rotate(180deg); }
+
+/* Dark modal and overlay surfaces keep light foregrounds after the light-card rules. */
+.civic-portal .portal-main [class*="bg-slate-900"] .text-white,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-white { color: #ffffff !important; }
+.civic-portal .portal-main [class*="bg-slate-900"] .text-slate-300,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-slate-300 { color: #e2e8f0 !important; }
+.civic-portal .portal-main [class*="bg-slate-900"] .text-slate-400,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-slate-400 { color: #cbd5e1 !important; }
+.civic-portal .portal-main [class*="bg-slate-900"] .text-slate-500,
+.civic-portal .portal-main [class*="bg-slate-950"] .text-slate-500 { color: #aebdd0 !important; }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { assignmentApi } from '../../services/assignmentApi.js';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
+import CivicIcon from '../../components/ui/CivicIcon.jsx';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const complaintIdOf = (item) => {
@@ -71,10 +72,10 @@ export default function OfficerDashboard() {
       {loading && <div className="surface section-gap"><div className="surface-body">Loading officer dashboard…</div></div>}
 
       <div className="stat-grid section-gap">
-        <Stat icon="⌛" label="Awaiting response" value={data?.pending ?? '—'} hint="Accept before assignment SLA" tone="amber" />
-        <Stat icon="↻" label="In progress" value={data?.inProgress ?? '—'} hint="Active field assignments" />
-        <Stat icon="✓" label="Completed this week" value={data?.completedThisWeek ?? '—'} hint="Submitted for citizen review" tone="green" />
-        <Stat icon="!" label="SLA overdue" value={data?.overdue ?? '—'} hint="Requires immediate attention" tone="red" />
+        <Stat icon="clock" label="Awaiting response" value={data?.pending ?? '—'} hint="Accept before assignment SLA" tone="amber" />
+        <Stat icon="progress" label="In progress" value={data?.inProgress ?? '—'} hint="Active field assignments" />
+        <Stat icon="verify" label="Completed this week" value={data?.completedThisWeek ?? '—'} hint="Submitted for citizen review" tone="green" />
+        <Stat icon="alert" label="SLA overdue" value={data?.overdue ?? '—'} hint="Requires immediate attention" tone="red" />
       </div>
 
       <section className="surface section-gap">
@@ -88,20 +89,20 @@ export default function OfficerDashboard() {
           </select>
         </div>
         <div className="stat-grid surface-body">
-          <Stat icon="⏱" label="Avg. response" value={`${performance?.averageResponseMinutes ?? 0} min`} hint="Assignment to first response" />
-          <Stat icon="⌚" label="Avg. resolution" value={`${performance?.averageResolutionHours ?? 0} hr`} hint="Accepted work to completion" />
-          <Stat icon="✓" label="Closure rate" value={`${performance?.closureRatePercent ?? 0}%`} hint={`${performance?.completedAssignments ?? 0} completed`} tone="green" />
-          <Stat icon="★" label="Verification success" value={`${performance?.verificationSuccessRatePercent ?? 0}%`} hint="Citizen/admin accepted outcomes" tone="green" />
-          <Stat icon="S" label="SLA compliance" value={`${performance?.slaCompliancePercent ?? 0}%`} hint="Completed before due time" />
-          <Stat icon="⇄" label="Transfer requests" value={performance?.transferRequests ?? 0} hint="Audited reassignment requests" tone="amber" />
+          <Stat icon="clock" label="Avg. response" value={`${performance?.averageResponseMinutes ?? 0} min`} hint="Assignment to first response" />
+          <Stat icon="clock" label="Avg. resolution" value={`${performance?.averageResolutionHours ?? 0} hr`} hint="Accepted work to completion" />
+          <Stat icon="verify" label="Closure rate" value={`${performance?.closureRatePercent ?? 0}%`} hint={`${performance?.completedAssignments ?? 0} completed`} tone="green" />
+          <Stat icon="rewards" label="Verification success" value={`${performance?.verificationSuccessRatePercent ?? 0}%`} hint="Citizen/admin accepted outcomes" tone="green" />
+          <Stat icon="shield" label="SLA compliance" value={`${performance?.slaCompliancePercent ?? 0}%`} hint="Completed before due time" />
+          <Stat icon="refresh" label="Transfer requests" value={performance?.transferRequests ?? 0} hint="Audited reassignment requests" tone="amber" />
         </div>
-        <div className="surface-body" style={{ paddingTop: 0 }}><Link to="/officer/map" className="button outline">Open live assignment map →</Link></div>
+        <div className="surface-body" style={{ paddingTop: 0 }}><Link to="/officer/map" className="button outline">Open live assignment map <CivicIcon name="arrow" size={15} /></Link></div>
       </section>
 
       <section className="surface section-gap">
         <div className="surface-header">
           <h3>Quick filters</h3>
-          <Link to="/officer/assignments" className="button ghost small">Open complete work queue →</Link>
+          <Link to="/officer/assignments" className="button ghost small">Open complete work queue <CivicIcon name="arrow" size={15} /></Link>
         </div>
         <div className="surface-body" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {['All', 'High priority', 'In progress', 'Overdue'].map((value) => (
@@ -176,5 +177,6 @@ export default function OfficerDashboard() {
 }
 
 function Stat({ icon, label, value, hint, tone = '' }) {
-  return <article className={`stat-card ${tone}`}><span className="stat-icon">{icon}</span><small>{label}</small><strong>{value}</strong><p>{hint}</p></article>;
+  return <article className={`stat-card ${tone}`}><span className="stat-icon"><CivicIcon name={icon} size={20} /></span><small>{label}</small><strong>{value}</strong><p>{hint}</p></article>;
 }
+

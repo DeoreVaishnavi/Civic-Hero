@@ -1,0 +1,201 @@
+﻿{
+    "Change":  "Change32R_RestoreChange32KeepAvatarSearch",
+    "Description":  "Return the UI to Change32 presentation polish while retaining Change32B avatar integration and working role-based complaint search.",
+    "Files":  [
+                  {
+                      "Path":  "frontend/civichero-web/src/styles/presentation-polish.css",
+                      "DesiredSha256":  "54e48c1427e23c33f57e5137286058868aa215e810d8a88fd9ee6b4d53172835",
+                      "AllowedCurrentSha256":  [
+                                                   "54e48c1427e23c33f57e5137286058868aa215e810d8a88fd9ee6b4d53172835",
+                                                   "910f6afba0ae5f787ce81be08e0544a1080afe5ce60639b2d50e7d0741cc3d6d",
+                                                   "98b5a4b30d1d25ab857e641b61518ce175f4ba1682c4e4a7acb8dd86467cbb92",
+                                                   "a3b955500f3372f8d0f288024ebe9560412bedbf44405315f2342381dd72d986"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/main.jsx",
+                      "DesiredSha256":  "a4ef8c131c7544677d0cf8e521d8b176311c635a984d3b1d004758968dc621d9",
+                      "AllowedCurrentSha256":  [
+                                                   "5265ff898b43b6ea3a58c58067e46318e3f2697d28f1a7fdb15aa65ea59457b7",
+                                                   "a4ef8c131c7544677d0cf8e521d8b176311c635a984d3b1d004758968dc621d9",
+                                                   "c9ea5112cd90fd51c1b49f558b0657e73ae5f85976737b3e4576c51053eabecc"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/layouts/PortalLayout.jsx",
+                      "DesiredSha256":  "40da3cda4d2899e438a092e687207bef6f53bf83b456561cb59d9c2b4b8dd8bf",
+                      "AllowedCurrentSha256":  [
+                                                   "150ff8afdb54c17eca172194133b9b77db3ce3e67d44cee343fa7c3c1707db2a",
+                                                   "40da3cda4d2899e438a092e687207bef6f53bf83b456561cb59d9c2b4b8dd8bf",
+                                                   "7782920874e76ef803871846c925f7e0cdc09d7123b733f53f5234416576773e"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/components/common/UserAvatar.jsx",
+                      "DesiredSha256":  "68e18c15ca92cd667823fef3c6da10d94efaac14a8cab093d5829ee15d9f7c4b",
+                      "AllowedCurrentSha256":  [
+                                                   "68e18c15ca92cd667823fef3c6da10d94efaac14a8cab093d5829ee15d9f7c4b"
+                                               ],
+                      "AllowMissing":  true
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/components/common/PortalAccountDrawer.jsx",
+                      "DesiredSha256":  "8921a4152fe5181d11da95bc143f0798ac032d30e04fe6d575123434ad66df4d",
+                      "AllowedCurrentSha256":  [
+                                                   "8921a4152fe5181d11da95bc143f0798ac032d30e04fe6d575123434ad66df4d",
+                                                   "c8cf228cc787e1d6a4720ce4fec0833337360c9a18ff0f9f36f550802ab55f5a"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/services/userApi.js",
+                      "DesiredSha256":  "6f7bae745b1f5508b299b61731aa6db5c41629d82b849ab9efd08e5e1195c751",
+                      "AllowedCurrentSha256":  [
+                                                   "6f7bae745b1f5508b299b61731aa6db5c41629d82b849ab9efd08e5e1195c751",
+                                                   "a3e9564517d4393af438b555bf204268aa6bf50c515cbb55ac641c1a9b76c770"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/admin/StaffAccountManagement.jsx",
+                      "DesiredSha256":  "6b7fc14c658c8d3ee262a298dffc94e0dee1a7273b0fcbd82a7291fdd9d5d10f",
+                      "AllowedCurrentSha256":  [
+                                                   "3d5dea8bde3e924d2eb58eab2d907f61b97b1f8221fdf533cf8604467a9882c0",
+                                                   "6b7fc14c658c8d3ee262a298dffc94e0dee1a7273b0fcbd82a7291fdd9d5d10f",
+                                                   "a7e3a68b80419ad0b729e381245bb61f7e0e298f4703d793cac4157a798c6ff9"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/admin/AdminComplaintManagement.jsx",
+                      "DesiredSha256":  "3ec59a94b4eeb9878ac3b4f6615dcdf4b04151f1a271b036c5d588a4a00dbb27",
+                      "AllowedCurrentSha256":  [
+                                                   "3ec59a94b4eeb9878ac3b4f6615dcdf4b04151f1a271b036c5d588a4a00dbb27",
+                                                   "ab6db8da7fafd88ed542375e7443cf4bda44de386e0362c3208b82f43b7e23e4"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/citizen/MyComplaints.jsx",
+                      "DesiredSha256":  "c4261fa34f3df0d884f08a8df4ced9ca63837f9ae7df5e3b219cebee252aaa5c",
+                      "AllowedCurrentSha256":  [
+                                                   "8a5c730f5227c22341e18673016d72f6e70cdeb8db3b459fa0aa84a3bee32ffe",
+                                                   "c4261fa34f3df0d884f08a8df4ced9ca63837f9ae7df5e3b219cebee252aaa5c"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/officer/WorkQueue.jsx",
+                      "DesiredSha256":  "bbecd82f60496dc41f62ac3253872d2008082a256bf8645960a7a2ed6b2a4855",
+                      "AllowedCurrentSha256":  [
+                                                   "7017d70bab2161bbeb35d433ccf50443fa70c4c3f6e56b65d24337194a179616",
+                                                   "bbecd82f60496dc41f62ac3253872d2008082a256bf8645960a7a2ed6b2a4855"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/supervisor/AssignmentQueue.jsx",
+                      "DesiredSha256":  "47d4594325c3c91e19cd7a03b06d7f00541997a8911d25c8b33bc47d2fa107db",
+                      "AllowedCurrentSha256":  [
+                                                   "47d4594325c3c91e19cd7a03b06d7f00541997a8911d25c8b33bc47d2fa107db",
+                                                   "f43b045c74fbd4fee763746d64daea949a8b0fe0a1647b70f308d8bbae1dd7bf"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/admin/LaunchCenter.jsx",
+                      "DesiredSha256":  "e876bc5a4d6a80d84944600de3a12a7713c84d7c03db5370f0076421e01eeb86",
+                      "AllowedCurrentSha256":  [
+                                                   "23bbb67643434ff252d4a3e6990fbf569b3e7040fcbe523d44202228c548c2ea",
+                                                   "e876bc5a4d6a80d84944600de3a12a7713c84d7c03db5370f0076421e01eeb86"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/admin/QualityCenter.jsx",
+                      "DesiredSha256":  "ec489bf927e22005bf51a5c68b75c7fa60ee2cca1d7536d5282abc770c474aaf",
+                      "AllowedCurrentSha256":  [
+                                                   "0435c49e63c6d0e9a4596eeaa132c88f1e31db061fdca207788e1e2bd74e9610",
+                                                   "ec489bf927e22005bf51a5c68b75c7fa60ee2cca1d7536d5282abc770c474aaf"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/admin/SecurityCenter.jsx",
+                      "DesiredSha256":  "2d78bb1b996e097852c8ad1e6e3175cc6ecc134402e1d6f9125155bcdf576c6b",
+                      "AllowedCurrentSha256":  [
+                                                   "268ef602d03bc489dba92c7d591230c96d08eeadffbf9e079833b303e6597a85",
+                                                   "2d78bb1b996e097852c8ad1e6e3175cc6ecc134402e1d6f9125155bcdf576c6b",
+                                                   "e4db1df762c25dd86991aacf5fb63858b84b053ec1a424dcc3f4fd9c86ef1cf1"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/admin/UserManagement.jsx",
+                      "DesiredSha256":  "4c38a7d74f88fc3a9883764c72e356b1ea9ec7170a387b4afd47ff976f9d77bc",
+                      "AllowedCurrentSha256":  [
+                                                   "4c38a7d74f88fc3a9883764c72e356b1ea9ec7170a387b4afd47ff976f9d77bc",
+                                                   "f4614a4dc0c0c2f26e31e4b86860e856feffe5b8341fcddde506738d6ca8267e"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/common/NotificationsPage.jsx",
+                      "DesiredSha256":  "99decdb8ff0afef8003c3c4ac0188984662dbe3ce3be74271afef54bb63b6454",
+                      "AllowedCurrentSha256":  [
+                                                   "97fa06c3c4ec74722c074dbe596b57f65cda0098bfdd2a8b54a905f589334a6a",
+                                                   "99decdb8ff0afef8003c3c4ac0188984662dbe3ce3be74271afef54bb63b6454"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/public/AnonymousReportPage.jsx",
+                      "DesiredSha256":  "e0e0f6eb2d28256e5202ee950826a1b5ae4ade797009e7f638aff15d80e7a146",
+                      "AllowedCurrentSha256":  [
+                                                   "88b80543f7e9ff16ca89431bb04f3bb4e4bad7a169683b8faf488a002469b5cf",
+                                                   "e0e0f6eb2d28256e5202ee950826a1b5ae4ade797009e7f638aff15d80e7a146"
+                                               ],
+                      "AllowMissing":  false
+                  },
+                  {
+                      "Path":  "frontend/civichero-web/src/pages/supervisor/EmergencyReviewQueue.jsx",
+                      "DesiredSha256":  "ce5d311ea59bc650225c5ded8a0092700499cb23a0847bc2b68dbd307e72a1df",
+                      "AllowedCurrentSha256":  [
+                                                   "9e17bc54a0faf735f8ae92abe33bcfafbbb2e80b338476df6ebc6aa397326783",
+                                                   "ce5d311ea59bc650225c5ded8a0092700499cb23a0847bc2b68dbd307e72a1df",
+                                                   "e95cfbd80a87b1cbfb1866a1eba63169c5356a11e3f530e4bd6c893434f13315",
+                                                   "cd84192bbcf5b72eea95d76bc029d2eafdafc64a19cd2387bd705fbefa9d8ea1"
+                                               ],
+                      "AllowMissing":  false
+                  }
+              ],
+    "DeleteFiles":  [
+                        {
+                            "Path":  "frontend/civichero-web/src/styles/contrast-system.css",
+                            "AllowedCurrentSha256":  [
+                                                         "947b467dfefd231256384d58ea5ed80fdad6c974799226c018c259270c97239c",
+                                                         "cc9e9f672117acba3b3fe9462b0d40475c7cab224851deb573a49a40375bbcdf"
+                                                     ],
+                            "AllowMissing":  true
+                        },
+                        {
+                            "Path":  "frontend/civichero-web/scripts/check-contrast.mjs",
+                            "AllowedCurrentSha256":  [
+                                                         "1744033b8d98891e5bc9bf96d3fd585ff1b2ae9c37d65dc05c9a973ce340e8f3",
+                                                         "73070105500ae629db3abae23113645769f2542111fd6c0abc28f992d85d87ca"
+                                                     ],
+                            "AllowMissing":  true
+                        },
+                        {
+                            "Path":  "frontend/civichero-web/CONTRAST_AUDIT.md",
+                            "AllowedCurrentSha256":  [
+                                                         "25d227a8bb4b45b05aee1fe15ed45aea94b610f199333b96515a87a00ebd352a",
+                                                         "f1469858c9021ac5e34d7d05feaaa512be9a0cbc27441315bbe69a10d308504b"
+                                                     ],
+                            "AllowMissing":  true
+                        }
+                    ]
+}

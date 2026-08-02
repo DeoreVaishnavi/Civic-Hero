@@ -1,0 +1,358 @@
+/*
+ * CivicHero contrast system — Change32C
+ *
+ * WCAG-oriented palette rules used by the authenticated portal:
+ * - normal text targets at least 4.5:1 contrast
+ * - large text and essential UI boundaries target at least 3:1
+ * - light surfaces use dark foregrounds
+ * - dark/saturated surfaces use light foregrounds
+ *
+ * This file is intentionally loaded after presentation-polish.css so it can
+ * safely normalize older Tailwind utility combinations without changing
+ * business logic or component behavior.
+ */
+
+:root {
+  --contrast-canvas: #f5f7fa;
+  --contrast-surface: #ffffff;
+  --contrast-surface-soft: #f8fafc;
+  --contrast-border: #cbd5e1;
+  --contrast-border-strong: #94a3b8;
+  --contrast-text: #0f172a;
+  --contrast-text-secondary: #334155;
+  --contrast-text-muted: #475569;
+  --contrast-text-subtle: #64748b;
+  --contrast-focus: #2563eb;
+
+  --contrast-blue-bg: #dbeafe;
+  --contrast-blue-text: #1e3a8a;
+  --contrast-sky-bg: #e0f2fe;
+  --contrast-sky-text: #075985;
+  --contrast-green-bg: #dcfce7;
+  --contrast-green-text: #14532d;
+  --contrast-amber-bg: #fef3c7;
+  --contrast-amber-text: #78350f;
+  --contrast-red-bg: #fee2e2;
+  --contrast-red-text: #991b1b;
+  --contrast-violet-bg: #ede9fe;
+  --contrast-violet-text: #5b21b6;
+  --contrast-neutral-bg: #e5e7eb;
+  --contrast-neutral-text: #1f2937;
+
+  --contrast-action-blue: #1d4ed8;
+  --contrast-action-sky: #0369a1;
+  --contrast-action-green: #047857;
+  --contrast-action-violet: #6d28d9;
+  --contrast-action-fuchsia: #a21caf;
+  --contrast-action-red: #be123c;
+  --contrast-action-orange: #b45309;
+}
+
+/* -------------------------------------------------------------------------
+   Portal foundation: consistent light workspace
+   ------------------------------------------------------------------------- */
+.civic-portal .portal-main {
+  color: var(--contrast-text);
+  background: var(--contrast-canvas);
+}
+
+.civic-portal .portal-main :is(h1, h2, h3, h4, h5, h6),
+.civic-portal .portal-main .text-white {
+  color: var(--contrast-text) !important;
+}
+
+.civic-portal .portal-main :is(.text-slate-100, .text-slate-200, .text-slate-300) {
+  color: var(--contrast-text-secondary) !important;
+}
+
+.civic-portal .portal-main .text-slate-400 {
+  color: var(--contrast-text-muted) !important;
+}
+
+.civic-portal .portal-main :is(.text-slate-500, .text-slate-600) {
+  color: var(--contrast-text-subtle) !important;
+}
+
+/* Old translucent dark-theme cards are presented as clean light cards. */
+.civic-portal .portal-main :is(section, article, div, form, aside, li, p):not(.fixed)[class*="bg-white/"],
+.civic-portal .portal-main :is(section, article, div, form, aside, li, p):not(.fixed)[class*="bg-white["],
+.civic-portal .portal-main :is(section, article, div, form, aside, li, p):not(.fixed)[class*="bg-slate-950/"],
+.civic-portal .portal-main :is(section, article, div, form, aside, li, p):not(.fixed)[class*="bg-slate-900/"] {
+  background-color: var(--contrast-surface) !important;
+  color: var(--contrast-text) !important;
+  border-color: var(--contrast-border) !important;
+}
+
+/* Slightly separate nested cards from their parent white surface. */
+.civic-portal .portal-main :is(section, article, div, form):not(.fixed)[class*="bg-slate-950/"] {
+  background-color: var(--contrast-surface-soft) !important;
+}
+
+.civic-portal .portal-main [class*="border-white/"] {
+  border-color: var(--contrast-border) !important;
+}
+
+/* -------------------------------------------------------------------------
+   Forms: every form field on a light page uses dark, readable text
+   ------------------------------------------------------------------------- */
+.civic-portal .portal-main :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) {
+  color-scheme: light;
+  background-color: #ffffff !important;
+  color: var(--contrast-text) !important;
+  border-color: var(--contrast-border-strong) !important;
+  -webkit-text-fill-color: var(--contrast-text) !important;
+  caret-color: var(--contrast-text) !important;
+  box-shadow: none;
+}
+
+.civic-portal .portal-main :is(input, textarea)::placeholder {
+  color: var(--contrast-text-subtle) !important;
+  opacity: 1 !important;
+}
+
+.civic-portal .portal-main select option {
+  color: var(--contrast-text) !important;
+  background: #ffffff !important;
+}
+
+.civic-portal .portal-main :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):focus {
+  border-color: var(--contrast-focus) !important;
+  outline: 3px solid rgba(37, 99, 235, .20) !important;
+  outline-offset: 1px;
+}
+
+.civic-portal .portal-main :is(input, select, textarea):disabled {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  border-color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+.civic-portal .portal-main :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--contrast-action-blue);
+}
+
+/* -------------------------------------------------------------------------
+   Pastel badges, alerts and informational cards
+   ------------------------------------------------------------------------- */
+.civic-portal .portal-main [class*="bg-sky-"][class*="/"],
+.civic-portal .portal-main [class*="bg-cyan-"][class*="/"] {
+  background-color: var(--contrast-sky-bg) !important;
+  color: var(--contrast-sky-text) !important;
+  border-color: #38bdf8 !important;
+}
+
+.civic-portal .portal-main [class*="bg-blue-"][class*="/"] {
+  background-color: var(--contrast-blue-bg) !important;
+  color: var(--contrast-blue-text) !important;
+  border-color: #60a5fa !important;
+}
+
+.civic-portal .portal-main [class*="bg-emerald-"][class*="/"],
+.civic-portal .portal-main [class*="bg-green-"][class*="/"] {
+  background-color: var(--contrast-green-bg) !important;
+  color: var(--contrast-green-text) !important;
+  border-color: #22c55e !important;
+}
+
+.civic-portal .portal-main [class*="bg-amber-"][class*="/"],
+.civic-portal .portal-main [class*="bg-yellow-"][class*="/"],
+.civic-portal .portal-main [class*="bg-orange-"][class*="/"] {
+  background-color: var(--contrast-amber-bg) !important;
+  color: var(--contrast-amber-text) !important;
+  border-color: #d97706 !important;
+}
+
+.civic-portal .portal-main [class*="bg-rose-"][class*="/"],
+.civic-portal .portal-main [class*="bg-red-"][class*="/"] {
+  background-color: var(--contrast-red-bg) !important;
+  color: var(--contrast-red-text) !important;
+  border-color: #ef4444 !important;
+}
+
+.civic-portal .portal-main [class*="bg-violet-"][class*="/"],
+.civic-portal .portal-main [class*="bg-purple-"][class*="/"],
+.civic-portal .portal-main [class*="bg-fuchsia-"][class*="/"] {
+  background-color: var(--contrast-violet-bg) !important;
+  color: var(--contrast-violet-text) !important;
+  border-color: #8b5cf6 !important;
+}
+
+/* Force matching foregrounds inside pastel containers. */
+.civic-portal .portal-main [class*="bg-sky-"][class*="/"] :is(.text-white, [class*="text-sky-"], [class*="text-cyan-"]),
+.civic-portal .portal-main [class*="bg-sky-"][class*="/"]:is(.text-white, [class*="text-sky-"], [class*="text-cyan-"]) {
+  color: var(--contrast-sky-text) !important;
+}
+
+.civic-portal .portal-main [class*="bg-blue-"][class*="/"] :is(.text-white, [class*="text-blue-"]),
+.civic-portal .portal-main [class*="bg-blue-"][class*="/"]:is(.text-white, [class*="text-blue-"]) {
+  color: var(--contrast-blue-text) !important;
+}
+
+.civic-portal .portal-main [class*="bg-emerald-"][class*="/"] :is(.text-white, [class*="text-emerald-"], [class*="text-green-"]),
+.civic-portal .portal-main [class*="bg-emerald-"][class*="/"]:is(.text-white, [class*="text-emerald-"], [class*="text-green-"]) {
+  color: var(--contrast-green-text) !important;
+}
+
+.civic-portal .portal-main [class*="bg-amber-"][class*="/"] :is(.text-white, [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"]),
+.civic-portal .portal-main [class*="bg-amber-"][class*="/"]:is(.text-white, [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"]) {
+  color: var(--contrast-amber-text) !important;
+}
+
+.civic-portal .portal-main [class*="bg-rose-"][class*="/"] :is(.text-white, [class*="text-rose-"], [class*="text-red-"]),
+.civic-portal .portal-main [class*="bg-rose-"][class*="/"]:is(.text-white, [class*="text-rose-"], [class*="text-red-"]) {
+  color: var(--contrast-red-text) !important;
+}
+
+.civic-portal .portal-main [class*="bg-violet-"][class*="/"] :is(.text-white, [class*="text-violet-"], [class*="text-purple-"], [class*="text-fuchsia-"]),
+.civic-portal .portal-main [class*="bg-violet-"][class*="/"]:is(.text-white, [class*="text-violet-"], [class*="text-purple-"], [class*="text-fuchsia-"]) {
+  color: var(--contrast-violet-text) !important;
+}
+
+/* Body copy inside informational cards should be dark enough as well. */
+.civic-portal .portal-main [class*="bg-amber-"][class*="/"] :is(.text-slate-300, .text-slate-400, .text-slate-500),
+.civic-portal .portal-main [class*="bg-yellow-"][class*="/"] :is(.text-slate-300, .text-slate-400, .text-slate-500) {
+  color: #713f12 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Buttons and interactive controls
+   ------------------------------------------------------------------------- */
+.civic-portal .portal-main :is(button, a)[class~="bg-sky-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-sky-400"] {
+  background-color: var(--contrast-action-sky) !important;
+  color: #ffffff !important;
+  border-color: #075985 !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class~="bg-blue-400"],
+.civic-portal .portal-main :is(button, a)[class~="bg-blue-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-blue-600"],
+.civic-portal .portal-main :is(button, a)[class~="bg-blue-700"] {
+  background-color: var(--contrast-action-blue) !important;
+  color: #ffffff !important;
+  border-color: #1e40af !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class~="bg-emerald-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-emerald-600"],
+.civic-portal .portal-main :is(button, a)[class~="bg-green-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-green-600"] {
+  background-color: var(--contrast-action-green) !important;
+  color: #ffffff !important;
+  border-color: #065f46 !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class~="bg-violet-400"],
+.civic-portal .portal-main :is(button, a)[class~="bg-violet-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-violet-600"] {
+  background-color: var(--contrast-action-violet) !important;
+  color: #ffffff !important;
+  border-color: #5b21b6 !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class~="bg-fuchsia-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-fuchsia-600"] {
+  background-color: var(--contrast-action-fuchsia) !important;
+  color: #ffffff !important;
+  border-color: #86198f !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class~="bg-rose-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-rose-600"],
+.civic-portal .portal-main :is(button, a)[class~="bg-red-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-red-600"] {
+  background-color: var(--contrast-action-red) !important;
+  color: #ffffff !important;
+  border-color: #9f1239 !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class~="bg-amber-500"],
+.civic-portal .portal-main :is(button, a)[class~="bg-orange-500"] {
+  background-color: #f59e0b !important;
+  color: #111827 !important;
+  border-color: var(--contrast-action-orange) !important;
+}
+
+/* Transparent legacy buttons become visible secondary controls on light pages. */
+.civic-portal .portal-main :is(button, a)[class*="bg-white/"] {
+  background-color: #eef2f7 !important;
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+}
+
+.civic-portal .portal-main :is(button, a)[class*="border-white/"]:not([class*="bg-"]) {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+}
+
+.civic-portal .portal-main button:disabled {
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+.civic-portal .portal-main button:disabled:not([class*="bg-rose-"]):not([class*="bg-red-"]) {
+  background-color: #cbd5e1 !important;
+  color: #334155 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Tables
+   ------------------------------------------------------------------------- */
+.civic-portal .portal-main table {
+  color: var(--contrast-text-secondary);
+}
+
+.civic-portal .portal-main table thead {
+  color: #475569 !important;
+  background: #eef2f7 !important;
+}
+
+.civic-portal .portal-main table tbody tr {
+  border-color: #e2e8f0 !important;
+}
+
+.civic-portal .portal-main table tbody tr:nth-child(even) {
+  background: #fbfdff;
+}
+
+/* -------------------------------------------------------------------------
+   Intentionally dark surfaces: modals, drawers, code and dark side panels
+   ------------------------------------------------------------------------- */
+.civic-portal .portal-main :is(pre, code)[class*="bg-slate-950"],
+.civic-portal .portal-main aside[class~="bg-slate-950"],
+.civic-portal .portal-main [role="dialog"][class*="bg-slate-9"],
+.civic-portal .portal-main .fixed [class*="bg-slate-9"] {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.civic-portal .portal-main :is(pre, code)[class*="bg-slate-950"] :is(.text-white, [class*="text-slate-"], [class*="text-sky-"]),
+.civic-portal .portal-main aside[class~="bg-slate-950"] :is(.text-white, [class*="text-slate-"], [class*="text-sky-"]),
+.civic-portal .portal-main [role="dialog"][class*="bg-slate-9"] :is(.text-white, [class*="text-slate-"], [class*="text-sky-"]),
+.civic-portal .portal-main .fixed [class*="bg-slate-9"] :is(.text-white, [class*="text-slate-"], [class*="text-sky-"]) {
+  color: #f8fafc !important;
+}
+
+/* Dark modal descendants may use translucent nested surfaces. */
+.civic-portal .portal-main [class*="bg-slate-900"] [class*="bg-slate-950/"],
+.civic-portal .portal-main [role="dialog"] [class*="bg-slate-950/"] {
+  background-color: rgba(255, 255, 255, .08) !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+/* Code and media backgrounds remain dark even though fields are light. */
+.civic-portal .portal-main :is(code, pre)[class*="bg-slate-950"] {
+  color: #bae6fd !important;
+}
+
+/* Projector-friendly focus and hover states. */
+.civic-portal .portal-main :is(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .32) !important;
+  outline-offset: 2px !important;
+}

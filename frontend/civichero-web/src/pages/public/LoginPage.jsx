@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import CivicIcon from '../../components/ui/CivicIcon.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { ROUTE_PATHS } from '../../routes/routePaths.js';
 import { dashboardForRole } from '../../utils/roleRouting.js';
@@ -41,7 +42,7 @@ export default function LoginPage() {
   const startProgressHint = (initialMessage) => {
     setProgressMessage(initialMessage);
     return globalThis.setTimeout(() => {
-      setProgressMessage('Still connecting securely. The first AWS RDS request can take longer when the connection is cold.');
+      setProgressMessage('The secure service is taking longer than expected. Please wait a moment; your request is still being processed.');
     }, SLOW_LOGIN_HINT_DELAY_MS);
   };
 
@@ -143,8 +144,8 @@ export default function LoginPage() {
           {error && (
             <div className="alert error">
               <strong>{error.message}</strong>
-              {error.canRetry && <div style={{ marginTop: 6 }}>Keep the backend terminal running on port 5180, then submit again.</div>}
-              {error.traceId && <div style={{ marginTop: 6, fontSize: 10 }}>Trace ID: {error.traceId}</div>}
+              {error.canRetry && <div style={{ marginTop: 6 }}>The service could not be reached. Confirm that CivicHero is running, then try again.</div>}
+              {error.traceId && <div style={{ marginTop: 6, fontSize: 11 }}>Reference ID: {error.traceId}</div>}
             </div>
           )}
 
@@ -156,25 +157,25 @@ export default function LoginPage() {
 
           {mode === 'password' ? (
             <form onSubmit={submitPassword}>
-              <Field label="Email or verified phone" icon="○"><input required disabled={submitting} value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} autoComplete="username" className="input" placeholder="you@example.com" /></Field>
-              <Field label="Password" icon="◇"><input required disabled={submitting} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="current-password" className="input" placeholder="Enter password" /></Field>
+              <Field label="Email or verified phone" icon="user"><input required disabled={submitting} value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} autoComplete="username" className="input" placeholder="you@example.com" /></Field>
+              <Field label="Password" icon="key"><input required disabled={submitting} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="current-password" className="input" placeholder="Enter password" /></Field>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 9 }}><Link to="/forgot-password" style={{ color: 'var(--civic-blue)', fontSize: 10, fontWeight: 800 }}>Forgot password?</Link></div>
               <TwoFactor form={form} setForm={setForm} disabled={submitting} />
               <button disabled={submitting} className="button primary full large" style={{ marginTop: 20 }}>{submitting ? 'Signing in…' : 'Login securely'}</button>
             </form>
           ) : (
             <form onSubmit={submitOtp}>
-              <Field label="Verified phone number" icon="▯"><input required disabled={submitting} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} autoComplete="tel" placeholder="+919876543210" className="input" /></Field>
+              <Field label="Verified phone number" icon="phone"><input required disabled={submitting} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} autoComplete="tel" placeholder="+919876543210" className="input" /></Field>
               <button type="button" onClick={requestOtp} disabled={submitting || !form.phoneNumber.trim()} className="button outline full" style={{ marginTop: 14 }}>Request one-time code</button>
               {otpInfo && <div className="alert success">Code sent to {otpInfo.maskedPhoneNumber}. Expires {new Date(otpInfo.expiresAtUtc).toLocaleTimeString()}.{otpInfo.developmentCode && <strong> Development code: {otpInfo.developmentCode}</strong>}</div>}
-              <Field label="Six-digit OTP" icon="#"><input required disabled={submitting} inputMode="numeric" pattern="[0-9]{6}" maxLength="6" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/\D/g, '') })} autoComplete="one-time-code" className="input" placeholder="000000" /></Field>
+              <Field label="Six-digit OTP" icon="otp"><input required disabled={submitting} inputMode="numeric" pattern="[0-9]{6}" maxLength="6" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/\D/g, '') })} autoComplete="one-time-code" className="input" placeholder="000000" /></Field>
               <TwoFactor form={form} setForm={setForm} disabled={submitting} />
               <button disabled={submitting || !otpInfo} className="button primary full large" style={{ marginTop: 20 }}>{submitting ? 'Verifying…' : 'Login with OTP'}</button>
             </form>
           )}
 
           <div className="auth-divider">OR</div>
-          <Link className="button outline full large" to={ROUTE_PATHS.anonymousReport}>◌ Continue as anonymous</Link>
+          <Link className="button outline full large" to={ROUTE_PATHS.anonymousReport}> <CivicIcon name="anonymous" size={18} /> Continue as anonymous</Link>
           <p className="auth-note">Don’t have an account? <Link to={ROUTE_PATHS.register}>Create one now</Link></p>
           <p className="auth-note" style={{ marginTop: 8 }}><Link to={ROUTE_PATHS.anonymousTrack}>Track an anonymous complaint</Link></p>
         </div>
@@ -183,5 +184,5 @@ export default function LoginPage() {
   );
 }
 
-function Field({ label, icon, children }) { return <label className="form-field">{label}<div className="form-icon-field"><span>{icon}</span>{children}</div></label>; }
-function TwoFactor({ form, setForm, disabled }) { return <Field label="Authenticator or recovery code (2FA accounts only)" icon="✓"><input disabled={disabled} value={form.twoFactorCode} onChange={(e) => setForm({ ...form, twoFactorCode: e.target.value })} inputMode="numeric" autoComplete="one-time-code" className="input" placeholder="Optional for most citizen accounts" /></Field>; }
+function Field({ label, icon, children }) { return <label className="form-field">{label}<div className="form-icon-field"><span><CivicIcon name={icon} size={18} /></span>{children}</div></label>; }
+function TwoFactor({ form, setForm, disabled }) { return <Field label="Authenticator or recovery code (2FA accounts only)" icon="security"><input disabled={disabled} value={form.twoFactorCode} onChange={(e) => setForm({ ...form, twoFactorCode: e.target.value })} inputMode="numeric" autoComplete="one-time-code" className="input" placeholder="Optional for most citizen accounts" /></Field>; }

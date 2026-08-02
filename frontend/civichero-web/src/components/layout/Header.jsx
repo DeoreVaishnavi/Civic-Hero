@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import CivicIcon from '../ui/CivicIcon.jsx';
 import CivicLogo from '../ui/CivicLogo.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { ROUTE_PATHS } from '../../routes/routePaths.js';
@@ -27,7 +28,7 @@ export default function Header() {
         <div className="hidden items-center gap-2 sm:flex">
           {isAuthenticated ? <Link to={dashboardForRole(user?.role)} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700">Open dashboard</Link> : <><Link to={ROUTE_PATHS.login} className="rounded-xl px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100">Login</Link><Link to={ROUTE_PATHS.register} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700">Create account</Link></>}
         </div>
-        <button type="button" onClick={() => setOpen((value) => !value)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-xl text-slate-700 sm:hidden" aria-label="Toggle navigation">{open ? '×' : '☰'}</button>
+        <button type="button" onClick={() => setOpen((value) => !value)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-xl text-slate-700 sm:hidden" aria-label="Toggle navigation"><CivicIcon name={open ? 'close' : 'menu'} size={22} /></button>
       </div>
       <div className={`overflow-hidden border-t border-slate-200 bg-white transition-all duration-300 sm:hidden ${open ? 'max-h-[520px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <nav className="space-y-1 p-4">{nav.map((item) => item.to ? <Link key={item.label} to={item.to} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-black text-slate-700 hover:bg-blue-50 hover:text-blue-700">{item.label}</Link> : <a key={item.label} href={item.href} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-black text-slate-700 hover:bg-blue-50 hover:text-blue-700">{item.label}</a>)}<div className="grid grid-cols-2 gap-2 pt-3">{isAuthenticated ? <Link to={dashboardForRole(user?.role)} className="col-span-2 rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white">Open dashboard</Link> : <><Link to={ROUTE_PATHS.login} className="rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-black text-slate-700">Login</Link><Link to={ROUTE_PATHS.register} className="rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white">Create account</Link></>}</div></nav>

@@ -1,4 +1,4 @@
-# CivicHero Docker with AWS RDS and S3
+#hi CivicHero Docker with AWS RDS and S3
 
 This profile runs the frontend, backend, Redis, RabbitMQ and Nginx in Docker,
 while using the existing AWS RDS MySQL database and Amazon S3 bucket.

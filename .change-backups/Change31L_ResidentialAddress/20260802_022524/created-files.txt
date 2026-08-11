@@ -1,2 +1,0 @@
-﻿backend/CivicHero.Backend/Migrations/20260801203000_Change31LResidentialAddress.cs
-backend/CivicHero.Backend.Tests/Unit/Validators/UpdateProfileValidatorTests.cs

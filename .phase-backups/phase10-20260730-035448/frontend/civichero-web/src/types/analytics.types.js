@@ -1,0 +1,1 @@
+/** @typedef {{label:string,value:number}} Metric */ /** @typedef {{department:string,resolutionRate:number,responseHours:number}} DepartmentMetric */ export const ANALYTICS_PERIODS=["30d","90d","12m"];

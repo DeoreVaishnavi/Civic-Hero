@@ -1,0 +1,21 @@
+using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace CivicHero.Backend.Infrastructure.Repositories;
+
+public sealed class UserRepository : Repository<User>, IUserRepository
+{
+    public UserRepository(CivicDbContext dbContext) : base(dbContext) { }
+
+    public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
+        Query(true)
+            .FirstOrDefaultAsync(entity => entity.Email == email, cancellationToken);
+
+    public Task<User?> GetByRefreshTokenHashAsync(
+        string tokenHash,
+        CancellationToken cancellationToken = default) =>
+        Query(true)
+            .FirstOrDefaultAsync(entity => entity.RefreshTokenHash == tokenHash, cancellationToken);
+}

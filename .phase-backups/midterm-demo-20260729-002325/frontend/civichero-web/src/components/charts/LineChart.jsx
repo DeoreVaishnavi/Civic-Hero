@@ -1,0 +1,1 @@
+import React from "react"; export default function LineChart({values=[]}){const max=Math.max(1,...values),w=600,h=180,p=values.map((v,i)=>`${i/(Math.max(1,values.length-1))*w},${h-v/max*h}`).join(" ");return <svg viewBox={`0 0 ${w} ${h}`}><polyline points={p} fill="none" stroke="currentColor" strokeWidth="3"/></svg>}

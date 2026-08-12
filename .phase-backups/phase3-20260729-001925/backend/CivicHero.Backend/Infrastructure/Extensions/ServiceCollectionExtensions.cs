@@ -1,0 +1,45 @@
+using CivicHero.Backend.Infrastructure;
+
+namespace CivicHero.Backend.Infrastructure.Extensions;
+
+public static class ServiceCollectionExtensions
+{
+    public const string FrontendCorsPolicy = "CivicHeroFrontend";
+
+    public static IServiceCollection AddCivicHeroServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddControllers();
+        services.AddEndpointsApiExplorer();
+        services.AddCivicHeroSwagger();
+        services.AddProblemDetails();
+        services.AddAuthorization();
+        services.AddInfrastructure(configuration);
+
+        var allowedOrigins = configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>()
+            ?.Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (allowedOrigins is null || allowedOrigins.Length == 0)
+        {
+            allowedOrigins = ["http://localhost:5173"];
+        }
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy(FrontendCorsPolicy, policy =>
+            {
+                policy
+                    .WithOrigins(allowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
+
+        return services;
+    }
+}

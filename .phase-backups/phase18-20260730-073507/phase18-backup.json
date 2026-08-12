@@ -1,0 +1,115 @@
+﻿{
+    "phase":  18,
+    "backupRoot":  "C:\\CivicHeroDev\\CivicHeroSolution\\.phase-backups\\phase18-20260730-073507",
+    "appliedAt":  "2026-07-30T07:35:07.8643624+05:30",
+    "changes":  [
+                    {
+                        "relativePath":  ".github\\workflows\\final-release-gate.yml",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "artifacts\\phase18\\backup-restore-evidence.example.json",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Controllers\\FinalReleaseController.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend.Tests\\Integration\\MySqlContainerSmokeTests.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend.Tests\\Unit\\Release\\ReleaseEvidenceRulesTests.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "deployment\\docker-compose.monitoring.yml",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "deployment\\docker-compose.release.yml",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "docs\\FINAL-GO-LIVE-SIGNOFF.md",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "docs\\PHASE-18-FINAL-RELEASE.md",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\e2e\\critical-complaint-flow.spec.js",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\layouts\\AdminLayout.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\admin\\FinalReleaseCenter.jsx",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\routes\\AppRoutes.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\services\\finalReleaseApi.js",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\audit-final-source.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\create-release-candidate.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\run-critical-e2e.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\run-phase18-release-gates.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\validate-backup-restore.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\validate-uat-signoff.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\verify-clean-migrations.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\release\\verify-monitoring.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "tests\\api\\CivicHero-Release-Smoke.postman_collection.json",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "tests\\performance\\release-baseline.js",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "tests\\reports\\PHASE18-REPORT-INDEX.md",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "tests\\uat\\phase18-uat-signoff.example.json",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend.Tests\\CivicHero.Backend.Tests.csproj",
+                        "existed":  true
+                    }
+                ]
+}

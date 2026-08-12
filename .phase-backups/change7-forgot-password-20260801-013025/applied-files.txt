@@ -1,0 +1,9 @@
+﻿backend\CivicHero.Backend\Controllers\AuthController.cs
+backend\CivicHero.Backend\Core\DTOs\Auth\ForgotPasswordRequest.cs
+backend\CivicHero.Backend\Core\DTOs\Auth\ResetPasswordRequest.cs
+backend\CivicHero.Backend\Core\Enums\OtpPurpose.cs
+backend\CivicHero.Backend\Core\Services\AuthService.cs
+backend\CivicHero.Backend\Core\Services\IAuthService.cs
+frontend\civichero-web\src\api\axiosInstance.js
+frontend\civichero-web\src\pages\public\ForgotPasswordPage.jsx
+frontend\civichero-web\src\services\authApi.js

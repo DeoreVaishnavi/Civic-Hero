@@ -1,0 +1,19 @@
+@CivicHero_Backend_HostAddress = http://localhost:5180
+
+GET {{CivicHero_Backend_HostAddress}}/api/v1/health
+Accept: application/json
+
+###
+
+GET {{CivicHero_Backend_HostAddress}}/api/v1/health/dependencies
+Accept: application/json
+
+###
+
+GET {{CivicHero_Backend_HostAddress}}/api/v1/health/database
+Accept: application/json
+
+###
+
+GET {{CivicHero_Backend_HostAddress}}/api/v1/health/storage
+Accept: application/json

@@ -1,0 +1,1 @@
+import React from "react"; export default function BarChart({values=[]}){const max=Math.max(1,...values);return <div className="bar-chart">{values.map((v,i)=><div key={i}><span style={{height:`${v/max*100}%`}}/><small>{i+1}</small></div>)}</div>}

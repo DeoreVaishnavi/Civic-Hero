@@ -1,0 +1,1 @@
+import React from "react"; export default function Header(){return <header className="topbar"><div className="breadcrumb"><span>CivicHero</span><b>Demo workspace</b></div><span className="system-online"><i/>All systems operational</span></header>}

@@ -1,0 +1,1 @@
+export const required=value=>String(value||"").trim().length>0; export const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); export const strongPassword=value=>String(value||"").length>=12;

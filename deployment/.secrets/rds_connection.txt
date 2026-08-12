@@ -1,0 +1,1 @@
+Server=civichero-db.c36qeok2m7y1.ap-south-1.rds.amazonaws.com;Port=3306;Database=civicherodb;User ID=admin;Password='M256#b489';SslMode=Required;Connection Timeout=15;Default Command Timeout=30;

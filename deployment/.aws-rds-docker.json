@@ -1,0 +1,12 @@
+﻿{
+    "Mode":  "Direct",
+    "RdsEndpoint":  "civichero-db.c36qeok2m7y1.ap-south-1.rds.amazonaws.com",
+    "RdsPort":  3306,
+    "DatabaseName":  "civicherodb",
+    "DatabaseUser":  "admin",
+    "AwsRegion":  "ap-south-1",
+    "S3Bucket":  "civichero-storage",
+    "SsmTargetInstanceId":  "",
+    "AwsProfile":  "default",
+    "LocalTunnelPort":  13306
+}

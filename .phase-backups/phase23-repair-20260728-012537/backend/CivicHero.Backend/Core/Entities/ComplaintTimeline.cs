@@ -1,0 +1,14 @@
+using CivicHero.Backend.Core.Common;
+
+namespace CivicHero.Backend.Core.Entities;
+
+public sealed class ComplaintTimeline : BaseEntity
+{
+    public long ComplaintId { get; set; }
+    public Complaint Complaint { get; set; } = null!;
+    public long? UserId { get; set; }
+    public User? User { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+}

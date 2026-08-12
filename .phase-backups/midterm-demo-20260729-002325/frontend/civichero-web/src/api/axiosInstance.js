@@ -1,0 +1,3 @@
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5180/api/v1";
+export async function apiRequest(path, options={}) { const response=await fetch(`${API_BASE}${path}`, { credentials:"include", headers:{"Content-Type":"application/json",...(options.headers||{})}, ...options }); if(!response.ok) throw new Error(`API request failed (${response.status})`); return response.status===204?null:response.json(); }
+export default { get:(p)=>apiRequest(p), post:(p,d)=>apiRequest(p,{method:"POST",body:JSON.stringify(d)}), put:(p,d)=>apiRequest(p,{method:"PUT",body:JSON.stringify(d)}) };

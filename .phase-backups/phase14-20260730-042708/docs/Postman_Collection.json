@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "CivicHero Phase 14 API Smoke",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5180"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Live health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/health/live",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health",
+            "live"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('correlation header exists', () => pm.expect(pm.response.headers.has('X-Correlation-ID')).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ready health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/health/ready",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health",
+            "ready"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('ready endpoint responds', () => pm.expect([200,503]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Anonymous protected endpoint",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/security/session",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "security",
+            "session"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('anonymous request is rejected', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Current profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "profile"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.collectionVariables.get('accessToken')) { pm.test('authenticated profile succeeds', () => pm.response.to.have.status(200)); } else { pm.test('without token profile is rejected', () => pm.response.to.have.status(401)); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

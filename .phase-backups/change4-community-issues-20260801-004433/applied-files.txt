@@ -1,0 +1,11 @@
+﻿backend\CivicHero.Backend\Controllers\ComplaintsController.cs
+backend\CivicHero.Backend\Core\DTOs\Complaints\ComplaintQuery.cs
+backend\CivicHero.Backend\Core\Services\ComplaintService.cs
+backend\CivicHero.Backend\Core\Services\IComplaintService.cs
+frontend\civichero-web\src\components\layout\Footer.jsx
+frontend\civichero-web\src\components\layout\Header.jsx
+frontend\civichero-web\src\pages\public\HomePage.jsx
+frontend\civichero-web\src\pages\public\PublicIssuesPage.jsx
+frontend\civichero-web\src\routes\AppRoutes.jsx
+frontend\civichero-web\src\routes\routePaths.js
+frontend\civichero-web\src\services\complaintApi.js

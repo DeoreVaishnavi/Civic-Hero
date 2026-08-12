@@ -1,0 +1,270 @@
+using System.Text;
+using CivicHero.Backend.Core.DTOs.Notifications;
+using CivicHero.Backend.Core.DTOs.Rewards;
+using CivicHero.Backend.Core.Entities;
+using CivicHero.Backend.Core.Enums;
+using CivicHero.Backend.Core.Exceptions;
+using CivicHero.Backend.Core.Interfaces;
+using CivicHero.Backend.Infrastructure.Configurations;
+using CivicHero.Backend.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+
+namespace CivicHero.Backend.Core.Services;
+
+public sealed class RewardService : IRewardService
+{
+    private const string ComplaintReference = "Complaint";
+    private const string ClosedRewardReason = "Valid complaint closed";
+    private const string AutoClosedRewardReason = "Complaint auto-closed after verification window";
+    private const string VerificationBonusReason = "Citizen verification bonus";
+
+    private readonly CivicDbContext _db;
+    private readonly ICurrentUserService _currentUser;
+    private readonly INotificationService _notifications;
+    private readonly RewardsOptions _options;
+
+    public RewardService(CivicDbContext db, ICurrentUserService currentUser, INotificationService notifications, IOptions<RewardsOptions> options)
+    {
+        _db = db;
+        _currentUser = currentUser;
+        _notifications = notifications;
+        _options = options.Value;
+    }
+
+    public async Task<PointsBalanceResponse> GetPointsAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        var logs = await _db.ReputationLogs.AsNoTracking().Where(entity => entity.UserId == userId).ToListAsync(cancellationToken);
+        var balance = logs.Sum(entity => entity.PointsDelta);
+        var rank = await CalculateRankAsync(userId, cancellationToken);
+        var (tier, nextTier) = Tier(balance);
+        return new PointsBalanceResponse
+        {
+            Balance = balance,
+            LifetimeEarned = logs.Where(entity => entity.PointsDelta > 0).Sum(entity => entity.PointsDelta),
+            LifetimeSpent = Math.Abs(logs.Where(entity => entity.PointsDelta < 0).Sum(entity => entity.PointsDelta)),
+            Rank = rank,
+            Tier = tier,
+            NextTierAt = nextTier
+        };
+    }
+
+    public async Task<IReadOnlyList<LeaderboardEntryResponse>> GetLeaderboardAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        limit = Math.Clamp(limit, 5, 100);
+        var currentUserId = _currentUser.UserId;
+        var totals = await _db.ReputationLogs.AsNoTracking()
+            .GroupBy(entity => entity.UserId)
+            .Select(group => new { UserId = group.Key, Points = group.Sum(entity => entity.PointsDelta) })
+            .Where(item => item.Points > 0)
+            .OrderByDescending(item => item.Points).ThenBy(item => item.UserId)
+            .Take(limit).ToListAsync(cancellationToken);
+        var ids = totals.Select(item => item.UserId).ToList();
+        var users = await _db.Users.AsNoTracking().Where(entity => ids.Contains(entity.Id)).ToDictionaryAsync(entity => entity.Id, cancellationToken);
+        var closedCounts = await _db.Complaints.AsNoTracking()
+            .Where(entity => ids.Contains(entity.CitizenId) && (entity.Status == ComplaintStatus.Closed || entity.Status == ComplaintStatus.ClosedAuto))
+            .GroupBy(entity => entity.CitizenId).Select(group => new { UserId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.UserId, item => item.Count, cancellationToken);
+        return totals.Select((item, index) => new LeaderboardEntryResponse
+        {
+            Rank = index + 1,
+            UserId = item.UserId,
+            CitizenName = users.TryGetValue(item.UserId, out var user) ? MaskName(user.FullName) : "CivicHero Citizen",
+            Points = item.Points,
+            ClosedComplaints = closedCounts.GetValueOrDefault(item.UserId),
+            Tier = Tier(item.Points).Tier,
+            IsCurrentUser = currentUserId == item.UserId
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<BadgeResponse>> GetBadgesAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        var points = await _db.ReputationLogs.AsNoTracking().Where(entity => entity.UserId == userId).SumAsync(entity => (int?)entity.PointsDelta, cancellationToken) ?? 0;
+        var closed = await _db.Complaints.AsNoTracking().CountAsync(entity => entity.CitizenId == userId && (entity.Status == ComplaintStatus.Closed || entity.Status == ComplaintStatus.ClosedAuto), cancellationToken);
+        var verified = await _db.ComplaintVerifications.AsNoTracking().CountAsync(entity => entity.CitizenId == userId && entity.Decision == VerificationDecision.Approved, cancellationToken);
+        var firstUnlock = await _db.ReputationLogs.AsNoTracking().Where(entity => entity.UserId == userId && entity.PointsDelta > 0).MinAsync(entity => (DateTimeOffset?)entity.CreatedAt, cancellationToken);
+        return new[]
+        {
+            Badge("FIRST_FIX", "First Fix", "Close your first valid civic complaint.", "✓", closed, 1, firstUnlock),
+            Badge("NEIGHBORHOOD_GUARDIAN", "Neighborhood Guardian", "Help close five civic complaints.", "◆", closed, 5, firstUnlock),
+            Badge("TRUSTED_VERIFIER", "Trusted Verifier", "Approve five genuine resolutions.", "◎", verified, 5, firstUnlock),
+            Badge("CIVIC_CHAMPION", "Civic Champion", "Earn 1,000 CivicHero points.", "★", points, 1000, firstUnlock)
+        };
+    }
+
+    public async Task<IReadOnlyList<RewardCatalogResponse>> GetCatalogAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        var balance = await BalanceAsync(userId, cancellationToken);
+        var rewards = await _db.RewardCatalog.AsNoTracking().Where(entity => entity.IsActive && entity.StockQuantity > 0)
+            .OrderBy(entity => entity.PointsCost).ToListAsync(cancellationToken);
+        return rewards.Select(entity => new RewardCatalogResponse
+        {
+            Id = entity.Id, Name = entity.Name, Description = entity.Description, PointsCost = entity.PointsCost,
+            Type = entity.Type.ToString(), StockQuantity = entity.StockQuantity, CanRedeem = balance >= entity.PointsCost
+        }).ToList();
+    }
+
+    public async Task<RedemptionResponse> RedeemAsync(RedeemRewardRequest request, CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        var reward = await _db.RewardCatalog.FirstOrDefaultAsync(entity => entity.Id == request.RewardCatalogId && entity.IsActive && entity.StockQuantity > 0, cancellationToken)
+            ?? throw new NotFoundException("Reward is unavailable.");
+        var balance = await BalanceAsync(userId, cancellationToken);
+        if (balance < reward.PointsCost) throw new BusinessRuleViolationException("You do not have enough CivicHero points for this reward.");
+
+        reward.StockQuantity--;
+        var now = DateTimeOffset.UtcNow;
+        var redemption = new Redemption
+        {
+            UserId = userId, RewardCatalogId = reward.Id, PointsSpent = reward.PointsCost,
+            Status = reward.Type == RewardType.Certificate || reward.Type == RewardType.Badge ? RedemptionStatus.Fulfilled : RedemptionStatus.Pending,
+            RedemptionCode = $"CHR-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+            CreatedAt = now,
+            FulfilledAt = reward.Type == RewardType.Certificate || reward.Type == RewardType.Badge ? now : null
+        };
+        _db.Redemptions.Add(redemption);
+        await _db.SaveChangesAsync(cancellationToken);
+        _db.ReputationLogs.Add(new ReputationLog
+        {
+            UserId = userId, PointsDelta = -reward.PointsCost, RunningBalance = balance - reward.PointsCost,
+            Reason = $"Redeemed: {reward.Name}", ReferenceType = "Redemption", ReferenceId = redemption.Id, CreatedAt = now
+        });
+        await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await _notifications.SendAsync(new NotificationDispatchRequest(userId, "Reward redeemed", $"{reward.Name} was redeemed successfully. Code: {redemption.RedemptionCode}", nameof(NotificationType.RewardEarned), "Redemption", redemption.Id, "/citizen/rewards"), cancellationToken);
+        return Map(redemption, reward.Name);
+    }
+
+    public async Task<IReadOnlyList<RedemptionResponse>> GetRedemptionsAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        var redemptions = await _db.Redemptions.AsNoTracking().Include(entity => entity.RewardCatalog)
+            .Where(entity => entity.UserId == userId).OrderByDescending(entity => entity.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return redemptions.Select(entity => new RedemptionResponse
+        {
+            Id = entity.Id, RewardName = entity.RewardCatalog.Name, PointsSpent = entity.PointsSpent,
+            Status = entity.Status.ToString(), RedemptionCode = entity.RedemptionCode,
+            CreatedAt = entity.CreatedAt, FulfilledAt = entity.FulfilledAt
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<PointsHistoryResponse>> GetHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        return await _db.ReputationLogs.AsNoTracking().Where(entity => entity.UserId == userId)
+            .OrderByDescending(entity => entity.CreatedAt).Take(200)
+            .Select(entity => new PointsHistoryResponse
+            {
+                Id = entity.Id, PointsDelta = entity.PointsDelta, RunningBalance = entity.RunningBalance,
+                Reason = entity.Reason, ReferenceType = entity.ReferenceType, ReferenceId = entity.ReferenceId, CreatedAt = entity.CreatedAt
+            }).ToListAsync(cancellationToken);
+    }
+
+    public async Task<(byte[] Content, string FileName)> GetCertificateAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireCitizenId();
+        var user = await _db.Users.AsNoTracking().FirstAsync(entity => entity.Id == userId, cancellationToken);
+        var points = await BalanceAsync(userId, cancellationToken);
+        var closed = await _db.Complaints.AsNoTracking().CountAsync(entity => entity.CitizenId == userId && (entity.Status == ComplaintStatus.Closed || entity.Status == ComplaintStatus.ClosedAuto), cancellationToken);
+if (points < 250)
+{
+    throw new BusinessRuleViolationException(
+        "Earn at least 250 points before downloading a certificate.");
+}       var html = $$"""
+<!doctype html><html><head><meta charset="utf-8"><title>CivicHero Certificate</title>
+<style>body{font-family:Arial,sans-serif;background:#07111f;color:#10233f;padding:40px}.certificate{max-width:900px;margin:auto;background:white;border:12px solid #0ea5e9;padding:70px;text-align:center}h1{font-size:48px;margin:0;color:#0369a1}h2{font-size:34px}p{font-size:20px;line-height:1.6}.seal{font-size:64px}small{color:#475569}</style></head>
+<body><main class="certificate"><div class="seal">★</div><h1>CivicHero</h1><p>Certificate of Civic Contribution</p><h2>{{System.Net.WebUtility.HtmlEncode(user.FullName)}}</h2>
+<p>is recognised for responsible civic participation, helping close <strong>{{closed}}</strong> civic issue(s) and earning <strong>{{points}}</strong> CivicHero points.</p>
+<small>Issued {{DateTimeOffset.UtcNow:dd MMMM yyyy}} · Certificate CH-{{userId:D6}}-{{points:D6}}</small></main></body></html>
+""";
+        return (Encoding.UTF8.GetBytes(html), $"CivicHero-Certificate-{userId}.html");
+    }
+
+    public async Task<int> ProcessEligibleAwardsAsync(CancellationToken cancellationToken = default)
+    {
+        var candidates = await _db.Complaints.IgnoreQueryFilters().AsNoTracking()
+            .Where(entity => !entity.IsDeleted && (entity.Status == ComplaintStatus.Closed || entity.Status == ComplaintStatus.ClosedAuto))
+            .Where(entity => !_db.ReputationLogs.Any(log => log.UserId == entity.CitizenId && log.ReferenceType == ComplaintReference && log.ReferenceId == entity.Id && (log.Reason == ClosedRewardReason || log.Reason == AutoClosedRewardReason)))
+            .OrderBy(entity => entity.ClosedAt).Take(100)
+            .Select(entity => new { entity.Id, entity.CitizenId, entity.Status }).ToListAsync(cancellationToken);
+        var awarded = 0;
+        foreach (var complaint in candidates)
+        {
+            var basePoints = complaint.Status == ComplaintStatus.ClosedAuto ? _options.AutoClosedComplaintPoints : _options.ClosedComplaintPoints;
+            var reason = complaint.Status == ComplaintStatus.ClosedAuto ? AutoClosedRewardReason : ClosedRewardReason;
+            var hasApprovedVerification = await _db.ComplaintVerifications.AsNoTracking().AnyAsync(entity => entity.ComplaintId == complaint.Id && entity.Decision == VerificationDecision.Approved, cancellationToken);
+            var upvotes = await _db.ComplaintVotes.AsNoTracking().CountAsync(entity => entity.ComplaintId == complaint.Id, cancellationToken);
+            var points = basePoints + (hasApprovedVerification ? _options.VerificationBonusPoints : 0) + (upvotes * _options.UpvoteBonusPerVote);
+            var balance = await BalanceAsync(complaint.CitizenId, cancellationToken);
+            _db.ReputationLogs.Add(new ReputationLog
+            {
+                UserId = complaint.CitizenId, PointsDelta = points, RunningBalance = balance + points,
+                Reason = reason, ReferenceType = ComplaintReference, ReferenceId = complaint.Id, CreatedAt = DateTimeOffset.UtcNow
+            });
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                awarded++;
+                await _notifications.SendAsync(new NotificationDispatchRequest(complaint.CitizenId, "CivicHero points earned", $"You earned {points} points after valid closure, verification and community support were calculated.", nameof(NotificationType.RewardEarned), ComplaintReference, complaint.Id, "/citizen/rewards"), cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                _db.ChangeTracker.Clear();
+            }
+        }
+        return awarded;
+    }
+
+    private async Task<int> CalculateRankAsync(long userId, CancellationToken cancellationToken)
+    {
+        var balance = await BalanceAsync(userId, cancellationToken);
+        var higher = await _db.ReputationLogs.AsNoTracking().GroupBy(entity => entity.UserId)
+            .Select(group => group.Sum(entity => entity.PointsDelta)).CountAsync(points => points > balance, cancellationToken);
+        return higher + 1;
+    }
+
+    private async Task<int> BalanceAsync(long userId, CancellationToken cancellationToken) =>
+        await _db.ReputationLogs.AsNoTracking().Where(entity => entity.UserId == userId).SumAsync(entity => (int?)entity.PointsDelta, cancellationToken) ?? 0;
+
+    private long RequireCitizenId()
+    {
+        if (_currentUser.UserId is not long userId) throw new UnauthorizedAccessException("Authentication is required.");
+        if (_currentUser.Role != nameof(UserRole.Citizen)) throw new UnauthorizedAccessException("Citizen permission is required.");
+        return userId;
+    }
+
+    private static (string Tier, int NextTier) Tier(int points) => points switch
+    {
+        >= 2000 => ("City Champion", 3000),
+        >= 1000 => ("Civic Champion", 2000),
+        >= 500 => ("Neighborhood Guardian", 1000),
+        >= 100 => ("Contributor", 500),
+        _ => ("New Citizen", 100)
+    };
+
+    private static BadgeResponse Badge(string code, string name, string description, string icon, int progress, int target, DateTimeOffset? firstUnlock) => new()
+    {
+        Code = code, Name = name, Description = description, Icon = icon,
+        IsUnlocked = progress >= target, Progress = Math.Min(progress, target), Target = target,
+        UnlockedAt = progress >= target ? firstUnlock : null
+    };
+
+    private static string MaskName(string fullName)
+    {
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "CivicHero Citizen";
+        return parts.Length == 1 ? parts[0] : $"{parts[0]} {parts[^1][0]}.";
+    }
+
+    private static RedemptionResponse Map(Redemption entity, string rewardName) => new()
+    {
+        Id = entity.Id, RewardName = rewardName, PointsSpent = entity.PointsSpent,
+        Status = entity.Status.ToString(), RedemptionCode = entity.RedemptionCode,
+        CreatedAt = entity.CreatedAt, FulfilledAt = entity.FulfilledAt
+    };
+}

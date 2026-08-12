@@ -1,0 +1,35 @@
+@host = http://localhost:5180
+@token = PASTE_ACCESS_TOKEN
+
+### Current profile
+GET {{host}}/api/v1/users/profile
+Authorization: Bearer {{token}}
+
+### Update current profile
+PUT {{host}}/api/v1/users/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Updated CivicHero User",
+  "phone": "+91 9876543210"
+}
+
+### Admin: list users
+GET {{host}}/api/v1/users?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Admin: metadata
+GET {{host}}/api/v1/users/metadata
+Authorization: Bearer {{token}}
+
+### Admin: change role and scope
+POST {{host}}/api/v1/users/2/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "Officer",
+  "departmentId": 1,
+  "wardId": 1
+}

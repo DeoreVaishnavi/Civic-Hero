@@ -1,0 +1,2 @@
+﻿frontend\civichero-web\src\components\public\GeneralChatbotWidget.jsx
+frontend\civichero-web\src\pages\citizen\Chatbot.jsx

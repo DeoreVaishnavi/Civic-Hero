@@ -1,0 +1,1 @@
+import React from "react"; export default function ApiStatus({online=true}){return <span className={`status ${online?"operational":"rejected"}`}>{online?"All systems operational":"API offline"}</span>}

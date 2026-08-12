@@ -1,0 +1,1 @@
+import {useEffect,useState} from "react"; export default function useSignalR(){const [connected,setConnected]=useState(false);useEffect(()=>{setConnected(import.meta.env.VITE_DEMO_MODE!=="true");},[]);return{connected,lastEvent:null}}

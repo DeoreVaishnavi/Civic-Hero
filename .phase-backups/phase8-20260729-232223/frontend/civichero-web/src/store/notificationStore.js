@@ -1,0 +1,1 @@
+import {create} from "zustand"; export const useNotificationStore=create(set=>({notifications:[],unread:0,setNotifications:notifications=>set({notifications,unread:notifications.length}),markAllRead:()=>set({unread:0})}));

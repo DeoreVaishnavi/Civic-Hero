@@ -1,0 +1,7 @@
+﻿frontend\civichero-web\src\components\layout\Footer.jsx
+frontend\civichero-web\src\components\layout\Header.jsx
+frontend\civichero-web\src\components\maps\CivicHeatmapMap.css
+frontend\civichero-web\src\components\maps\CivicHeatmapMap.jsx
+frontend\civichero-web\src\components\public\GeneralChatbotWidget.jsx
+frontend\civichero-web\src\components\public\PublicHeatmapPreview.jsx
+frontend\civichero-web\src\layouts\PublicLayout.jsx

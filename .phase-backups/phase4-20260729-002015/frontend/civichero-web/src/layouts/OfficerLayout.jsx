@@ -1,0 +1,9 @@
+import PortalLayout from './PortalLayout.jsx';
+
+export default function OfficerLayout() {
+  return <PortalLayout title="Officer Portal" subtitle="Assigned field work, SLA and resolution evidence" navItems={[
+    { to: '/officer', label: 'Dashboard', end: true },
+    { to: '/officer/assignments', label: 'Work queue' },
+    { to: '/officer/profile', label: 'My profile' },
+  ]} />;
+}

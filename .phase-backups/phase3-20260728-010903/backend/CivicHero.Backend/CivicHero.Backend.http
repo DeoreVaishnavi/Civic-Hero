@@ -1,0 +1,16 @@
+@CivicHeroApi = http://localhost:5180
+@CorrelationId = phase1-manual-test
+
+### API health
+GET {{CivicHeroApi}}/api/v1/health
+Accept: application/json
+X-Correlation-ID: {{CorrelationId}}
+
+### Correlation header check
+GET {{CivicHeroApi}}/api/v1/health/headers
+Accept: application/json
+X-Correlation-ID: {{CorrelationId}}
+
+### ASP.NET Core liveness probe
+GET {{CivicHeroApi}}/health/live
+Accept: application/json

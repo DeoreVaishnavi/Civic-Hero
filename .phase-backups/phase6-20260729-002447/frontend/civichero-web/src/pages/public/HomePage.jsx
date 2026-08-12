@@ -1,0 +1,1 @@
+import React from "react"; export default function HomePage(){return <section className="panel" style={{padding:24}}><h2>Home Page</h2><p>This module is available in the integrated mid-term demonstration workspace.</p></section>}

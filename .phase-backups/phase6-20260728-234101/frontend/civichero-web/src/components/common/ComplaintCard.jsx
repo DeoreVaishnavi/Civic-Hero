@@ -1,0 +1,1 @@
+import React from "react"; export default function ComplaintCard({complaint,onClick}){return <button className="complaint-row" onClick={onClick}><span className="issue-thumb small">▤</span><span className="complaint-copy"><b>{complaint?.title}</b><small>{complaint?.id}</small></span></button>}

@@ -1,0 +1,1 @@
+import {initialComplaints} from "../demoData.js"; export const complaintApi={list:async()=>initialComplaints,get:async id=>initialComplaints.find(x=>x.id===id),create:async data=>({...data,id:`CH-DEMO-${Date.now()}`}),update:async(id,data)=>({id,...data}),upvote:async id=>({id,upvoted:true})};

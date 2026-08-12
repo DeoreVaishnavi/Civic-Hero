@@ -1,0 +1,32 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Node / Vite
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Environment and secrets
+.env.local
+.env.*.local
+**/appsettings.Local.json
+**/appsettings.Secrets.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test output
+TestResults/
+coverage/
+playwright-report/

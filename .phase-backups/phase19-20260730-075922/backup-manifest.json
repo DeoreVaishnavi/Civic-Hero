@@ -1,0 +1,422 @@
+﻿[
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\appsettings.Development.json",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\appsettings.json",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\appsettings.Production.json",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\AnonymousComplaintsController.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\AuthController.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\CommentModerationController.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\ComplaintCommentsController.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\ComplaintsController.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\EmergencyReviewsController.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Controllers\\VisualVerificationController.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Anonymous\\AnonymousComplaintDtos.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Auth\\LoginRequest.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Auth\\PhoneAuthDtos.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Comments\\ComplaintCommentDtos.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Complaints\\ComplaintResponse.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Complaints\\CreateComplaintRequest.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Emergency\\EmergencyReviewDtos.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Users\\UserDto.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Users\\UserProfileDto.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\VisualVerification\\VisualVerificationDtos.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\AnonymousComplaintAccess.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\Complaint.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\ComplaintComment.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\ComplaintEmergencyReview.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\PhoneOtpChallenge.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\User.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\VisualVerificationAnalysis.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Enums\\CommentModerationStatus.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Enums\\CommentVisibility.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Enums\\EmergencyReviewStatus.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Enums\\OtpPurpose.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Enums\\VisualVerificationVerdict.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Interfaces\\ICaptchaVerifier.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Interfaces\\ISmsSender.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Interfaces\\IUserRepository.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\AnonymousComplaintService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\AuthService.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\ComplaintCommentService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\ComplaintService.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\EmergencyReviewService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IAnonymousComplaintService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IAuthService.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IComplaintCommentService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IEmergencyReviewService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IPhoneOtpService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IVisualVerificationService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\PhoneOtpService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\RewardService.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Services\\VisualVerificationService.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Validators\\CreateComplaintValidator.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Core\\Validators\\LoginValidator.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\DependencyInjection.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\AI\\GeminiVisualVerificationProvider.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\AI\\RuleBasedVisualVerificationProvider.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\BackgroundServices\\VisualVerificationWorker.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Configurations\\AddonOptions.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Configurations\\SecurityOptions.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\CivicDbContext.DbSets.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\AnonymousComplaintAccessConfiguration.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\ComplaintCommentConfiguration.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\ComplaintConfiguration.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\ComplaintEmergencyReviewConfiguration.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\PhoneOtpChallengeConfiguration.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\UserConfiguration.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\VisualVerificationAnalysisConfiguration.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Notifications\\ConfiguredSmsSender.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Repositories\\UserRepository.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Security\\GoogleRecaptchaVerifier.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Security\\PhoneNumberNormalizer.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend\\Middleware\\RateLimitingMiddleware.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend.Tests\\Unit\\AI\\RuleBasedVisualVerificationProviderTests.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend.Tests\\Unit\\Security\\PhoneNumberNormalizerTests.cs",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "backend\\CivicHero.Backend.Tests\\Unit\\Validators\\LoginValidatorTests.cs",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "deployment\\.env.addon3.example",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "deployment\\docker-compose.addon3-secrets.yml",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "deployment\\backend\\docker-entrypoint.sh",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "deployment\\frontend\\Dockerfile",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "docs\\PHASE-19-BLUEPRINT-GAP-CLOSURE.md",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\.env.example",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\api\\axiosInstance.js",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\components\\common\\CaptchaWidget.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\components\\complaints\\ComplaintComments.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\components\\complaints\\ProtectedEvidenceImage.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\contexts\\AuthContext.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\layouts\\AdminLayout.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\layouts\\SupervisorLayout.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\citizen\\ComplaintDetailsAddon.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\citizen\\ReportComplaint.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\common\\AccountSecurity.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\officer\\AssignmentDetailsAddon.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\public\\AnonymousReportPage.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\public\\AnonymousTrackPage.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\public\\HomePage.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\public\\LoginPage.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\CommentModerationQueue.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\EmergencyReviewQueue.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\ManageAssignmentAddon.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\VisualVerificationQueue.jsx",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\routes\\AppRoutes.jsx",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\routes\\routePaths.js",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\services\\addonReviewApi.js",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\services\\anonymousComplaintApi.js",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\services\\authApi.js",
+        "Existed":  true
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\services\\commentApi.js",
+        "Existed":  false
+    },
+    {
+        "RelativePath":  "frontend\\civichero-web\\src\\services\\complaintApi.js",
+        "Existed":  true
+    }
+]

@@ -1,0 +1,1 @@
+import React,{createContext,useContext,useState} from "react"; const C=createContext(null); export function AuthProvider({children}){const [user,setUser]=useState({name:"Demo User",role:"Citizen"});return <C.Provider value={{user,setUser,isAuthenticated:true}}>{children}</C.Provider>} export const useAuth=()=>useContext(C);

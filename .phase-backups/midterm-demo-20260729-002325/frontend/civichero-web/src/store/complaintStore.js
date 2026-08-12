@@ -1,0 +1,1 @@
+import {create} from "zustand"; import {initialComplaints} from "../demoData.js"; export const useComplaintStore=create(set=>({complaints:initialComplaints,setComplaints:complaints=>set({complaints}),add:complaint=>set(s=>({complaints:[complaint,...s.complaints]}))}));

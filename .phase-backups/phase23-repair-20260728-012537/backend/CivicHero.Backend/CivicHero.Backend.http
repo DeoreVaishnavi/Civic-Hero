@@ -1,0 +1,46 @@
+@host = http://localhost:5180
+@accessToken = PASTE_ACCESS_TOKEN
+
+### Register citizen
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Abhimanyu Patil",
+  "email": "abhimanyu@example.com",
+  "phone": "+91 9876543210",
+  "password": "Civic@123",
+  "confirmPassword": "Civic@123"
+}
+
+### Verify email using developmentVerificationToken from register response
+POST {{host}}/api/v1/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "abhimanyu@example.com",
+  "token": "PASTE_DEVELOPMENT_VERIFICATION_TOKEN"
+}
+
+### Login
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "abhimanyu@example.com",
+  "password": "Civic@123"
+}
+
+### Current user
+GET {{host}}/api/v1/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Refresh token (uses HttpOnly cookie)
+POST {{host}}/api/v1/auth/refresh-token
+Content-Type: application/json
+
+{}
+
+### Logout
+POST {{host}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}

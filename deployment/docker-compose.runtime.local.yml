@@ -1,0 +1,8 @@
+services:
+  backend:
+    environment:
+      Jwt__SecretKey: "9F54142E9B20765BDB79672F0B87CD22D927BDAC9770433EF09513669430F3A81FA647F30F26D87B67F908806C7A1EB44A25E601EF85801703C4CA3A1EAE0BEB"
+    entrypoint:
+      - dotnet
+      - CivicHero.Backend.dll
+    command: []

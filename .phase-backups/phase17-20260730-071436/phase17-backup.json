@@ -1,0 +1,239 @@
+﻿{
+    "phase":  17,
+    "backupRoot":  "C:\\CivicHeroDev\\CivicHeroSolution\\.phase-backups\\phase17-20260730-071436",
+    "appliedAt":  "2026-07-30T07:14:37.9881807+05:30",
+    "changes":  [
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\appsettings.Development.json",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\appsettings.json",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\appsettings.Production.json",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\CivicHero.Backend.csproj",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Controllers\\IntegrationController.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Controllers\\TwoFactorController.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Auth\\LoginRequest.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Auth\\TwoFactorDtos.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\DTOs\\Auth\\TwoFactorVerifyRequest.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\Entities\\User.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\Services\\AuthService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IIntegrationReadinessService.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\Services\\IntegrationReadinessService.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Core\\Validators\\LoginValidator.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Filters\\InputSanitizationFilter.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\DependencyInjection.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\BackgroundServices\\AutoCloseBackgroundService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\BackgroundServices\\ComplaintEscalationBackgroundService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\BackgroundServices\\SlaMonitorBackgroundService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Caching\\ICacheService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Caching\\RedisCacheService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Configurations\\AutomationOptions.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Configurations\\RabbitMqOptions.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Configurations\\RedisOptions.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Data\\Configurations\\UserConfiguration.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Extensions\\ServiceCollectionExtensions.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\HealthChecks\\RabbitMqHealthCheck.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\HealthChecks\\RedisHealthCheck.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Messaging\\IMessagePublisher.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Messaging\\IntegrationEventEnvelope.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Messaging\\RabbitMqConsumer.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Messaging\\RabbitMqPublisher.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Security\\ITwoFactorService.cs",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "backend\\CivicHero.Backend\\Infrastructure\\Security\\TwoFactorService.cs",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "deployment\\.env.example",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "deployment\\.env.production.example",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "deployment\\docker-compose.prod.yml",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "deployment\\docker-compose.yml",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "docs\\PHASE-17-FINAL-INTEGRATION.md",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\package.json",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\layouts\\AdminLayout.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\admin\\AppealManagement.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\admin\\IntegrationCenter.jsx",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\admin\\VerificationHistory.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\citizen\\CitizenVerification.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\citizen\\DisputePage.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\common\\AccountSecurity.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\public\\LoginPage.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\DisputeQueue.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\DisputeReview.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\pages\\supervisor\\VerificationQueue.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\routes\\AppRoutes.jsx",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\routes\\routePaths.js",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\services\\integrationApi.js",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\services\\securityApi.js",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "frontend\\civichero-web\\src\\utils\\errorMapper.js",
+                        "existed":  true
+                    },
+                    {
+                        "relativePath":  "scripts\\integration\\audit-phase17-gaps.ps1",
+                        "existed":  false
+                    },
+                    {
+                        "relativePath":  "scripts\\integration\\run-phase17-integration-tests.ps1",
+                        "existed":  false
+                    }
+                ]
+}

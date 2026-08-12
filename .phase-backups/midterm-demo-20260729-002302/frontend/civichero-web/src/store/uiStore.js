@@ -1,0 +1,1 @@
+import {create} from "zustand"; export const useUiStore=create(set=>({sidebarOpen:false,language:"en",toggleSidebar:()=>set(s=>({sidebarOpen:!s.sidebarOpen})),setLanguage:language=>set({language})}));

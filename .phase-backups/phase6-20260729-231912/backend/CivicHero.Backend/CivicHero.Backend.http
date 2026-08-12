@@ -1,0 +1,25 @@
+@host = http://localhost:5180
+@token = REPLACE_WITH_ACCESS_TOKEN
+@complaintId = 1
+
+GET {{host}}/api/v1/health
+Accept: application/json
+
+### Complaint metadata
+GET {{host}}/api/v1/complaints/metadata
+Authorization: Bearer {{token}}
+
+### My complaints
+GET {{host}}/api/v1/complaints/mine?page=1&pageSize=12
+Authorization: Bearer {{token}}
+
+### Complaint detail
+GET {{host}}/api/v1/complaints/{{complaintId}}
+Authorization: Bearer {{token}}
+
+### Dashboard metrics
+GET {{host}}/api/v1/complaints/stats/dashboard
+Authorization: Bearer {{token}}
+
+### Nearby public issues
+GET {{host}}/api/v1/complaints/nearby?latitude=19.0760&longitude=72.8777&radiusKm=5

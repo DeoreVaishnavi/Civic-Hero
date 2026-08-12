@@ -1,0 +1,8 @@
+﻿backend\CivicHero.Backend\Controllers\InitiativesController.cs
+frontend\civichero-web\src\layouts\SupervisorLayout.jsx
+frontend\civichero-web\src\pages\public\ProjectsPage.jsx
+frontend\civichero-web\src\pages\supervisor\InitiativeEngagement.jsx
+frontend\civichero-web\src\pages\supervisor\SupervisorDashboard.jsx
+frontend\civichero-web\src\routes\AppRoutes.jsx
+frontend\civichero-web\src\routes\routePaths.js
+frontend\civichero-web\src\services\initiativeApi.js

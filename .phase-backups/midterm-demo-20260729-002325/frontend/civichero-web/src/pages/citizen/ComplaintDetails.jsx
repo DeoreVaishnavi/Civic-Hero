@@ -1,0 +1,1 @@
+import React from "react"; export default function ComplaintDetails(){return <section className="panel" style={{padding:24}}><h2>Complaint Details</h2><p>This module is available in the integrated mid-term demonstration workspace.</p></section>}

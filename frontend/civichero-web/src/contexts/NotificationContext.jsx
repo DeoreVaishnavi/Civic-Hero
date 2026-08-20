@@ -1,0 +1,1 @@
+import React,{createContext,useContext,useState} from "react"; const C=createContext(null); export function NotificationProvider({children}){const [items,setItems]=useState([]);const notify=(message)=>setItems(x=>[{id:Date.now(),message},...x]);return <C.Provider value={{items,notify}}>{children}</C.Provider>} export const useNotifications=()=>useContext(C);

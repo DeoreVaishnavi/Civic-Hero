@@ -1,0 +1,178 @@
+name: ${COMPOSE_PROJECT_NAME:-civichero-production}
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE in .env.production.local}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__DefaultConnection_FILE: /run/secrets/rds_connection
+      Jwt__SecretKey_FILE: /run/secrets/jwt_secret
+      AWS__Region: ${AWS_REGION:-ap-south-1}
+      AWS__BucketName: ${AWS_BUCKET:?Set AWS_BUCKET}
+      AWS__AccessKey_FILE: /run/secrets/aws_access_key
+      AWS__SecretKey_FILE: /run/secrets/aws_secret_key
+      AI__Provider: ${AI_PROVIDER:-RuleBased}
+      AI__ApiKey_FILE: /run/secrets/ai_api_key
+      Storage__Provider: S3
+      Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+      AllowedHosts: ${ALLOWED_HOSTS:?Set ALLOWED_HOSTS}
+      RELEASE_VERSION: ${RELEASE_VERSION:?Set RELEASE_VERSION}
+      COMMIT_SHA: ${COMMIT_SHA:-unknown}
+      Redis__Enabled: ${REDIS_ENABLED:-true}
+      Redis__Configuration: ${REDIS_CONFIGURATION:?Set REDIS_CONFIGURATION}
+      RabbitMq__Enabled: ${RABBITMQ_ENABLED:-true}
+      RabbitMq__HostName: ${RABBITMQ_HOST:?Set RABBITMQ_HOST}
+      RabbitMq__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMq__VirtualHost: ${RABBITMQ_VHOST:-/}
+      RabbitMq__UserName: ${RABBITMQ_USER:?Set RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
+      Security__DataProtectionKeysPath: /app/data-protection-keys
+    secrets:
+      - rds_connection
+      - jwt_secret
+      - aws_access_key
+      - aws_secret_key
+      - ai_api_key
+    expose:
+      - "8080"
+    restart: always
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    volumes:
+      - backend-logs:/app/logs
+      - data-protection-keys:/app/data-protection-keys
+    networks:
+      - civichero
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 1536M
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE in .env.production.local}
+    expose:
+      - "8080"
+    restart: always
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/cache/nginx:size=32m,mode=0755
+      - /var/run:size=8m,mode=0755
+    networks:
+      - civichero
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 384M
+
+  reverse-proxy:
+    image: nginx:stable-alpine
+    environment:
+      APP_HOST: ${APP_HOST:?Set APP_HOST}
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.production.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - certbot-webroot:/var/www/certbot
+    command: ["/bin/sh", "-c", "envsubst '$$APP_HOST' < /etc/nginx/templates/nginx.conf.template > /tmp/nginx.conf && exec nginx -c /tmp/nginx.conf -g 'daemon off;'"]
+    restart: always
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=32m,mode=0755
+      - /var/run:size=8m,mode=0755
+      - /etc/nginx/conf.d:size=8m,mode=0755
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://127.0.0.1/nginx-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - civichero
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    command: ["--config.file=/etc/blackbox_exporter/config.yml"]
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    expose:
+      - "9115"
+    restart: always
+    networks:
+      - civichero
+    profiles: ["monitoring"]
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    expose:
+      - "9090"
+    restart: always
+    networks:
+      - civichero
+    profiles: ["monitoring"]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: always
+    networks:
+      - civichero
+    profiles: ["monitoring"]
+
+networks:
+  civichero:
+    driver: bridge
+
+volumes:
+  backend-logs:
+  data-protection-keys:
+  certbot-webroot:
+  prometheus-data:
+  grafana-data:
+
+secrets:
+  rds_connection:
+    file: ${SECRETS_DIR:-./.secrets}/rds_connection.txt
+  jwt_secret:
+    file: ${SECRETS_DIR:-./.secrets}/jwt_secret.txt
+  aws_access_key:
+    file: ${SECRETS_DIR:-./.secrets}/aws_access_key.txt
+  aws_secret_key:
+    file: ${SECRETS_DIR:-./.secrets}/aws_secret_key.txt
+  ai_api_key:
+    file: ${SECRETS_DIR:-./.secrets}/ai_api_key.txt
+  grafana_admin_password:
+    file: ${SECRETS_DIR:-./.secrets}/grafana_admin_password.txt

@@ -1,0 +1,142 @@
+﻿{
+    "schemaVersion":  1,
+    "phase":  18,
+    "project":  "CivicHero",
+    "releaseVersion":  "v1.0.0-rc.1",
+    "gitCommit":  "HEAD",
+    "generatedAtUtc":  "2026-07-30T02:19:54.3036826Z",
+    "approved":  false,
+    "summary":  {
+                    "total":  13,
+                    "required":  13,
+                    "passed":  2,
+                    "failed":  11,
+                    "skipped":  0
+                },
+    "environment":  {
+                        "computer":  "WISH",
+                        "user":  "vaish",
+                        "dotnet":  "10.0.302",
+                        "node":  "v26.3.0",
+                        "docker":  "Docker version 29.5.3, build d1c06ef"
+                    },
+    "gates":  [
+                  {
+                      "key":  "source",
+                      "name":  "Final source and placeholder audit",
+                      "status":  "Passed",
+                      "required":  true,
+                      "detail":  "Completed successfully.",
+                      "evidencePath":  "artifacts/phase18/source-audit/final-source-audit.json",
+                      "durationSeconds":  26.47
+                  },
+                  {
+                      "key":  "git",
+                      "name":  "Clean Git working tree",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "Git commit could not be resolved.",
+                      "evidencePath":  "Git HEAD and status",
+                      "durationSeconds":  0.39
+                  },
+                  {
+                      "key":  "backend",
+                      "name":  "Backend Release build and xUnit coverage",
+                      "status":  "Passed",
+                      "required":  true,
+                      "detail":  "Completed successfully.",
+                      "evidencePath":  "artifacts/phase18/backend-tests",
+                      "durationSeconds":  92.69
+                  },
+                  {
+                      "key":  "frontend",
+                      "name":  "Frontend production build and Vitest coverage",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "Frontend dependency installation failed.",
+                      "evidencePath":  "frontend/civichero-web/coverage",
+                      "durationSeconds":  7.52
+                  },
+                  {
+                      "key":  "migrations",
+                      "name":  "Clean MySQL 8 migration test",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "mysqladmin: [Warning] Using a password on the command line interface can be insecure.",
+                      "evidencePath":  "artifacts/phase18/migrations/clean-migration.json",
+                      "durationSeconds":  2.52
+                  },
+                  {
+                      "key":  "docker",
+                      "name":  "Production-like Docker deployment",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "Docker deployment failed.",
+                      "evidencePath":  "Docker Compose and deployment verification",
+                      "durationSeconds":  155.75
+                  },
+                  {
+                      "key":  "e2e",
+                      "name":  "Critical complaint E2E journey",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "Missing E2E environment variables: CIVICHERO_SUPERVISOR_EMAIL, CIVICHERO_SUPERVISOR_PASSWORD, CIVICHERO_OFFICER_EMAIL, CIVICHERO_OFFICER_PASSWORD, CIVICHERO_E2E_DEPARTMENT_ID, CIVICHERO_E2E_WARD_ID, CIVICHERO_E2E_OFFICER_ID",
+                      "evidencePath":  "frontend/civichero-web/playwright-report",
+                      "durationSeconds":  0.4
+                  },
+                  {
+                      "key":  "newman",
+                      "name":  "Postman/Newman API regression",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "newman is not installed or is not available on PATH.",
+                      "evidencePath":  "artifacts/phase18/newman.json",
+                      "durationSeconds":  0.22
+                  },
+                  {
+                      "key":  "performance",
+                      "name":  "k6 release performance baseline",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "k6 is not installed or is not available on PATH.",
+                      "evidencePath":  "artifacts/phase18/k6-summary.json",
+                      "durationSeconds":  0.18
+                  },
+                  {
+                      "key":  "security",
+                      "name":  "OWASP ZAP baseline",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "OWASP ZAP baseline reported release-blocking findings.",
+                      "evidencePath":  "TestResults/security",
+                      "durationSeconds":  206.22
+                  },
+                  {
+                      "key":  "monitoring",
+                      "name":  "Application and monitoring endpoints",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "One or more monitoring checks failed.",
+                      "evidencePath":  "artifacts/phase18/monitoring/monitoring-verification.json",
+                      "durationSeconds":  18.24
+                  },
+                  {
+                      "key":  "backup",
+                      "name":  "Backup and restore rehearsal evidence",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "The backup restore rehearsal is not marked successful.",
+                      "evidencePath":  "artifacts/phase18/backup-restore-evidence.json",
+                      "durationSeconds":  0.6
+                  },
+                  {
+                      "key":  "uat",
+                      "name":  "Signed UAT evidence",
+                      "status":  "Failed",
+                      "required":  true,
+                      "detail":  "UAT is not approved.",
+                      "evidencePath":  "tests/uat/phase18-uat-signoff.json",
+                      "durationSeconds":  0.12
+                  }
+              ]
+}

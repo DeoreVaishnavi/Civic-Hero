@@ -1,0 +1,14 @@
+﻿{
+    "generatedAt":  "2026-07-30T06:02:52.1295035+05:30",
+    "computer":  "WISH",
+    "user":  "vaish",
+    "gitCommit":  "git commit unavailable",
+    "dotnet":  "10.0.302",
+    "node":  "v26.3.0",
+    "docker":  "Docker version 29.5.3, build d1c06ef",
+    "migrations":  [
+                       "Build started...",
+                       "Build succeeded.",
+                       "20260729202622_InitialCreate"
+                   ]
+}

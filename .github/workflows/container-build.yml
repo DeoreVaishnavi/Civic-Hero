@@ -1,0 +1,48 @@
+name: Publish Container Images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: container-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/civichero-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/civichero-frontend
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+      - name: Build images
+        run: |
+          docker build -f deployment/backend/Dockerfile -t "$BACKEND_IMAGE:${GITHUB_SHA}" .
+          docker build -f deployment/frontend/Dockerfile -t "$FRONTEND_IMAGE:${GITHUB_SHA}" .
+      - name: Push immutable images
+        run: |
+          docker push "$BACKEND_IMAGE:${GITHUB_SHA}"
+          docker push "$FRONTEND_IMAGE:${GITHUB_SHA}"
+      - name: Publish branch or release aliases
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            alias="${GITHUB_REF_NAME}"
+          else
+            alias="latest"
+          fi
+          docker tag "$BACKEND_IMAGE:${GITHUB_SHA}" "$BACKEND_IMAGE:${alias}"
+          docker tag "$FRONTEND_IMAGE:${GITHUB_SHA}" "$FRONTEND_IMAGE:${alias}"
+          docker push "$BACKEND_IMAGE:${alias}"
+          docker push "$FRONTEND_IMAGE:${alias}"

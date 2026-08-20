@@ -1,0 +1,4 @@
+@CivicHeroApi = http://localhost:5180
+
+GET {{CivicHeroApi}}/api/v1/health
+Accept: application/json

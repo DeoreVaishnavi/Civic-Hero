@@ -1,0 +1,122 @@
+@host = http://localhost:5180
+@token = REPLACE_WITH_ACCESS_TOKEN
+@complaintId = 1
+@officerId = 2
+
+GET {{host}}/api/v1/health
+Accept: application/json
+
+### Complaint metadata
+GET {{host}}/api/v1/complaints/metadata
+Authorization: Bearer {{token}}
+
+### My complaints
+GET {{host}}/api/v1/complaints/mine?page=1&pageSize=12
+Authorization: Bearer {{token}}
+
+### Complaint detail
+GET {{host}}/api/v1/complaints/{{complaintId}}
+Authorization: Bearer {{token}}
+
+### Dashboard metrics
+GET {{host}}/api/v1/complaints/stats/dashboard
+Authorization: Bearer {{token}}
+
+### Nearby public issues
+GET {{host}}/api/v1/complaints/nearby?latitude=19.0760&longitude=72.8777&radiusKm=5
+
+### Phase 6 - pending assignment queue
+GET {{host}}/api/v1/assignments/pending?page=1&pageSize=12
+Authorization: Bearer {{token}}
+
+### Phase 6 - eligible officers
+GET {{host}}/api/v1/assignments/eligible-officers/{{complaintId}}
+Authorization: Bearer {{token}}
+
+### Phase 6 - assign complaint
+POST {{host}}/api/v1/assignments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "complaintId": {{complaintId}},
+  "officerId": {{officerId}},
+  "reason": "Nearest available officer"
+}
+
+### Phase 6 - officer accepts
+POST {{host}}/api/v1/assignments/{{complaintId}}/accept
+Authorization: Bearer {{token}}
+
+### Phase 6 - officer progress
+POST {{host}}/api/v1/assignments/{{complaintId}}/progress
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "message": "Site inspected and repair crew requested.",
+  "progressPercent": 40,
+  "latitude": 19.076,
+  "longitude": 72.8777
+}
+
+### Phase 6 - officer work queue
+GET {{host}}/api/v1/assignments/mine?page=1&pageSize=12
+Authorization: Bearer {{token}}
+
+### Phase 7 - citizen checks geo-fence
+POST {{host}}/api/v1/verifications/geo-verify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "complaintId": {{complaintId}},
+  "latitude": 19.076,
+  "longitude": 72.8777
+}
+
+### Phase 7 - citizen approves or rejects resolution
+POST {{host}}/api/v1/verifications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "complaintId": {{complaintId}},
+  "approved": true,
+  "rating": 5,
+  "feedback": "The issue is resolved satisfactorily.",
+  "latitude": 19.076,
+  "longitude": 72.8777
+}
+
+### Phase 7 - supervisor verification queue
+GET {{host}}/api/v1/verifications/pending
+Authorization: Bearer {{token}}
+
+### Phase 7 - supervisor disputes
+GET {{host}}/api/v1/disputes?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Phase 7 - citizen disputes
+GET {{host}}/api/v1/disputes/mine?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+
+### Phase 8 - Notifications
+GET {{CivicHero_Backend_HostAddress}}/api/v1/notifications?unreadOnly=false&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### Phase 8 - Notification preferences
+GET {{CivicHero_Backend_HostAddress}}/api/v1/notifications/preferences
+Authorization: Bearer {{accessToken}}
+
+### Phase 8 - Reward points
+GET {{CivicHero_Backend_HostAddress}}/api/v1/rewards/points
+Authorization: Bearer {{accessToken}}
+
+### Phase 8 - Public leaderboard
+GET {{CivicHero_Backend_HostAddress}}/api/v1/rewards/leaderboard?limit=25
+
+### Phase 8 - Reward catalog
+GET {{CivicHero_Backend_HostAddress}}/api/v1/rewards/catalog
+Authorization: Bearer {{accessToken}}

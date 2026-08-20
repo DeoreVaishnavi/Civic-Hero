@@ -1,0 +1,12 @@
+services:
+  backend:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Deployment__AllowHttp: "true"
+      Database__ApplyMigrationsOnStartup: "false"
+      ConnectionStrings__DefaultConnection_FILE: /run/secrets/rds_connection
+      Storage__Provider: S3
+      Cors__AllowedOrigins__0: http://localhost:${PUBLIC_HTTP_PORT:-5173}
+      AllowedHosts: "*"
+    ports:
+      - "127.0.0.1:${BACKEND_HOST_PORT:-5180}:8080"

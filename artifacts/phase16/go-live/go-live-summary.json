@@ -1,0 +1,8 @@
+﻿{
+    "GeneratedAt":  "2026-07-30T06:05:30.9852415+05:30",
+    "BaseUrl":  "http://localhost:8088",
+    "Passed":  6,
+    "Total":  9,
+    "AllPassed":  false,
+    "Note":  "Technical checks only. Stakeholder approval and UAT signatures remain manual evidence."
+}

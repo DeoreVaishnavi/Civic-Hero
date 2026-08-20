@@ -1,0 +1,32 @@
+{
+  "releaseVersion": "v1.0.0-rc.1",
+  "environment": "staging",
+  "executionDate": "2026-07-28",
+  "passRate": 0,
+  "openCriticalDefects": 0,
+  "openMajorDefects": 0,
+  "approved": false,
+  "participants": [
+    {
+      "name": "REPLACE",
+      "role": "Citizen evaluator"
+    },
+    {
+      "name": "REPLACE",
+      "role": "Municipal evaluator"
+    }
+  ],
+  "signatures": [
+    {
+      "name": "REPLACE",
+      "role": "Project owner",
+      "signedAt": "REPLACE"
+    },
+    {
+      "name": "REPLACE",
+      "role": "Stakeholder",
+      "signedAt": "REPLACE"
+    }
+  ],
+  "notes": "Copy to phase18-uat-signoff.json and replace every placeholder with real execution evidence."
+}

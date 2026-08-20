@@ -1,0 +1,14 @@
+services:
+  backend:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Database__ApplyMigrationsOnStartup: "false"
+      Security__EnableRateLimiting: "true"
+      Security__EnableSecurityHeaders: "true"
+      RELEASE_VERSION: ${RELEASE_VERSION:?Set RELEASE_VERSION}
+      COMMIT_SHA: ${COMMIT_SHA:?Set COMMIT_SHA}
+    restart: unless-stopped
+  frontend:
+    restart: unless-stopped
+  reverse-proxy:
+    restart: unless-stopped

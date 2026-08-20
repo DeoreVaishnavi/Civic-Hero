@@ -1,0 +1,5 @@
+TABLES LIKE '%verification%':
+
+__EFMigrationsHistory rows:
+20260630103110_InitialMasterData | 9.0.17
+20260728055827_AddDisputeManagementAndRelatedChanges | 9.0.17
